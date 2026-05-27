@@ -1,0 +1,333 @@
+{
+  "jogadores": {
+    "1485059588662231252": {
+      "nome": "sz_thiago077",
+      "nivel": 5,
+      "xp": 656,
+      "vida": 1560,
+      "vidaMax": 1560,
+      "ataque": 217,
+      "defesa": 91,
+      "moedas": 1891,
+      "poder": {
+        "nome": "Vento Celestial",
+        "emoji": "🌪️",
+        "ataques": [
+          "Lâmina de Vento",
+          "Furacão Cortante",
+          "Passo Relâmpago"
+        ],
+        "bonusAtk": 25
+      },
+      "mapasLiberados": [
+        "Floresta Sombria"
+      ],
+      "inventario": [
+        {
+          "nome": "Poção Suprema",
+          "preco": 600,
+          "tipo": "consumivel",
+          "cura": 1500,
+          "raridade": "Comum"
+        }
+      ],
+      "equipado": {
+        "arma": null,
+        "armadura": null
+      },
+      "vitorias": 7,
+      "derrotas": 3,
+      "bossPendente": null
+    },
+    "1053803800340746261": {
+      "nome": "sr_paz",
+      "nivel": 61,
+      "xp": 7439,
+      "vida": 1860,
+      "vidaMax": 1860,
+      "ataqueBase": 472,
+      "defesaBase": 231,
+      "moedas": 115550,
+      "poder": {
+        "nome": "Sombras",
+        "emoji": "🌑",
+        "ataques": [
+          "Arise",
+          "Corte do Monarca",
+          "Exército das Sombras",
+          "Domínio Absoluto",
+          "Execução Sombria"
+        ],
+        "atk": 2500,
+        "def": 1500
+      },
+      "mapasLiberados": [
+        "Floresta Sombria",
+        "Caverna dos Lobos",
+        "Ruínas do Rei Esqueleto"
+      ],
+      "inventario": [
+        {
+          "nome": "Katana Azul",
+          "tipo": "arma",
+          "raridade": "Rara",
+          "ataque": 180
+        },
+        {
+          "nome": "Poção Pequena",
+          "tipo": "consumivel",
+          "raridade": "Comum",
+          "cura": 300
+        },
+        {
+          "nome": "Cristal Fraco",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Espada Demoníaca",
+          "tipo": "arma",
+          "raridade": "Épica",
+          "ataque": 350,
+          "habilidade": "Corte Infernal"
+        },
+        {
+          "nome": "Katana Azul",
+          "tipo": "arma",
+          "raridade": "Rara",
+          "ataque": 180
+        },
+        {
+          "nome": "Cristal Fraco",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Cristal Fraco",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Adaga Sombria",
+          "tipo": "arma",
+          "raridade": "Rara",
+          "ataque": 120
+        },
+        {
+          "nome": "Fragmento de Ferro",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Poção Pequena",
+          "tipo": "consumivel",
+          "raridade": "Comum",
+          "cura": 300
+        },
+        {
+          "nome": "Pedra de Mana",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Armadura de Mana",
+          "tipo": "armadura",
+          "raridade": "Rara",
+          "defesa": 100
+        },
+        {
+          "nome": "Pedra de Mana",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Fragmento de Ferro",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Fragmento de Ferro",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Cristal Fraco",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Pedra de Mana",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Fragmento de Ferro",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Fragmento de Ferro",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Cristal Fraco",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Pedra de Mana",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Pedra de Mana",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Pedra de Mana",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Fragmento de Ferro",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Adaga Sombria",
+          "tipo": "arma",
+          "raridade": "Rara",
+          "ataque": 120
+        },
+        {
+          "nome": "Cristal Fraco",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Pedra de Mana",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Katana Azul",
+          "tipo": "arma",
+          "raridade": "Rara",
+          "ataque": 180
+        },
+        {
+          "nome": "Armadura de Mana",
+          "tipo": "armadura",
+          "raridade": "Rara",
+          "defesa": 100
+        },
+        {
+          "nome": "Cristal Fraco",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Pedra de Mana",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Fragmento de Ferro",
+          "tipo": "material",
+          "raridade": "Comum"
+        },
+        {
+          "nome": "Katana Azul",
+          "tipo": "arma",
+          "raridade": "Rara",
+          "ataque": 180
+        }
+      ],
+      "equipado": {
+        "arma": {
+          "nome": "Espada Demoníaca",
+          "tipo": "arma",
+          "raridade": "Épica",
+          "ataque": 350,
+          "habilidade": "Corte Infernal"
+        },
+        "armadura": {
+          "nome": "Armadura de Mana",
+          "tipo": "armadura",
+          "raridade": "Rara",
+          "defesa": 100
+        }
+      },
+      "sombras": [
+        {
+          "nome": "Monstro de Floresta Sombria",
+          "ataque": 22,
+          "defesa": 10
+        },
+        {
+          "nome": "Monstro de Caverna dos Lobos",
+          "ataque": 242,
+          "defesa": 120
+        },
+        {
+          "nome": "Boss Guardião de Caverna dos Lobos",
+          "ataque": 402,
+          "defesa": 200
+        },
+        {
+          "nome": "Guardião do Portal: Ruínas do Rei Esqueleto",
+          "ataque": 75,
+          "defesa": 29
+        },
+        {
+          "nome": "General Ossudo",
+          "ataque": 121,
+          "defesa": 47
+        }
+      ],
+      "sombraPendente": {
+        "nome": "Monstro de Ruínas do Rei Esqueleto",
+        "ataque": 283,
+        "defesa": 141
+      },
+      "bossPendente": null,
+      "vitorias": 33,
+      "derrotas": 1,
+      "mapaAtual": "Ruínas do Rei Esqueleto",
+      "portalPendente": null,
+      "dungeon": {
+        "andar": 2,
+        "recompensaXp": 180,
+        "recompensaMoedas": 250
+      }
+    }
+  },
+  "guilds": {
+    "Nome": {
+      "dono": "1053803800340746261",
+      "membros": [
+        "1053803800340746261"
+      ],
+      "nivel": 1
+    },
+    "the king": {
+      "dono": "1053803800340746261",
+      "membros": [
+        "1053803800340746261"
+      ],
+      "nivel": 1
+    }
+  },
+  "raid": {
+    "ativa": true,
+    "boss": "Dragão do Apocalipse",
+    "vida": 485607,
+    "vidaMax": 500000,
+    "dano": {
+      "1053803800340746261": 14393
+    },
+    "criada": 1779888455742
+  }
+}
