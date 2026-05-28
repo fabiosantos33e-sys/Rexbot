@@ -86,9 +86,23 @@ const poderesNormais = [
 const poderSombras = {
   nome: "Sombras",
   emoji: "🌑",
-  ataques: ["Arise", "Corte do Monarca", "Exército das Sombras", "Domínio Absoluto", "Execução Sombria"],
+  ataques: [
+    "Arise",
+    "Corte do Monarca",
+    "Exército das Sombras",
+    "Domínio Absoluto",
+    "Execução Sombria"
+  ],
+
   atk: 3500,
-  def: 2500
+  def: 2500,
+
+  ultimate: {
+    nome: "🌑 DOMÍNIO DO MONARCA",
+    chance: 1,00.
+    multiplicador: 4,
+    imagem: "https://discord.com/channels/1454296377021435996/1495896642904129676/1509668361838133380"
+  }
 };
 
 const mapas = [
@@ -461,7 +475,13 @@ function narrarLuta(p, inimigo) {
 
   for (let turno = 1; turno <= 7; turno++) {
     let ataque = rand(p.poder.ataques);
+    let usouUltimate = false;
+let ultimate = p.poder.ultimate;
 
+if (ultimate && Math.random() < ultimate.chance) {
+  ataque = ultimate.nome;
+  usouUltimate = true;
+}
     if (classe && Math.random() < 0.35) {
       ataque = `${rand(classe.habilidades)} (${classe.nome})`;
     }
@@ -471,22 +491,33 @@ function narrarLuta(p, inimigo) {
     }
 
     const critico = Math.random() < 0.18;
-    const danoPlayer = Math.max(
-      20,
-      atkTotal(p) + Math.floor(Math.random() * 120) - Math.floor(inimigo.defesa / 2)
-    ) * (critico ? 2 : 1);
+let danoPlayer = Math.max(
+  20,
+  atkTotal(p) +
+  Math.floor(Math.random() * 120) -
+  Math.floor(inimigo.defesa / 2)
+);
 
+if (usouUltimate) {
+  danoPlayer *= ultimate.multiplicador;
+}
     vidaInimigo = Math.max(0, vidaInimigo - danoPlayer);
 
     turnos.push({
       name: `⚔️ Turno ${turno} — ${p.nome}`,
-      value:
-        `${p.poder.emoji} Sua aura se espalhou pelo chão.\n` +
-        `${classe ? `${classe.emoji} Classe ativa: **${classe.nome}**\n` : ""}` +
-        `💥 Você usou **${ataque}**.\n\n` +
-        `${critico ? "🔥 **CRÍTICO!**\n" : ""}` +
-        `🩸 Dano causado: **${danoPlayer}**\n` +
-        `👹 Inimigo: ${barra(vidaInimigo, inimigo.vida)} ${vidaInimigo}/${inimigo.vida}`
+       value:
+`${p.poder.emoji} Sua aura se espalhou pelo chão.\n` +
+`${classe ? `${classe.emoji} Classe ativa: **${classe.nome}**\n` : ""}` +
+
+`${usouUltimate ? 
+"🌌 **O céu escureceu...**\n⚫ A dungeon começou a tremer...\n👁️ O Monarca das Sombras despertou.\n\n"
+: ""}` +
+
+`${critico ? "💥 **CRÍTICO!**\n" : ""}` +
+
+`🗡️ Você usou **${ataque}**!\n\n` +
+`🩸 Dano causado: **${danoPlayer}**\n` +
+`👹 Inimigo: ${barra(vidaInimigo, inimigo.vida)} ${vidaInimigo}/${inimigo.vida}`
     });
 
     if (vidaInimigo <= 0) break;
