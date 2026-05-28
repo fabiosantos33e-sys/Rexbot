@@ -116,7 +116,7 @@ const poderGojo = {
   def: 3200,
   ultimate: {
     nome: "🔵 EXPANSÃO DE DOMÍNIO: INFINITO ABSOLUTO",
-    chance: 1,
+    chance: 0.08,
     multiplicador: 4,
     imagem: "https://cdn.discordapp.com/attachments/1495896642904129676/1509690086365855805/gojo-satoru-jujutsu-kaisen.webp?ex=6a1a17f5&is=6a18c675&hm=35122b05fdc8a1b9f27ee162957d02973e2975c89e68c325cd344bba03d37135&.png"
   }
