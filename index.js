@@ -1,3 +1,14 @@
+const express = require("express");
+const app = express();
+
+app.get("/", (req, res) => {
+  res.send("Mostrinho online 😎🔥");
+});
+
+app.listen(3000, () => {
+  console.log("🌐 Porta aberta");
+});
+
 const {
   Client,
   GatewayIntentBits,
