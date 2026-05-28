@@ -172,5 +172,4 @@ require("./pet")(client);
 require("./rpg")(client);
 require("./rpg_extra")(client);
 require("./rpg_dungeo_raid")(client);
-
-client.login(process.env.TOKEN);
+client.login(process.env.TOKEN)
