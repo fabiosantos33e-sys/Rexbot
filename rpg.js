@@ -93,15 +93,51 @@ const poderSombras = {
     "Domínio Absoluto",
     "Execução Sombria"
   ],
-
   atk: 3500,
   def: 2500,
-
   ultimate: {
     nome: "🌑 DOMÍNIO DO MONARCA",
     chance: 1,
     multiplicador: 4,
-    imagem: "https://discord.com/channels/1454296377021435996/1495896642904129676/1509668361838133380"
+    imagem: "https://cdn.discordapp.com/attachments/1495896642904129676/1509668361364312196/solo-leveling-monarch.gif?ex=6a1a03b9&is=6a18b239&hm=c62736a31d87c520ba80fa731bf6291440b71f0a1f0b7e6666409ef9edc7db71&.png"
+  }
+};
+
+const poderGojo = {
+  nome: "Infinito",
+  emoji: "🔵",
+  ataques: [
+    "Azul",
+    "Vermelho",
+    "Vazio Roxo",
+    "Infinito Defensivo"
+  ],
+  atk: 2800,
+  def: 3200,
+  ultimate: {
+    nome: "🔵 EXPANSÃO DE DOMÍNIO: INFINITO ABSOLUTO",
+    chance: 1,
+    multiplicador: 4,
+    imagem: "https://cdn.discordapp.com/attachments/1495896642904129676/1509690086365855805/gojo-satoru-jujutsu-kaisen.webp?ex=6a1a17f5&is=6a18c675&hm=35122b05fdc8a1b9f27ee162957d02973e2975c89e68c325cd344bba03d37135&.png"
+  }
+};
+
+const poderSukuna = {
+  nome: "Maldição Real",
+  emoji: "⛩️",
+  ataques: [
+    "Corte Desmantelador",
+    "Corte Divisor",
+    "Fuga das Chamas",
+    "Lâmina Amaldiçoada"
+  ],
+  atk: 3400,
+  def: 2200,
+  ultimate: {
+    nome: "⛩️ EXPANSÃO DE DOMÍNIO: SANTUÁRIO AMALDIÇOADO",
+    chance: 1,
+    multiplicador: 4,
+    imagem: "https://cdn.discordapp.com/attachments/1495896642904129676/1509690086613057758/jujutsu-kaisen-ryoumen-sukuna.webp?ex=6a1a17f5&is=6a18c675&hm=875061a9a10fb314a49e9d1b3d8057b74a827f3a3748fe27bc4b5893c44d3f2d&.png"
   }
 };
 
@@ -476,12 +512,8 @@ function narrarLuta(p, inimigo) {
   for (let turno = 1; turno <= 7; turno++) {
     let ataque = rand(p.poder.ataques);
     let usouUltimate = false;
-let ultimate = p.poder.ultimate;
+    let ultimate = p.poder?.ultimate;
 
-if (ultimate && Math.random() < ultimate.chance) {
-  ataque = ultimate.nome;
-  usouUltimate = true;
-}
     if (classe && Math.random() < 0.35) {
       ataque = `${rand(classe.habilidades)} (${classe.nome})`;
     }
@@ -490,34 +522,54 @@ if (ultimate && Math.random() < ultimate.chance) {
       ataque = `${p.equipado.arma.habilidade} (${p.equipado.arma.nome})`;
     }
 
-    const critico = Math.random() < 0.18;
-let danoPlayer = Math.max(
-  20,
-  atkTotal(p) +
-  Math.floor(Math.random() * 120) -
-  Math.floor(inimigo.defesa / 2)
-);
+    if (ultimate && Math.random() < ultimate.chance) {
+      ataque = ultimate.nome;
+      usouUltimate = true;
+    }
 
-if (usouUltimate) {
-  danoPlayer *= ultimate.multiplicador;
-}
+    const critico = Math.random() < 0.18;
+
+    let danoPlayer = Math.max(
+      20,
+      atkTotal(p) +
+      Math.floor(Math.random() * 120) -
+      Math.floor(inimigo.defesa / 2)
+    );
+
+    if (critico) danoPlayer *= 2;
+    if (usouUltimate) danoPlayer *= ultimate.multiplicador;
+
     vidaInimigo = Math.max(0, vidaInimigo - danoPlayer);
+
+    let textoUltimate = "";
+
+    if (usouUltimate && p.poder.nome === "Sombras") {
+      textoUltimate =
+        `🌌 **O céu escureceu...**\n` +
+        `⚫ A dungeon começou a tremer.\n` +
+        `👁️ O Monarca das Sombras despertou sua verdadeira força.\n\n`;
+    } else if (usouUltimate && p.poder.nome === "Infinito") {
+      textoUltimate =
+        `🔵 **O espaço parou ao seu redor...**\n` +
+        `🌀 A distância entre tudo começou a se dobrar.\n` +
+        `👁️ O Infinito tomou conta da dungeon.\n\n`;
+    } else if (usouUltimate && p.poder.nome === "Maldição Real") {
+      textoUltimate =
+        `⛩️ **O santuário surgiu no meio da dungeon...**\n` +
+        `🩸 Cortes invisíveis rasgaram o ar.\n` +
+        `🔥 A presença amaldiçoada dominou o campo de batalha.\n\n`;
+    }
 
     turnos.push({
       name: `⚔️ Turno ${turno} — ${p.nome}`,
-       value:
-`${p.poder.emoji} Sua aura se espalhou pelo chão.\n` +
-`${classe ? `${classe.emoji} Classe ativa: **${classe.nome}**\n` : ""}` +
-
-`${usouUltimate ? 
-"🌌 **O céu escureceu...**\n⚫ A dungeon começou a tremer...\n👁️ O Monarca das Sombras despertou.\n\n"
-: ""}` +
-
-`${critico ? "💥 **CRÍTICO!**\n" : ""}` +
-
-`🗡️ Você usou **${ataque}**!\n\n` +
-`🩸 Dano causado: **${danoPlayer}**\n` +
-`👹 Inimigo: ${barra(vidaInimigo, inimigo.vida)} ${vidaInimigo}/${inimigo.vida}`
+      value:
+        `${p.poder.emoji} Sua aura se espalhou pelo chão.\n` +
+        `${classe ? `${classe.emoji} Classe ativa: **${classe.nome}**\n` : ""}` +
+        textoUltimate +
+        `${critico ? "💥 **CRÍTICO!**\n" : ""}` +
+        `🗡️ Você usou **${ataque}**!\n\n` +
+        `🩸 Dano causado: **${danoPlayer}**\n` +
+        `👹 Inimigo: ${barra(vidaInimigo, inimigo.vida)} ${vidaInimigo}/${inimigo.vida}`
     });
 
     if (vidaInimigo <= 0) break;
@@ -1069,6 +1121,8 @@ module.exports = (client) => {
       else if (acao === "heal") alvo.vida = vidaTotal(alvo);
       else if (acao === "reset") delete db.jogadores[membro.id];
       else if (acao === "sombras") alvo.poder = poderSombras;
+      else if (acao === "gojo") alvo.poder = poderGojo;
+      else if (acao === "sukuna") alvo.poder = poderSukuna;
       else if (acao === "classe") alvo.classe = null;
       else if (acao === "mapa") {
         const nomeMapa = args.slice(2).join(" ").toLowerCase();
@@ -1076,7 +1130,7 @@ module.exports = (client) => {
         if (!mapa) return message.reply("Mapa não encontrado.");
         if (!alvo.mapasLiberados.includes(mapa.nome)) alvo.mapasLiberados.push(mapa.nome);
       }
-      else return message.reply("Ação inválida: money, xp, level, heal, reset, sombras, classe, mapa, evento");
+      else return message.reply("Ação inválida: money, xp, level, heal, reset, sombras, gojo, sukuna, classe, mapa, evento");
 
       save(db);
       return message.reply(`👑 Admin executou **${acao}** em ${membro}`);
@@ -1134,6 +1188,8 @@ module.exports = (client) => {
           `,adm heal @user\n` +
           `,adm reset @user\n` +
           `,adm sombras @user\n` +
+          `,adm gojo @user\n` +
+          `,adm sukuna @user\n` +
           `,adm classe @user\n` +
           `,adm mapa @user nome\n` +
           `,adm evento eclipse/mana/raid/clear`
