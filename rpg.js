@@ -97,7 +97,7 @@ const poderSombras = {
   def: 2500,
   ultimate: {
     nome: "🌑 DOMÍNIO DO MONARCA",
-    chance: 1,
+    chance: 0.08,
     multiplicador: 4,
     imagem: "https://cdn.discordapp.com/attachments/1495896642904129676/1509668361364312196/solo-leveling-monarch.gif?ex=6a1a03b9&is=6a18b239&hm=c62736a31d87c520ba80fa731bf6291440b71f0a1f0b7e6666409ef9edc7db71&.png"
   }
@@ -135,7 +135,7 @@ const poderSukuna = {
   def: 2200,
   ultimate: {
     nome: "⛩️ EXPANSÃO DE DOMÍNIO: SANTUÁRIO AMALDIÇOADO",
-    chance: 1,
+    chance: 0.08,
     multiplicador: 4,
     imagem: "https://cdn.discordapp.com/attachments/1495896642904129676/1509690086613057758/jujutsu-kaisen-ryoumen-sukuna.webp?ex=6a1a17f5&is=6a18c675&hm=875061a9a10fb314a49e9d1b3d8057b74a827f3a3748fe27bc4b5893c44d3f2d&.png"
   }
@@ -916,6 +916,55 @@ module.exports = (client) => {
         `🎁 Drop bônus +${bonus.drop}`
       );
     }
+
+if (cmd === "ultimate") {
+
+  if (!p.poder.ultimate) {
+    return message.reply("❌ Você não possui ultimate.");
+  }
+
+  let texto = "";
+  let gif = "";
+
+  if (p.poder.nome === "Sombras") {
+
+    texto =
+    "🌌 O céu escureceu...\n" +
+    "⚫ A dungeon começou a tremer...\n" +
+    "👁️ O Monarca das Sombras despertou.";
+
+    gif = "https://cdn.discordapp.com/attachments/1495896642904129676/1509668361364312196/solo-leveling-monarch.gif?ex=6a1a03b9&is=6a18b239&hm=c62736a31d87c520ba80fa731bf6291440b71f0a1f0b7e6666409ef9edc7db71&.png";
+  }
+
+  else if (p.poder.nome === "Infinito") {
+
+    texto =
+    "🔵 O espaço foi distorcido...\n" +
+    "🌀 Tudo ficou imóvel diante do Infinito.";
+
+    gif = "https://cdn.discordapp.com/attachments/1495896642904129676/1509690086613057758/jujutsu-kaisen-ryoumen-sukuna.webp?ex=6a1a17f5&is=6a18c675&hm=875061a9a10fb314a49e9d1b3d8057b74a827f3a3748fe27bc4b5893c44d3f2d&.png";
+  }
+
+  else if (p.poder.nome === "Maldição Real") {
+
+    texto =
+    "⛩️ O santuário amaldiçoado apareceu...\n" +
+    "🩸 Cortes invisíveis rasgaram a dungeon.";
+
+    gif = "https://cdn.discordapp.com/attachments/1495896642904129676/1509690086613057758/jujutsu-kaisen-ryoumen-sukuna.webp?ex=6a1a17f5&is=6a18c675&hm=875061a9a10fb314a49e9d1b3d8057b74a827f3a3748fe27bc4b5893c44d3f2d&.png";
+  }
+
+  const embed = new EmbedBuilder()
+    .setColor("#2b003d")
+    .setTitle(p.poder.ultimate.nome)
+    .setDescription(texto);
+
+  if (gif !== "LINK_DO_GIF") {
+    embed.setImage(gif);
+  }
+
+  return message.reply({ embeds: [embed] });
+}
 
     if (cmd === "caçar") {
       const achouBoss = Math.floor(Math.random() * 100) <= 30;
