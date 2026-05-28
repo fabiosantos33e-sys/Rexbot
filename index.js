@@ -15,7 +15,6 @@ const {
 } = require("discord.js");
 
 const fs = require("fs");
-client.login(process.env.TOKEN)
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -174,4 +173,4 @@ require("./rpg")(client);
 require("./rpg_extra")(client);
 require("./rpg_dungeo_raid")(client);
 
-client.login("TOKEN")
+client.login(process.env.TOKEN);
