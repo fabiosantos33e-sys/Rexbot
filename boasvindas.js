@@ -8,7 +8,7 @@ module.exports = (client) => {
 
     const canal =
       member.guild.channels.cache.find(
-        c => c.name === "boas-vindas"
+        c => c.name === "･ﾟ🦕-┊🌿┊💬◇『ℂ𝕙𝕒𝕥』◇💬┊🌿┊🦕･ﾟ"
       );
 
     if (!canal) return;
