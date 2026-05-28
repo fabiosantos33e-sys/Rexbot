@@ -99,7 +99,7 @@ const poderSombras = {
 
   ultimate: {
     nome: "🌑 DOMÍNIO DO MONARCA",
-    chance: 1,00.
+    chance: 1.
     multiplicador: 4,
     imagem: "https://discord.com/channels/1454296377021435996/1495896642904129676/1509668361838133380"
   }
