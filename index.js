@@ -172,7 +172,6 @@ require("./pet")(client);
 require("./rpg")(client);
 require("./rpg_extra")(client);
 require("./rpg_dungeo_raid")(client);
-require("./boasvindas")(client);
 const token = process.env.TOKEN;
 
 console.log("TOKEN existe:", !!token);
