@@ -185,6 +185,7 @@ require("./rpg")(client);
 require("./rpg_extra")(client);
 require("./rpg_dungeo_raid")(client);
 require("./canalplayer")(client);
+require("./invocado")(client);
 const token = process.env.TOKEN;
 
 console.log("TOKEN existe:", !!token);
