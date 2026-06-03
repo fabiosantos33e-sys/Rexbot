@@ -15,14 +15,17 @@ module.exports = (client) => {
       if (!message.mentions.users.has(id)) continue;
 
       await message.channel.send(
-        `🌑 **Tum tum...**\n\n` +
-        `O silêncio foi quebrado.\n` +
-        `As sombras começaram a se mover lentamente...\n\n` +
-        `👁️ **${config.titulo} ${config.nome} foi invocado!**\n` +
-        `📣 Invocado por: ${message.author}\n\n` +
-        `⚠️ Agora todos aguardam sua presença...\n\n` +
-        `${config.gif}`
+        `🌑 O ar ficou pesado...\n\n` +
+        `As luzes do chat parecem se apagar lentamente.\n` +
+        `Uma presença sombria acaba de ser chamada.\n\n` +
+        `🖤 **${config.titulo} ${config.nome} foi invocado.**\n` +
+        `⚔️ Chamado por: ${message.author}\n\n` +
+        `Todos aguardam em silêncio...`
       );
+
+      await message.channel.send({
+        files: [config.gif]
+      });
     }
   });
 };
