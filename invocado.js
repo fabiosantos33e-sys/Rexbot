@@ -2,7 +2,7 @@ const pessoasImportantes = {
   "1053803800340746261": {
     nome: "Naechi",
     titulo: "Senhor",
-    gif: "https://cdn.discordapp.com/attachments/1495896642904129676/1511835497121579178/Isseis_useless_brother.gif?ex=6a21e607&is=6a209487&hm=31a0c400daec4cd480e0790a14b94aac5d069c0548298edcf8eb78f044ed944f"
+    gif: "https://cdn.discordapp.com/attachments/1495896642904129676/1511855805115142203/28d29881-f097-4610-b7ae-5da6fa1ae6fb.gif?ex=6a21f8f0&is=6a20a770&hm=799600fb9325c38ae27cfd42362e7a0512c0acc1c75b7a2d6a1a8ebf7f0bb74c&"
   }
 };
 
