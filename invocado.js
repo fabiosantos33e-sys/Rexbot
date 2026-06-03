@@ -5,7 +5,7 @@ const pessoasImportantes = {
     nome: "Naechi",
     titulo: "Senhor",
     cor: "#2b003d",
-    imagem: "https://cdn.discordapp.com/attachments/1495896642904129676/1511835497121579178/Isseis_useless_brother.gif?ex=6a21e607&is=6a209487&hm=31a0c400daec4cd480e0790a14b94aac5d069c0548298edcf8eb78f044ed944f&.png"
+    imagem: "https://cdn.discordapp.com/attachments/1495896642904129676/1511835497121579178/Isseis_useless_brother.gif?ex=6a21e607&is=6a209487&hm=31a0c400daec4cd480e0790a14b94aac5d069c0548298edcf8eb78f044ed944f&.gif"
   }
 };
 
@@ -29,8 +29,8 @@ module.exports = (client) => {
         )
         .setTimestamp();
 
-      if (config.imagem && config.imagem !== "https://cdn.discordapp.com/attachments/1495896642904129676/1511835497121579178/Isseis_useless_brother.gif?ex=6a21e607&is=6a209487&hm=31a0c400daec4cd480e0790a14b94aac5d069c0548298edcf8eb78f044ed944f&.png") {
-        embed.setImage(config.imagem);
+      if (config.imagem && config.imagem !== "https://cdn.discordapp.com/attachments/1495896642904129676/1511835497121579178/Isseis_useless_brother.gif?ex=6a21e607&is=6a209487&hm=31a0c400daec4cd480e0790a14b94aac5d069c0548298edcf8eb78f044ed944f&.gif") {
+        embed.setImage(config.imagem.trim());
       }
 
       await message.channel.send({ embeds: [embed] });
