@@ -37,8 +37,12 @@ const client = new Client({
     GatewayIntentBits.GuildVoiceStates
   ]
 });
-
 client.player = new Player(client);
+
+client.once("ready", async () => {
+  await client.player.extractors.loadDefault();
+  console.log("🎵 Sistema de música carregado!");
+});
 let config = {
   canal: "",
   mensagem: "✨ Bem-vindo {user} ao servidor!"
