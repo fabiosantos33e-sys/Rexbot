@@ -1,3 +1,4 @@
+const { Player } = require("discord-player");
 const express = require("express");
 const app = express();
 
@@ -32,10 +33,12 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildVoiceStates
   ]
 });
 
+client.player = new Player(client);
 let config = {
   canal: "",
   mensagem: "✨ Bem-vindo {user} ao servidor!"
@@ -150,6 +153,7 @@ require("./rpg_extra")(client);
 require("./rpg_dungeo_raid")(client);
 require("./canalplayer")(client);
 require("./invocado")(client);
+require("./musica")(client);
 const token = process.env.TOKEN;
 
 console.log("TOKEN existe:", !!token);
