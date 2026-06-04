@@ -150,19 +150,19 @@ client.on(Events.MessageCreate, async message => {
 
   const msg = message.content.toLowerCase();
 
-  if (msg.includes("oi")) {
+  if (msg.includes("o")) {
     return message.reply(`Oii ${message.author}! 💚`);
   }
 
-  if (msg.includes("boa noite")) {
+  if (msg.includes("a noite")) {
     return message.reply(`Boa noite ${message.author}! 🌙`);
   }
 
-  if (msg.includes("tudo bem")) {
+  if (msg.includes("do bem")) {
     return message.reply(`Tudo ótimo 😎`);
   }
 
-  if (msg.includes("pergunta")) {
+  if (msg.includes("rgunta")) {
 
     const perguntas = [
       "Qual jogo vocês mais jogam? 🎮",
