@@ -1,5 +1,19 @@
-const { Player } = require("discord-player");
 const express = require("express");
+const { Player } = require("discord-player");
+const { DefaultExtractors } = require("@discord-player/extractor");
+
+const {
+  Client,
+  GatewayIntentBits,
+  Events,
+  SlashCommandBuilder,
+  REST,
+  Routes,
+  EmbedBuilder
+} = require("discord.js");
+
+const fs = require("fs");
+
 const app = express();
 
 app.get("/", (req, res) => {
@@ -11,23 +25,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🌐 Porta aberta ${PORT}`);
 });
-const {
-  Client,
-  GatewayIntentBits,
-  Events,
-  SlashCommandBuilder,
-  REST,
-  Routes,
-  EmbedBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  StringSelectMenuBuilder,
-  ChannelType,
-  PermissionFlagsBits
-} = require("discord.js");
 
-const fs = require("fs");
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -37,12 +35,9 @@ const client = new Client({
     GatewayIntentBits.GuildVoiceStates
   ]
 });
+
 client.player = new Player(client);
 
-client.once("ready", async () => {
-  await client.player.extractors.loadDefault();
-  console.log("🎵 Sistema de música carregado!");
-});
 let config = {
   canal: "",
   mensagem: "✨ Bem-vindo {user} ao servidor!"
@@ -53,50 +48,50 @@ if (fs.existsSync("./config.json")) {
 }
 
 client.once(Events.ClientReady, async (bot) => {
-
   console.log(`✅ Bot online como ${bot.user.tag}`);
 
+  try {
+    await client.player.extractors.loadMulti(DefaultExtractors);
+    console.log("🎵 Sistema de música carregado!");
+  } catch (err) {
+    console.log("❌ Erro ao carregar sistema de música:", err);
+  }
+
   const commands = [
+    new SlashCommandBuilder()
+      .setName("painel")
+      .setDescription("Configurar boas-vindas")
+      .addChannelOption(option =>
+        option
+          .setName("canal")
+          .setDescription("Canal")
+          .setRequired(true)
+      )
+      .addStringOption(option =>
+        option
+          .setName("mensagem")
+          .setDescription("Mensagem")
+          .setRequired(true)
+      ),
 
-new SlashCommandBuilder()
-.setName("painel")
-.setDescription("Configurar boas-vindas")
+    new SlashCommandBuilder()
+      .setName("ticketpainel")
+      .setDescription("Enviar painel de ticket")
+  ].map(command => command.toJSON());
 
-.addChannelOption(option =>
-  option
-  .setName("canal")
-  .setDescription("Canal")
-  .setRequired(true)
-)
+  const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
-.addStringOption(option =>
-  option
-  .setName("mensagem")
-  .setDescription("Mensagem")
-  .setRequired(true)
-),
+  await rest.put(
+    Routes.applicationCommands(bot.user.id),
+    { body: commands }
+  );
 
-new SlashCommandBuilder()
-.setName("ticketpainel")
-.setDescription("Enviar painel de ticket")
-
-].map(command => command.toJSON());
-
-const rest = new REST({ version: "10" }).setToken(process.env.TOKEN)
-
-await rest.put(
-  Routes.applicationCommands(bot.user.id),
-  { body: commands }
-);
-
+  console.log("✅ Comandos slash registrados!");
 });
+
 client.on(Events.InteractionCreate, async interaction => {
-
-  // PAINEL BOAS VINDAS
   if (interaction.isChatInputCommand()) {
-
     if (interaction.commandName === "painel") {
-
       await interaction.deferReply({ ephemeral: true });
 
       const canal = interaction.options.getChannel("canal");
@@ -118,16 +113,11 @@ client.on(Events.InteractionCreate, async interaction => {
       await interaction.editReply({
         embeds: [embed]
       });
-
     }
-
   }
-
 });
 
-// BOAS VINDAS
 client.on(Events.GuildMemberAdd, async member => {
-
   const canal = member.guild.channels.cache.get(config.canal);
 
   if (!canal) return;
@@ -147,7 +137,6 @@ client.on(Events.GuildMemberAdd, async member => {
     content: "@here",
     embeds: [embed]
   });
-
 });
 
 require("./ticket")(client);
@@ -158,6 +147,7 @@ require("./rpg_dungeo_raid")(client);
 require("./canalplayer")(client);
 require("./invocado")(client);
 require("./musica")(client);
+
 const token = process.env.TOKEN;
 
 console.log("TOKEN existe:", !!token);
