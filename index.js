@@ -143,42 +143,6 @@ client.on(Events.GuildMemberAdd, async member => {
 
 });
 
-// CHAT INTERATIVO
-client.on(Events.MessageCreate, async message => {
-
-  if (message.author.bot) return;
-
-  const msg = message.content.toLowerCase();
-
-  if (msg.includes("")) {
-    return message.reply(`Oii ${message.author}! 💚`);
-  }
-
-  if (msg.includes("")) {
-    return message.reply(`Boa noite ${message.author}! 🌙`);
-  }
-
-  if (msg.includes("")) {
-    return message.reply(`Tudo ótimo 😎`);
-  }
-
-  if (msg.includes("")) {
-
-    const perguntas = [
-      "Qual jogo vocês mais jogam? 🎮",
-      "Quem é o mais ativo? 👀",
-      "Qual música combina com o servidor? 🎵",
-      "Qual evento vocês querem? 🔥"
-    ];
-
-    const pergunta =
-      perguntas[Math.floor(Math.random() * perguntas.length)];
-
-    return message.channel.send(pergunta);
-
-  }
-
-});
 require("./ticket")(client);
 require("./pet")(client);
 require("./rpg")(client);
