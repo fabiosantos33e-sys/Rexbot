@@ -36,8 +36,14 @@ const client = new Client({
   ]
 });
 
-client.player = new Player(client);
-
+client.player = new Player(client, {
+  ytdlOptions: {
+    quality: "highestaudio",
+    highWaterMark: 1 << 25,
+    dlChunkSize: 0
+  },
+  connectionTimeout: 30000
+});
 let config = {
   canal: "",
   mensagem: "✨ Bem-vindo {user} ao servidor!"

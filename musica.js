@@ -29,6 +29,7 @@ module.exports = (client) => {
       leaveOnEmpty: true,
       leaveOnEnd: false,
       leaveOnStop: false,
+      bufferingTimeout: 1000,
       selfDeaf: true
     });
 
