@@ -6,11 +6,6 @@ const {
 } = require("discord.js");
 
 module.exports = (client) => {
-  client.once("ready", async () => {
-    await client.player.extractors.loadDefault();
-    console.log("🎵 Sistema de música ligado");
-  });
-
   client.on("messageCreate", async (message) => {
     if (message.author.bot || !message.guild) return;
 
