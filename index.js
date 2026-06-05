@@ -1,6 +1,4 @@
 const express = require("express");
-const { Player } = require("discord-player");
-const { DefaultExtractors } = require("@discord-player/extractor");
 
 const {
   Client,
@@ -31,19 +29,10 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildVoiceStates
+    GatewayIntentBits.MessageContent
   ]
 });
 
-client.player = new Player(client, {
-  ytdlOptions: {
-    quality: "highestaudio",
-    highWaterMark: 1 << 25,
-    dlChunkSize: 0
-  },
-  connectionTimeout: 30000
-});
 let config = {
   canal: "",
   mensagem: "✨ Bem-vindo {user} ao servidor!"
@@ -55,13 +44,6 @@ if (fs.existsSync("./config.json")) {
 
 client.once(Events.ClientReady, async (bot) => {
   console.log(`✅ Bot online como ${bot.user.tag}`);
-
-  try {
-    await client.player.extractors.loadMulti(DefaultExtractors);
-    console.log("🎵 Sistema de música carregado!");
-  } catch (err) {
-    console.log("❌ Erro ao carregar sistema de música:", err);
-  }
 
   const commands = [
     new SlashCommandBuilder()
@@ -137,7 +119,7 @@ client.on(Events.GuildMemberAdd, async member => {
     .setThumbnail(
       member.user.displayAvatarURL({ dynamic: true })
     )
-    .setImage("https://cdn.discordapp.com/attachments/1495896642904129676/1508278446160351322/d4533674-2366-4c03-8565-9ddd40dfc22a.png?ex=6a14f544&is=6a13a3c4&hm=c895747c3226bd347675b97a5316fa054e3a1c41ddac3b843261777a9e321869&.png");
+    .setImage("https://cdn.discordapp.com/attachments/1495896642904129676/1508278446160351322/d4533674-2366-4c03-8565-9ddd40dfc22a.png");
 
   canal.send({
     content: "@here",
@@ -152,7 +134,6 @@ require("./rpg_extra")(client);
 require("./rpg_dungeo_raid")(client);
 require("./canalplayer")(client);
 require("./invocado")(client);
-require("./musica")(client);
 
 const token = process.env.TOKEN;
 
