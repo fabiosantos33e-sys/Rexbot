@@ -1,31 +1,41 @@
-const pessoasImportantes = {
-  "1053803800340746261": {
-    nome: "Naechi",
-    titulo: "Senhor",
-    gif: "https://cdn.discordapp.com/attachments/1513675524013166753/1517943859529650206/Death_Note_GIF.gif?ex=6a381ee2&is=6a36cd62&hm=cfab480c6122bba6e5ae97cf119bf050671bca230ff6887ba3c963b7002d17bf&"
-  }
-};
+const { EmbedBuilder } = require("discord.js");
 
-module.exports = (client) => {
-  client.on("messageCreate", async (message) => {
-    if (message.author.bot) return;
-    if (!message.mentions.users.size) return;
+const usuarioMarcado = interaction.options.getUser("usuario");
 
-    for (const [id, config] of Object.entries(pessoasImportantes)) {
-      if (!message.mentions.users.has(id)) continue;
+const embed = new EmbedBuilder()
+.setColor("#00ff88")
+.setTitle("📢 Você foi mencionado!")
+.setDescription(`
+👤 **Marcado por:** ${interaction.user}
 
-      await message.channel.send(
-        `🌑 O ar ficou pesado...\n\n` +
-        `As luzes do chat parecem se apagar lentamente.\n` +
-        `Uma presença sombria acaba de ser chamada.\n\n` +
-        `🖤 **${config.titulo} ${config.nome} foi invocado.**\n` +
-        `⚔️ Chamado por: ${message.author}\n\n` +
-        `Todos aguardam em silêncio...`
-      );
+💚 Olá ${usuarioMarcado}!
+Você foi marcado no servidor.
 
-      await message.channel.send({
-        files: [config.gif]
-      });
-    }
-  });
-};
+✨ Confira a mensagem enviada pela equipe.
+`)
+.setImage("https://cdn.discordapp.com/attachments/1513675524013166753/1517943859529650206/Death_Note_GIF.gif?ex=6a381ee2&is=6a36cd62&hm=cfab480c6122bba6e5ae97cf119bf050671bca230ff6887ba3c963b7002d17bf&");
+
+await interaction.reply({
+content: `${usuarioMarcado}`,
+embeds: [embed]
+});
+
+try {
+const dmEmbed = new EmbedBuilder()
+.setColor("#00ff88")
+.setTitle("📩 Você recebeu uma marcação!")
+.setDescription(`
+👤 **Quem marcou você:** ${interaction.user.tag}
+
+🏠 **Servidor:** ${interaction.guild.name}
+
+✨ Você foi mencionado em uma mensagem no servidor.
+`)
+.setImage("LINK_DO_GIF_AQUI");
+
+await usuarioMarcado.send({
+embeds: [dmEmbed]
+});
+} catch {
+console.log("Não foi possível enviar DM.");
+}
