@@ -14,8 +14,54 @@ const fs = require("fs");
 
 const app = express();
 
+app.use(express.json());
+
 app.get("/", (req, res) => {
-  res.send("Mostrinho online 😎🔥");
+  const html = `
+  <html>
+  <body>
+    <h1>Painel Mostrinho</h1>
+
+    <p>Mensagem de boas-vindas:</p>
+
+    <input id="msg" style="width:300px"
+      value="${config.mensagem}">
+
+    <br><br>
+
+    <button onclick="salvar()">Salvar</button>
+
+    <script>
+      async function salvar() {
+        await fetch('/salvar', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            mensagem: document.getElementById('msg').value
+          })
+        });
+
+        alert('Salvo!');
+      }
+    </script>
+  </body>
+  </html>
+  `;
+
+  res.send(html);
+});
+
+app.post("/salvar", (req, res) => {
+  config.mensagem = req.body.mensagem;
+
+  fs.writeFileSync(
+    "./config.json",
+    JSON.stringify(config, null, 2)
+  );
+
+  res.json({ ok: true });
 });
 
 const PORT = process.env.PORT || 3000;
