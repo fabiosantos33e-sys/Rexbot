@@ -16,136 +16,6 @@ const app = express();
 
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  const html = `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<title>Mostrinho Dashboard</title>
-
-<style>
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-}
-
-body{
-  background:#0f172a;
-  font-family:Arial,sans-serif;
-  color:white;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  min-height:100vh;
-}
-
-.card{
-  width:450px;
-  background:#1e293b;
-  padding:30px;
-  border-radius:20px;
-  box-shadow:0 0 30px rgba(0,0,0,.4);
-}
-
-h1{
-  text-align:center;
-  margin-bottom:20px;
-}
-
-label{
-  display:block;
-  margin-bottom:8px;
-}
-
-input{
-  width:100%;
-  padding:12px;
-  border:none;
-  border-radius:10px;
-  margin-bottom:15px;
-}
-
-button{
-  width:100%;
-  padding:12px;
-  border:none;
-  border-radius:10px;
-  cursor:pointer;
-  font-size:16px;
-}
-
-button:hover{
-  opacity:.9;
-}
-
-.info{
-  text-align:center;
-  margin-bottom:20px;
-  color:#94a3b8;
-}
-</style>
-</head>
-
-<body>
-
-<div class="card">
-
-<h1>🤖 Mostrinho Dashboard</h1>
-
-<div class="info">
-Configure a mensagem de boas-vindas
-</div>
-
-<label>Mensagem:</label>
-
-<input
-id="msg"
-value="${config.mensagem}"
->
-
-<button onclick="salvar()">
-💾 Salvar Configuração
-</button>
-
-</div>
-
-<script>
-async function salvar() {
-
- await fetch('/salvar',{
-  method:'POST',
-  headers:{
-   'Content-Type':'application/json'
-  },
-  body:JSON.stringify({
-   mensagem:document.getElementById('msg').value
-  })
- });
-
- alert('Configuração salva!');
-}
-</script>
-
-</body>
-</html>
-`;
-
-  res.send(html);
-});
-
-app.post("/salvar", (req, res) => {
-  config.mensagem = req.body.mensagem;
-
-  fs.writeFileSync(
-    "./config.json",
-    JSON.stringify(config, null, 2)
-  );
-
-  res.json({ ok: true });
-});
-
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
@@ -169,6 +39,7 @@ let config = {
 if (fs.existsSync("./config.json")) {
   config = JSON.parse(fs.readFileSync("./config.json"));
 }
+require("./dashboard")(app, config);
 
 client.once(Events.ClientReady, async (bot) => {
   console.log(`✅ Bot online como ${bot.user.tag}`);
