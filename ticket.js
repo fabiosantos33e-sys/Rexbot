@@ -11,7 +11,7 @@ const {
 
 module.exports = (client) => {
 
-client.on(Events.InteractionCreate, async interaction => {
+client.on(Events.InteractionCreate, async (interaction) => {
 
   // PAINEL
   if (interaction.isChatInputCommand()) {
@@ -19,57 +19,52 @@ client.on(Events.InteractionCreate, async interaction => {
     if (interaction.commandName === "ticketpainel") {
 
       const embed = new EmbedBuilder()
-      .setColor("#3d003f")
-      .setTitle("💜central de ajudar👑")
-      .setDescription(`
-👑💜Oiii! Eu sou o Mostrinho da Central de Ajuda💜👑
+        .setColor("#3d003f")
+        .setTitle("💜 Central de Ajuda 👑")
+        .setDescription(`
+👑💜 Oiii! Eu sou o Mostrinho da Central de Ajuda 💜👑
 
-Escolha uma opção abaixo para abrir um ticket
-      `)
-      .setImage("https://cdn.discordapp.com/attachments/1513675524013166753/1518283925666136218/075c2e1b-9769-41a5-954c-fdfc69f2ded6.png?ex=6a395b98&is=6a380a18&hm=083ac874bb0dc61e72e1b88130805f5337d286e9ecc3c9fcb250062b7c77aea2&.png");
+Escolha uma opção abaixo para abrir um ticket.
+        `)
+        .setImage("https://cdn.discordapp.com/attachments/1513675524013166753/1518283925666136218/075c2e1b-9769-41a5-954c-fdfc69f2ded6.png");
 
-      const row = new ActionRowBuilder()
-      .addComponents(
-
+      const row = new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
-        .setCustomId("menu_ticket")
-        .setPlaceholder("Clique para escolher uma opção")
-        .addOptions([
-          {
-            label: "Suporte",
-            description: "Abrir ticket de suporte",
-            value: "suporte",
-            emoji: "🔧"
-          },
-          {
-            label: "Denúncia",
-            description: "Reportar algo",
-            value: "denuncia",
-            emoji: "🚨"
-          },
-          {
-            label: "Parcerias",
-            description: "Parcerias do servidor",
-            value: "parcerias",
-            emoji: "🤝"
-          },
-          {
-            label: "Funções",
-            description: "Dúvidas sobre cargos",
-            value: "funcoes",
-            emoji: "⚙️"
-          }
-        ])
-
+          .setCustomId("menu_ticket")
+          .setPlaceholder("Clique para escolher uma opção")
+          .addOptions([
+            {
+              label: "Suporte",
+              description: "Abrir ticket de suporte",
+              value: "suporte",
+              emoji: "🔧"
+            },
+            {
+              label: "Denúncia",
+              description: "Reportar algo",
+              value: "denuncia",
+              emoji: "🚨"
+            },
+            {
+              label: "Parcerias",
+              description: "Parcerias do servidor",
+              value: "parcerias",
+              emoji: "🤝"
+            },
+            {
+              label: "Funções",
+              description: "Dúvidas sobre cargos",
+              value: "funcoes",
+              emoji: "⚙️"
+            }
+          ])
       );
 
       return interaction.reply({
         embeds: [embed],
         components: [row]
       });
-
     }
-
   }
 
   // MENU TICKET
@@ -81,69 +76,98 @@ Escolha uma opção abaixo para abrir um ticket
 
       const tipo = interaction.values[0];
 
+      const cargoSuporte = "1485441258204823603"; // ID cargo suporte
+      const categoriaSuporte = "1485073639962447984";
+
+      // Evita tickets duplicados
+      const ticketExistente = interaction.guild.channels.cache.find(
+        c =>
+          c.parentId === categoriaSuporte &&
+          c.name === interaction.user.username.toLowerCase()
+      );
+
+      if (ticketExistente) {
+        return interaction.editReply({
+          content: `❌ Você já possui um ticket aberto: ${ticketExistente}`
+        });
+      }
+
       const canal = await interaction.guild.channels.create({
-        name: `ticket-${interaction.user.username}`,
+        name: interaction.user.username
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "-")
+          .slice(0, 90),
+
+        parent: categoriaSuporte,
+
         type: ChannelType.GuildText,
 
         permissionOverwrites: [
-
-        {
-  id: interaction.user.id,
-  allow: [
-    PermissionFlagsBits.ViewChannel,
-    PermissionFlagsBits.SendMessages,
-    PermissionFlagsBits.ReadMessageHistory
-  ]
-},
-
-{
-  id: "1485441258204823603", // ID do cargo suporte
-  allow: [
-    PermissionFlagsBits.ViewChannel,
-    PermissionFlagsBits.SendMessages,
-    PermissionFlagsBits.ReadMessageHistory
-  ]
-}
+          {
+            id: interaction.guild.id,
+            deny: [PermissionFlagsBits.ViewChannel]
+          },
+          {
+            id: interaction.user.id,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+              PermissionFlagsBits.ReadMessageHistory
+            ]
+          },
+          {
+            id: cargoSuporte,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+              PermissionFlagsBits.ReadMessageHistory
+            ]
+          }
         ]
-
       });
 
       const embed = new EmbedBuilder()
-      .setColor("#3d003f")
-      .setTitle(`🎫 Ticket ${tipo}`)
-      .setDescription(`
-💚 Olá ${interaction.user}!
+        .setColor("#3d003f")
+        .setTitle(`🎫 Ticket ${tipo}`)
+        .setDescription(`
+Olá ${interaction.user}!
 
-      `)
-      .setImage("https://cdn.discordapp.com/attachments/1513675524013166753/1518285973375680693/e9ea2be9-ab6e-496e-a9d4-a29f687522e8.png?ex=6a395d80&is=6a380c00&hm=42de35a0a0f916694e21cf6264568d53e7d1ebac37e6ebf59c08c306df53c683&. png");
-      const fechar = new ActionRowBuilder()
-      .addComponents(
+Seu ticket foi criado com sucesso.
 
+Descreva sua situação detalhadamente e aguarde um membro da equipe responder.
+        `)
+        .setImage("https://cdn.discordapp.com/attachments/1513675524013166753/1518285973375680693/e9ea2be9-ab6e-496e-a9d4-a29f687522e8.png");
+
+      const botoes = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-        .setCustomId("fechar_ticket")
-        .setLabel("Fechar Ticket")
-        .setStyle(ButtonStyle.Danger)
-        .setEmoji("🔒")
-
+          .setCustomId("fechar_ticket")
+          .setLabel("Fechar Ticket")
+          .setStyle(ButtonStyle.Danger)
+          .setEmoji("🔒")
       );
 
-      const cargoSuporte = "1485441258204823603"; // ID do cargo
+      try {
+        await canal.send({
+          content: `${interaction.user} <@&${cargoSuporte}>`,
+          embeds: [embed],
+          components: [botoes]
+        });
 
-await canal.send({
-  content: `${interaction.user} <@&${cargoSuporte}>`,
-  embeds: [embed],
-  components: [fechar]
-});
+        await interaction.editReply({
+          content: `✅ Ticket criado com sucesso: ${canal}`
+        });
 
-      return interaction.editReply({
-        content: `✅ Ticket criado: ${canal}`
-      });
+      } catch (erro) {
+        console.log("Erro ao enviar mensagem no ticket:", erro);
 
+        await interaction.editReply({
+          content: "❌ O ticket foi criado, mas ocorreu um erro ao enviar a mensagem inicial."
+        });
+      }
     }
-
   }
 
-  // FECHAR
+  // FECHAR TICKET
   if (interaction.isButton()) {
 
     if (interaction.customId === "fechar_ticket") {
@@ -154,19 +178,14 @@ await canal.send({
       });
 
       setTimeout(async () => {
-
         try {
           await interaction.channel.delete();
-        } catch(err) {
+        } catch (err) {
           console.log(err);
         }
-
       }, 5000);
-
     }
-
   }
-
 });
 
 };
