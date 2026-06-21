@@ -19,17 +19,12 @@ client.on(Events.InteractionCreate, async interaction => {
     if (interaction.commandName === "ticketpainel") {
 
       const embed = new EmbedBuilder()
-      .setColor("#39ff14")
-      .setTitle("🦖💚 Central de Ajuda Rex 💚🦖")
+      .setColor("#3d003f")
+      .setTitle("💜central de ajudar👑")
       .setDescription(`
-🦖💚 Oiii! Eu sou o Mostrinho da Central de Ajuda 💚🦖
+👑💜Oiii! Eu sou o Mostrinho da Central de Ajuda💜👑
 
-Escolha uma opção abaixo para abrir um ticket!
-
-🔧 Suporte
-🚨 Denúnia
-🤝 Parcerias
-⚙️ Funções
+Escolha uma opção abaixo para abrir um ticket
       `)
       .setImage("https://cdn.discordapp.com/attachments/1513675524013166753/1518283925666136218/075c2e1b-9769-41a5-954c-fdfc69f2ded6.png?ex=6a395b98&is=6a380a18&hm=083ac874bb0dc61e72e1b88130805f5337d286e9ecc3c9fcb250062b7c77aea2&.png");
 
@@ -114,14 +109,11 @@ Escolha uma opção abaixo para abrir um ticket!
       });
 
       const embed = new EmbedBuilder()
-      .setColor("#39ff14")
+      .setColor("#3d003f")
       .setTitle(`🎫 Ticket ${tipo}`)
       .setDescription(`
 💚 Olá ${interaction.user}!
 
-Seu ticket foi aberto com sucesso 🦖
-
-Explique seu problema e aguarde a equipe responder.
       `)
       .setImage("https://cdn.discordapp.com/attachments/1513675524013166753/1518285973375680693/e9ea2be9-ab6e-496e-a9d4-a29f687522e8.png?ex=6a395d80&is=6a380c00&hm=42de35a0a0f916694e21cf6264568d53e7d1ebac37e6ebf59c08c306df53c683&. png");
       const fechar = new ActionRowBuilder()
