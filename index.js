@@ -18,37 +18,119 @@ app.use(express.json());
 
 app.get("/", (req, res) => {
   const html = `
-  <html>
-  <body>
-    <h1>Painel Mostrinho</h1>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Mostrinho Dashboard</title>
 
-    <p>Mensagem de boas-vindas:</p>
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
 
-    <input id="msg" style="width:300px"
-      value="${config.mensagem}">
+body{
+  background:#0f172a;
+  font-family:Arial,sans-serif;
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
 
-    <br><br>
+.card{
+  width:450px;
+  background:#1e293b;
+  padding:30px;
+  border-radius:20px;
+  box-shadow:0 0 30px rgba(0,0,0,.4);
+}
 
-    <button onclick="salvar()">Salvar</button>
+h1{
+  text-align:center;
+  margin-bottom:20px;
+}
 
-    <script>
-      async function salvar() {
-        await fetch('/salvar', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            mensagem: document.getElementById('msg').value
-          })
-        });
+label{
+  display:block;
+  margin-bottom:8px;
+}
 
-        alert('Salvo!');
-      }
-    </script>
-  </body>
-  </html>
-  `;
+input{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:10px;
+  margin-bottom:15px;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  font-size:16px;
+}
+
+button:hover{
+  opacity:.9;
+}
+
+.info{
+  text-align:center;
+  margin-bottom:20px;
+  color:#94a3b8;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h1>🤖 Mostrinho Dashboard</h1>
+
+<div class="info">
+Configure a mensagem de boas-vindas
+</div>
+
+<label>Mensagem:</label>
+
+<input
+id="msg"
+value="${config.mensagem}"
+>
+
+<button onclick="salvar()">
+💾 Salvar Configuração
+</button>
+
+</div>
+
+<script>
+async function salvar() {
+
+ await fetch('/salvar',{
+  method:'POST',
+  headers:{
+   'Content-Type':'application/json'
+  },
+  body:JSON.stringify({
+   mensagem:document.getElementById('msg').value
+  })
+ });
+
+ alert('Configuração salva!');
+}
+</script>
+
+</body>
+</html>
+`;
 
   res.send(html);
 });
