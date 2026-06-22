@@ -63,9 +63,26 @@ client.once(Events.ClientReady, async (bot) => {
       ),
 
 new SlashCommandBuilder()
-  .setName('musica')
-  .setDescription('Teste do sistema de música'),
+  .setName("musica")
+  .setDescription("Sistema de música")
 
+  .addSubcommand(sub =>
+    sub
+      .setName("tocar")
+      .setDescription("Tocar uma música")
+      .addStringOption(option =>
+        option
+          .setName("nome")
+          .setDescription("Nome da música")
+          .setRequired(true)
+      )
+  )
+
+  .addSubcommand(sub =>
+    sub
+      .setName("parar")
+      .setDescription("Parar a música")
+  )
 
  new SlashCommandBuilder()
       .setName("ticketpainel")
