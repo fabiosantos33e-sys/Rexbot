@@ -31,18 +31,25 @@ console.log("Member:", interaction.member?.user?.tag);
 
       try {
 
-        const busca = await play.search(nome, {
-          limit: 1
-        });
-        console.log("Pesquisa:", nome);
-console.log("Resultado:", busca);
-        if (!busca.length) {
-          return interaction.editReply(
-            "Nenhuma música encontrada."
-          );
-        }
+        let musica;
 
-        const musica = busca[0];
+if (
+  nome.includes("youtube.com") ||
+  nome.includes("youtu.be")
+) {
+
+  musica = {
+    url: nome,
+    title: "Música do YouTube"
+  };
+
+} else {
+
+  return interaction.editReply(
+    "❌ A busca por nome está indisponível no momento. Use um link do YouTube."
+  );
+
+}
 
         const stream = await play.stream(
           musica.url
