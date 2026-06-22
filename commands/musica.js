@@ -18,7 +18,8 @@ module.exports = {
       const nome = interaction.options.getString("nome");
 
       const canal = interaction.member.voice.channel;
-
+      console.log("Canal de voz:", canal?.name);
+console.log("Member:", interaction.member?.user?.tag);
       if (!canal) {
         return interaction.reply({
           content: "Entre em um canal de voz primeiro.",
