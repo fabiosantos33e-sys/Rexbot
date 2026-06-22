@@ -34,7 +34,8 @@ console.log("Member:", interaction.member?.user?.tag);
         const busca = await play.search(nome, {
           limit: 1
         });
-
+        console.log("Pesquisa:", nome);
+console.log("Resultado:", busca);
         if (!busca.length) {
           return interaction.editReply(
             "Nenhuma música encontrada."
