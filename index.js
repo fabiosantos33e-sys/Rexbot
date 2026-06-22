@@ -82,7 +82,7 @@ new SlashCommandBuilder()
     sub
       .setName("parar")
       .setDescription("Parar a música")
-  )
+  ),
 
  new SlashCommandBuilder()
       .setName("ticketpainel")
