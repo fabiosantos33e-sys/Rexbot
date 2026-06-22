@@ -11,6 +11,7 @@ const {
 } = require("discord.js");
 
 const fs = require("fs");
+const musica = require('./commands/musica');
 
 const app = express();
 
@@ -60,8 +61,13 @@ client.once(Events.ClientReady, async (bot) => {
           .setDescription("Mensagem")
           .setRequired(true)
       ),
+,
+new SlashCommandBuilder()
+  .setName('musica')
+  .setDescription('Teste do sistema de música'),
 
-    new SlashCommandBuilder()
+
+ new SlashCommandBuilder()
       .setName("ticketpainel")
       .setDescription("Enviar painel de ticket")
   ].map(command => command.toJSON());
@@ -78,6 +84,9 @@ client.once(Events.ClientReady, async (bot) => {
 
 client.on(Events.InteractionCreate, async interaction => {
   if (interaction.isChatInputCommand()) {
+    if (interaction.commandName === "musica") {
+  return musica.execute(interaction);
+}
     if (interaction.commandName === "painel") {
       await interaction.deferReply({ ephemeral: true });
 
