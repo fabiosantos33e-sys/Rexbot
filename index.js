@@ -61,7 +61,7 @@ client.once(Events.ClientReady, async (bot) => {
           .setDescription("Mensagem")
           .setRequired(true)
       ),
-,
+
 new SlashCommandBuilder()
   .setName('musica')
   .setDescription('Teste do sistema de música'),
