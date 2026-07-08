@@ -125,12 +125,6 @@ client.on(Events.GuildMemberAdd, async member => {
   });
 });
 
-require("./pet")(client);
-require("./rpg")(client);
-require("./rpg_extra")(client);
-require("./rpg_dungeo_raid")(client);
-require("./canalplayer")(client);
-
 console.log("TOKEN existe:", !!process.env.TOKEN);
 console.log("TOKEN tamanho:", process.env.TOKEN?.length);
 client.login(process.env.TOKEN)
