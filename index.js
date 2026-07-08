@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 
 const {
@@ -62,9 +63,6 @@ client.once(Events.ClientReady, async (bot) => {
           .setRequired(true)
       ),
 
-    new SlashCommandBuilder()
-      .setName("ticketpainel")
-      .setDescription("Enviar painel de ticket")
   ].map(command => command.toJSON());
 
   const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
@@ -139,12 +137,9 @@ console.log("TOKEN existe:", !!token);
 console.log("TOKEN tamanho:", token ? token.length : 0);
 console.log("TOKEN começo:", token ? token.slice(0, 5) : "nada");
 
-console.log("Iniciando login...");
-client.login(token ? token.trim() : "");
-client.on("ready", () => {
-  console.log(`Bot conectado como ${client.user.tag}`);
-});
+client.login(token.trim())
+  console.log("Iniciando login...");
 
-client.on("error", console.error);
-
-client.on("shardError", console.error);
+client.login(token.trim())
+    .then(() => console.log("✅ Login enviado"))
+    .catch(console.error);
