@@ -1,3 +1,7 @@
+console.log("🚀 INDEX INICIOU");
+
+require("dotenv").config();
+
 require("dotenv").config();
 const express = require("express");
 
@@ -242,15 +246,19 @@ console.log("CANALPLAYER OK");
 console.log("VAI FAZER LOGIN");
 
 
+process.on("uncaughtException", (err) => {
+  console.error("ERRO GERAL:", err);
+});
+
+process.on("unhandledRejection", (err) => {
+  console.error("PROMISE ERRO:", err);
+});
+
 client.login(process.env.TOKEN)
 .then(() => {
-
   console.log("✅ TOKEN ACEITO PELO DISCORD");
-
 })
 .catch(err => {
-
   console.error("❌ ERRO LOGIN:");
   console.error(err);
-
 });
