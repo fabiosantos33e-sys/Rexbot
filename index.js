@@ -131,25 +131,6 @@ require("./rpg_extra")(client);
 require("./rpg_dungeo_raid")(client);
 require("./canalplayer")(client);
 
-const token = process.env.TOKEN;
-
-console.log("TOKEN existe:", !!token);
-console.log("TOKEN tamanho:", token ? token.length : 0);
-console.log("TOKEN começo:", token ? token.slice(0, 5) : "nada");
-
-client.on("debug", (info) => console.log("[DEBUG]", info));
-client.on("error", (err) => console.error("[ERROR]", err));
-client.on("warn", (msg) => console.warn("[WARN]", msg));
-
-process.on("unhandledRejection", console.error);
-process.on("uncaughtException", console.error);
-
-client.login(token.trim())
-  .then(() => console.log("✅ Login enviado ao Discord"))
-  .catch(err => console.error("❌ Erro no login:", err));
-
-client.on("ready", () => {
-  console.log(`✅ Bot conectado como ${client.user.tag}`);
-});
-
-client.on("debug", msg => console.log("[DEBUG]", msg));
+console.log("Antes do login...");
+await client.login(process.env.TOKEN);
+console.log("Depois do login...");
