@@ -146,4 +146,7 @@ console.log("VAI FAZER LOGIN");
 
 client.login(process.env.TOKEN)
   .then(() => console.log("✅ Login OK"))
-  .catch(console.error);
+  .catch(err => {
+    console.error("ERRO LOGIN:");
+    console.error(err);
+  });
