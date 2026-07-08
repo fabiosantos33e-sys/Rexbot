@@ -125,8 +125,25 @@ client.on(Events.GuildMemberAdd, async member => {
   });
 });
 
-console.log("TOKEN existe:", !!process.env.TOKEN);
-console.log("TOKEN tamanho:", process.env.TOKEN?.length);
+console.log("PASSOU ANTES DOS SISTEMAS");
+
+require("./pet")(client);
+console.log("PET OK");
+
+require("./rpg")(client);
+console.log("RPG OK");
+
+require("./rpg_extra")(client);
+console.log("RPG EXTRA OK");
+
+require("./rpg_dungeo_raid")(client);
+console.log("DUNGEON OK");
+
+require("./canalplayer")(client);
+console.log("CANALPLAYER OK");
+
+console.log("VAI FAZER LOGIN");
+
 client.login(process.env.TOKEN)
   .then(() => console.log("✅ Login OK"))
   .catch(console.error);
