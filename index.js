@@ -131,6 +131,8 @@ require("./rpg_extra")(client);
 require("./rpg_dungeo_raid")(client);
 require("./canalplayer")(client);
 
+console.log("TOKEN existe:", !!process.env.TOKEN);
+console.log("TOKEN tamanho:", process.env.TOKEN?.length);
 client.login(process.env.TOKEN)
   .then(() => console.log("✅ Login OK"))
   .catch(console.error);
