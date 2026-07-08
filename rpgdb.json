@@ -41,13 +41,13 @@
     },
     "1053803800340746261": {
       "nome": "sr_paz",
-      "nivel": 61,
-      "xp": 7439,
-      "vida": 1860,
-      "vidaMax": 1860,
-      "ataqueBase": 472,
-      "defesaBase": 231,
-      "moedas": 115550,
+      "nivel": 62,
+      "xp": 1459,
+      "vida": 1950,
+      "vidaMax": 1950,
+      "ataqueBase": 500,
+      "defesaBase": 245,
+      "moedas": 116454,
       "poder": {
         "nome": "Sombras",
         "emoji": "🌑",
@@ -243,6 +243,12 @@
           "tipo": "arma",
           "raridade": "Rara",
           "ataque": 180
+        },
+        {
+          "nome": "Adaga Sombria",
+          "tipo": "arma",
+          "raridade": "Rara",
+          "ataque": 120
         }
       ],
       "equipado": {
@@ -293,7 +299,7 @@
         "defesa": 141
       },
       "bossPendente": null,
-      "vitorias": 33,
+      "vitorias": 34,
       "derrotas": 1,
       "mapaAtual": "Ruínas do Rei Esqueleto",
       "portalPendente": null,
@@ -301,7 +307,10 @@
         "andar": 2,
         "recompensaXp": 180,
         "recompensaMoedas": 250
-      }
+      },
+      "classe": null,
+      "guilda": null,
+      "eventosParticipados": 0
     }
   },
   "guilds": {
@@ -329,5 +338,7 @@
       "1053803800340746261": 14393
     },
     "criada": 1779888455742
-  }
+  },
+  "guildas": {},
+  "eventoGlobal": null
 }
