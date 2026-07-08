@@ -254,26 +254,15 @@ process.on("unhandledRejection", (err) => {
   console.error("PROMISE ERRO:", err);
 });
 
+console.log("TOKEN EXISTE:", !!process.env.TOKEN);
+console.log("TOKEN TAMANHO:", process.env.TOKEN?.length);
+
 client.login(process.env.TOKEN)
   .then(() => {
     console.log("✅ LOGIN OK");
   })
-  .catch(err => {
-    console.error("❌ ERRO LOGIN");
+  .catch((err) => {
+    console.error("❌ LOGIN FALHOU");
+    console.error(err.name);
     console.error(err.message);
-    console.error(err);
   });
-
-client.on("error", err => {
-  console.error("CLIENT ERROR:");
-  console.error(err);
-});
-
-client.on("shardError", err => {
-  console.error("SHARD ERROR:");
-  console.error(err);
-});
-
-client.on("invalidated", () => {
-  console.log("❌ Sessão invalidada pelo Discord");
-});
