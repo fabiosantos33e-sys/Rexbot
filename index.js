@@ -141,9 +141,15 @@ client.on("debug", (info) => console.log("[DEBUG]", info));
 client.on("error", (err) => console.error("[ERROR]", err));
 client.on("warn", (msg) => console.warn("[WARN]", msg));
 
-client.login(token.trim())
-  console.log("Iniciando login...");
+process.on("unhandledRejection", console.error);
+process.on("uncaughtException", console.error);
 
 client.login(token.trim())
-    .then(() => console.log("✅ Login enviado"))
-    .catch(console.error);
+  .then(() => console.log("✅ Login enviado ao Discord"))
+  .catch(err => console.error("❌ Erro no login:", err));
+
+client.on("ready", () => {
+  console.log(`✅ Bot conectado como ${client.user.tag}`);
+});
+
+client.on("debug", msg => console.log("[DEBUG]", msg));
