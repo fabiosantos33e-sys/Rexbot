@@ -1,291 +1,144 @@
 const express = require("express");
 
 const {
-  Client,
-  GatewayIntentBits,
-  Events,
-  SlashCommandBuilder,
-  REST,
-  Routes,
-  EmbedBuilder
+  Client,
+  GatewayIntentBits,
+  Events,
+  SlashCommandBuilder,
+  REST,
+  Routes,
+  EmbedBuilder
 } = require("discord.js");
 
 const fs = require("fs");
 
 const app = express();
 
-app.use(express.json());
+app.get("/", (req, res) => {
+  res.send("Mostrinho online 😎🔥");
+});
 
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`🌐 Porta aberta ${PORT}`);
+  console.log(`🌐 Porta aberta ${PORT}`);
 });
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildVoiceStates
-  ]
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ]
 });
 
 let config = {
-  canal: "",
-  mensagem: "✨ Bem-vindo {user} ao servidor!"
+  canal: "",
+  mensagem: "✨ Bem-vindo {user} ao servidor!"
 };
 
 if (fs.existsSync("./config.json")) {
-  config = JSON.parse(
-    fs.readFileSync("./config.json", "utf8")
-  );
+  config = JSON.parse(fs.readFileSync("./config.json"));
 }
 
-// Dashboard
-require("./dashboard")(app, config);
+client.once(Events.ClientReady, async (bot) => {
+  console.log(`✅ Bot online como ${bot.user.tag}`);
 
+  const commands = [
+    new SlashCommandBuilder()
+      .setName("painel")
+      .setDescription("Configurar boas-vindas")
+      .addChannelOption(option =>
+        option
+          .setName("canal")
+          .setDescription("Canal")
+          .setRequired(true)
+      )
+      .addStringOption(option =>
+        option
+          .setName("mensagem")
+          .setDescription("Mensagem")
+          .setRequired(true)
+      ),
 
-// Carregar sistemas
+    new SlashCommandBuilder()
+      .setName("ticketpainel")
+      .setDescription("Enviar painel de ticket")
+  ].map(command => command.toJSON());
+
+  const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
+
+  await rest.put(
+    Routes.applicationCommands(bot.user.id),
+    { body: commands }
+  );
+
+  console.log("✅ Comandos slash registrados!");
+});
+
+client.on(Events.InteractionCreate, async interaction => {
+  if (interaction.isChatInputCommand()) {
+    if (interaction.commandName === "painel") {
+      await interaction.deferReply({ ephemeral: true });
+
+      const canal = interaction.options.getChannel("canal");
+      const mensagem = interaction.options.getString("mensagem");
+
+      config.canal = canal.id;
+      config.mensagem = mensagem;
+
+      fs.writeFileSync(
+        "./config.json",
+        JSON.stringify(config, null, 2)
+      );
+
+      const embed = new EmbedBuilder()
+        .setColor("#00ff88")
+        .setTitle("✅ Painel Atualizado")
+        .setDescription(`Canal: ${canal}\nMensagem: ${mensagem}`);
+
+      await interaction.editReply({
+        embeds: [embed]
+      });
+    }
+  }
+});
+
+client.on(Events.GuildMemberAdd, async member => {
+  const canal = member.guild.channels.cache.get(config.canal);
+
+  if (!canal) return;
+
+  const embed = new EmbedBuilder()
+    .setColor("#00ff88")
+    .setTitle("✨ Novo membro")
+    .setDescription(
+      config.mensagem.replace("{user}", `${member}`)
+    )
+    .setThumbnail(
+      member.user.displayAvatarURL({ dynamic: true })
+    )
+    .setImage("https://cdn.discordapp.com/attachments/1495896642904129676/1508278446160351322/d4533674-2366-4c03-8565-9ddd40dfc22a.png");
+
+  canal.send({
+    content: "@here",
+    embeds: [embed]
+  });
+});
+
 require("./ticket")(client);
 require("./pet")(client);
 require("./rpg")(client);
 require("./rpg_extra")(client);
 require("./rpg_dungeo_raid")(client);
 require("./canalplayer")(client);
+require("./invocado")(client);
 
-
-// Quando o bot ligar
-client.once(Events.ClientReady, async (bot) => {
-
-  console.log(`✅ Bot online como ${bot.user.tag}`);
-
-
-  const commands = [
-
-    new SlashCommandBuilder()
-      .setName("painel")
-      .setDescription("Configurar boas-vindas")
-      .addChannelOption(option =>
-        option
-          .setName("canal")
-          .setDescription("Canal de boas-vindas")
-          .setRequired(true)
-      )
-      .addStringOption(option =>
-        option
-          .setName("mensagem")
-          .setDescription("Mensagem")
-          .setRequired(true)
-      ),
-
-
-    new SlashCommandBuilder()
-      .setName("ticketpainel")
-      .setDescription("Enviar painel de ticket")
-
-  ].map(command => command.toJSON());
-
-
-  const rest = new REST({
-    version: "10"
-  }).setToken(process.env.TOKEN);
-
-
-  await rest.put(
-    Routes.applicationCommands(bot.user.id),
-    {
-      body: commands
-    }
-  );
-
-
-  console.log("✅ Comandos registrados!");
-});client.on(Events.InteractionCreate, async interaction => {
-
-  if (!interaction.isChatInputCommand()) return;
-
-
-  if (interaction.commandName === "painel") {
-
-    await interaction.deferReply({
-      ephemeral: true
-    });
-
-
-    const canal = interaction.options.getChannel("canal");
-    const mensagem = interaction.options.getString("mensagem");
-
-
-    config.canal = canal.id;
-    config.mensagem = mensagem;
-
-
-    fs.writeFileSync(
-      "./config.json",
-      JSON.stringify(config, null, 2)
-    );
-
-
-    const embed = new EmbedBuilder()
-
-      .setColor("#00ff88")
-      .setTitle("✅ Painel atualizado")
-      .setDescription(
-        `Canal: ${canal}\nMensagem: ${mensagem}`
-      );
-
-
-    await interaction.editReply({
-      embeds: [embed]
-    });
-
-  }
-
-
-  if (interaction.commandName === "ticketpainel") {
-
-    try {
-
-      const ticket = require("./ticket");
-
-      if (ticket && ticket.painel) {
-
-        await ticket.painel(interaction);
-
-      } else {
-
-        await interaction.reply({
-          content:
-            "❌ O painel de ticket não foi encontrado.",
-          ephemeral: true
-        });
-
-      }
-
-    } catch (err) {
-
-      console.log(err);
-
-      await interaction.reply({
-        content:
-          "❌ Erro ao abrir painel de ticket.",
-        ephemeral: true
-      });
-
-    }
-
-  }
-
-});
-
-
-
-// Sistema de boas-vindas
-
-client.on(Events.GuildMemberAdd, async member => {
-
-  const canal =
-    member.guild.channels.cache.get(config.canal);
-
-
-  if (!canal) return;
-
-
-  const embed = new EmbedBuilder()
-
-    .setColor("#00ff88")
-    .setTitle("✨ Novo membro")
-
-    .setDescription(
-      config.mensagem.replace(
-        "{user}",
-        `${member}`
-      )
-    )
-
-    .setThumbnail(
-      member.user.displayAvatarURL({
-        dynamic: true
-      })
-    );
-
-
-  await canal.send({
-
-    content: `${member}`,
-
-    embeds: [embed]
-
-  });
-
-});const token = process.env.TOKEN;
-
+const token = process.env.TOKEN;
 
 console.log("TOKEN existe:", !!token);
-console.log(
-  "TOKEN tamanho:",
-  token ? token.length : 0
-);
+console.log("TOKEN tamanho:", token ? token.length : 0);
+console.log("TOKEN começo:", token ? token.slice(0, 5) : "nada");
 
-
-if (!token) {
-
-  console.error(
-    "❌ TOKEN não encontrado no Render!"
-  );
-
-  process.exit(1);
-
-}
-
-
-client.login(token)
-
-  .then(() => {
-
-    console.log(
-      "✅ Login realizado com sucesso!"
-    );
-
-  })
-
-  .catch(err => {
-
-    console.error(
-      "❌ Erro ao conectar no Discord:"
-    );
-
-    console.error(err);
-
-  });
-
-
-
-// Captura erros para o Render não fechar silenciosamente
-
-process.on(
-  "unhandledRejection",
-  error => {
-
-    console.error(
-      "Erro não tratado:",
-      error
-    );
-
-  }
-);
-
-
-process.on(
-  "uncaughtException",
-  error => {
-
-    console.error(
-      "Erro crítico:",
-      error
-    );
-
-  }
-);
+client.login(token ? token.trim() : "");
