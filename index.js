@@ -140,4 +140,12 @@ console.log("TOKEN existe:", !!token);
 console.log("TOKEN tamanho:", token ? token.length : 0);
 console.log("TOKEN começo:", token ? token.slice(0, 5) : "nada");
 
+console.log("Iniciando login...");
 client.login(token ? token.trim() : "");
+client.on("ready", () => {
+  console.log(`Bot conectado como ${client.user.tag}`);
+});
+
+client.on("error", console.error);
+
+client.on("shardError", console.error);
