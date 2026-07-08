@@ -255,10 +255,25 @@ process.on("unhandledRejection", (err) => {
 });
 
 client.login(process.env.TOKEN)
-.then(() => {
-  console.log("✅ TOKEN ACEITO PELO DISCORD");
-})
-.catch(err => {
-  console.error("❌ ERRO LOGIN:");
+  .then(() => {
+    console.log("✅ LOGIN OK");
+  })
+  .catch(err => {
+    console.error("❌ ERRO LOGIN");
+    console.error(err.message);
+    console.error(err);
+  });
+
+client.on("error", err => {
+  console.error("CLIENT ERROR:");
   console.error(err);
+});
+
+client.on("shardError", err => {
+  console.error("SHARD ERROR:");
+  console.error(err);
+});
+
+client.on("invalidated", () => {
+  console.log("❌ Sessão invalidada pelo Discord");
 });
