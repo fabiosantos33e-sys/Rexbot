@@ -11,7 +11,6 @@ const {
 } = require("discord.js");
 
 const fs = require("fs");
-const musica = require('./commands/musica');
 
 const app = express();
 
@@ -154,6 +153,12 @@ client.on(Events.GuildMemberAdd, async member => {
 });
 
 const token = process.env.TOKEN;
+require("./ticket")(client);
+require("./pet")(client);
+require("./rpg")(client);
+require("./rpg_extra")(client);
+require("./rpg_dungeo_raid")(client);
+require("./canalplayer")(client);
 
 console.log("TOKEN existe:", !!token);
 console.log("TOKEN tamanho:", token ? token.length : 0);
