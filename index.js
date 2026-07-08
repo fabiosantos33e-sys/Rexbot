@@ -131,6 +131,6 @@ require("./rpg_extra")(client);
 require("./rpg_dungeo_raid")(client);
 require("./canalplayer")(client);
 
-console.log("Antes do login...");
-await client.login(process.env.TOKEN);
-console.log("Depois do login...");
+client.login(process.env.TOKEN)
+  .then(() => console.log("✅ Login OK"))
+  .catch(console.error);
