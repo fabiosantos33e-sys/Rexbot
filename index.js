@@ -153,17 +153,12 @@ client.on(Events.GuildMemberAdd, async member => {
   });
 });
 
-require("./ticket")(client);
-require("./pet")(client);
-require("./rpg")(client);
-require("./rpg_extra")(client);
-require("./rpg_dungeo_raid")(client);
-require("./canalplayer")(client);
-
 const token = process.env.TOKEN;
 
 console.log("TOKEN existe:", !!token);
 console.log("TOKEN tamanho:", token ? token.length : 0);
 console.log("TOKEN começo:", token ? token.slice(0, 5) : "nada");
 
-client.login(token ? token.trim() : "");
+client.login(token)
+  .then(() => console.log("Login OK"))
+  .catch(err => console.error("Erro no login:", err));
