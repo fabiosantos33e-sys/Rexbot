@@ -127,7 +127,6 @@ client.on(Events.GuildMemberAdd, async member => {
   });
 });
 
-require("./ticket")(client);
 require("./pet")(client);
 require("./rpg")(client);
 require("./rpg_extra")(client);
