@@ -128,7 +128,7 @@ const poderSukuna = {
   ataques: [
     "Corte Desmantelador",
     "Corte Divisor",
-    "Fuga das Chamas",
+    "Fulga",
     "Lâmina Amaldiçoada"
   ],
   atk: 3400,
@@ -161,40 +161,40 @@ const bosses = [
   { nome: "Ent Corrompido", emoji: "🌲", mapa: "Floresta Sombria", min: 1, raridade: "Incomum", vida: 1300, ataque: 80, defesa: 55, xp: 650, moedas: 200, frase: "A floresta não perdoa invasores." },
   { nome: "Caçador Perdido", emoji: "🗡️", mapa: "Floresta Sombria", min: 1, raridade: "Rara", vida: 1000, ataque: 115, defesa: 30, xp: 620, moedas: 220, frase: "Eu também tentei fugir..." },
 
-  { nome: "Fenrir Jovem", emoji: "🐺", mapa: "Caverna dos Lobos", min: 25, raridade: "Rara", vida: 2600, ataque: 190, defesa: 90, xp: 1600, moedas: 420, frase: "Você entrou no território da matilha." },
+  { nome: "Fenrir Jovem", emoji: "🐺", mapa: "Caverna dos Lobos", min: 25, raridade: "Rara", vida: 2600, ataque: 290, defesa: 90, xp: 1600, moedas: 420, frase: "Você entrou no território da matilha." },
   { nome: "Lobo Lunar", emoji: "🌕", mapa: "Caverna dos Lobos", min: 25, raridade: "Rara", vida: 2400, ataque: 220, defesa: 70, xp: 1550, moedas: 390, frase: "A lua será sua última visão." },
   { nome: "Guardião das Presas", emoji: "🦷", mapa: "Caverna dos Lobos", min: 25, raridade: "Épica", vida: 3000, ataque: 175, defesa: 120, xp: 1700, moedas: 460, frase: "Minhas presas rasgam aço." },
 
-  { nome: "Rei Esqueleto", emoji: "💀", mapa: "Ruínas do Rei Esqueleto", min: 50, raridade: "Épica", vida: 5200, ataque: 320, defesa: 180, xp: 3800, moedas: 850, frase: "Os mortos jamais descansam..." },
-  { nome: "General Ossudo", emoji: "☠️", mapa: "Ruínas do Rei Esqueleto", min: 50, raridade: "Rara", vida: 4700, ataque: 360, defesa: 140, xp: 3500, moedas: 790, frase: "Meu exército nunca acaba." },
-  { nome: "Necromante Antigo", emoji: "🧙", mapa: "Ruínas do Rei Esqueleto", min: 50, raridade: "Épica", vida: 4300, ataque: 400, defesa: 120, xp: 3700, moedas: 820, frase: "A morte obedece minha voz." },
+  { nome: "Rei Esqueleto", emoji: "💀", mapa: "Ruínas do Rei Esqueleto", min: 50, raridade: "Épica", vida: 5200, ataque: 600, defesa: 500, xp: 380, moedas: 850, frase: "Os mortos jamais descansam..." },
+  { nome: "General Ossudo", emoji: "☠️", mapa: "Ruínas do Rei Esqueleto", min: 50, raridade: "Rara", vida: 4700, ataque: 900, defesa: 800, xp: 350, moedas: 790, frase: "Meu exército nunca acaba." },
+  { nome: "Necromante Antigo", emoji: "🧙", mapa: "Ruínas do Rei Esqueleto", min: 50, raridade: "Épica", vida: 4300, ataque: 2000, defesa: 150, xp: 3700, moedas: 820, frase: "A morte obedece minha voz." },
 
-  { nome: "Demônio Carmesim", emoji: "👹", mapa: "Castelo Demoníaco", min: 75, raridade: "Épica", vida: 7800, ataque: 520, defesa: 260, xp: 6500, moedas: 1300, frase: "O castelo exige sangue." },
-  { nome: "Cavaleiro Infernal", emoji: "⚔️", mapa: "Castelo Demoníaco", min: 75, raridade: "Épica", vida: 8500, ataque: 480, defesa: 330, xp: 6800, moedas: 1400, frase: "Minha espada guarda este portão." },
-  { nome: "Bruxa Demoníaca", emoji: "🩸", mapa: "Castelo Demoníaco", min: 75, raridade: "Lendária", vida: 7000, ataque: 600, defesa: 220, xp: 6700, moedas: 1450, frase: "Sua alma será minha poção." },
+  { nome: "Demônio Carmesim", emoji: "👹", mapa: "Castelo Demoníaco", min: 75, raridade: "Épica", vida: 7800, ataque: 900, defesa: 800, xp: 650, moedas: 1300, frase: "O castelo exige sangue." },
+  { nome: "Cavaleiro Infernal", emoji: "⚔️", mapa: "Castelo Demoníaco", min: 75, raridade: "Épica", vida: 8500, ataque: 1000, defesa: 900, xp: 680, moedas: 1400, frase: "Minha espada guarda este portão." },
+  { nome: "Bruxa Demoníaca", emoji: "🩸", mapa: "Castelo Demoníaco", min: 75, raridade: "Lendária", vida: 7000, ataque: 1500, defesa: 1000, xp: 670, moedas: 1450, frase: "Sua alma será minha poção." },
 
-  { nome: "Dragão Carmesim", emoji: "🐉", mapa: "Vale do Dragão Carmesim", min: 100, raridade: "Lendária", vida: 13000, ataque: 820, defesa: 430, xp: 11000, moedas: 2200, frase: "Meu fogo queimará até sua alma." },
-  { nome: "Wyvern de Sangue", emoji: "🪽", mapa: "Vale do Dragão Carmesim", min: 100, raridade: "Épica", vida: 11500, ataque: 900, defesa: 360, xp: 10500, moedas: 2100, frase: "O céu pertence aos dragões." },
-  { nome: "Guardião das Chamas", emoji: "🔥", mapa: "Vale do Dragão Carmesim", min: 100, raridade: "Lendária", vida: 12500, ataque: 780, defesa: 520, xp: 10800, moedas: 2150, frase: "A chama eterna não se apaga." },
+  { nome: "Dragão Carmesim", emoji: "🐉", mapa: "Vale do Dragão Carmesim", min: 100, raridade: "Lendária", vida: 13000, ataque: 1000, defesa: 900, xp: 1100, moedas: 1500, frase: "Meu fogo queimará até sua alma." },
+  { nome: "Wyvern de Sangue", emoji: "🪽", mapa: "Vale do Dragão Carmesim", min: 100, raridade: "Épica", vida: 11500, ataque: 1500, defesa: 1000, xp: 1050, moedas: 1500, frase: "O céu pertence aos dragões." },
+  { nome: "Guardião das Chamas", emoji: "🔥", mapa: "Vale do Dragão Carmesim", min: 100, raridade: "Lendária", vida: 12500, ataque: 2000, defesa: 1500, xp: 1080, moedas: 1500, frase: "A chama eterna não se apaga." },
 
-  { nome: "Executor Rank S", emoji: "🕳️", mapa: "Dungeon Rank S", min: 150, raridade: "Lendária", vida: 22000, ataque: 1300, defesa: 800, xp: 22000, moedas: 3500, frase: "Rank S não foi feito para humanos." },
-  { nome: "Gigante da Dungeon", emoji: "🗿", mapa: "Dungeon Rank S", min: 150, raridade: "Épica", vida: 26000, ataque: 1150, defesa: 1000, xp: 23000, moedas: 3600, frase: "Eu esmago caçadores como insetos." },
-  { nome: "Assassino do Vazio", emoji: "🖤", mapa: "Dungeon Rank S", min: 150, raridade: "Mítica", vida: 19000, ataque: 1550, defesa: 620, xp: 22500, moedas: 3900, frase: "Você não verá meu próximo golpe." },
+  { nome: "Executor Rank S", emoji: "🕳️", mapa: "Dungeon Rank S", min: 150, raridade: "Lendária", vida: 22000, ataque: 2000, defesa: 1000, xp: 2200, moedas: 2500, frase: "Rank S não foi feito para humanos." },
+  { nome: "Gigante da Dungeon", emoji: "🗿", mapa: "Dungeon Rank S", min: 150, raridade: "Épica", vida: 26000, ataque: 2500, defesa: 1000, xp: 2300, moedas: 2500, frase: "Eu esmago caçadores como insetos." },
+  { nome: "Assassino do Vazio", emoji: "🖤", mapa: "Dungeon Rank S", min: 150, raridade: "Mítica", vida: 19000, ataque: 3000, defesa: 1500, xp: 2250, moedas: 2500, frase: "Você não verá meu próximo golpe." },
 
-  { nome: "Rei Glacial", emoji: "❄️", mapa: "Abismo Congelado", min: 200, raridade: "Lendária", vida: 34000, ataque: 1700, defesa: 1300, xp: 36000, moedas: 5200, frase: "Tudo congela diante do meu trono." },
-  { nome: "Fera do Gelo Eterno", emoji: "🧊", mapa: "Abismo Congelado", min: 200, raridade: "Épica", vida: 30000, ataque: 1900, defesa: 1050, xp: 35000, moedas: 5000, frase: "Seu sangue também vai congelar." },
+  { nome: "Rei Glacial", emoji: "❄️", mapa: "Abismo Congelado", min: 200, raridade: "Lendária", vida: 34000, ataque: 3000, defesa: 2500, xp: 3600, moedas: 3000, frase: "Tudo congela diante do meu trono." },
+  { nome: "Fera do Gelo Eterno", emoji: "🧊", mapa: "Abismo Congelado", min: 200, raridade: "Épica", vida: 30000, ataque: 3500, defesa: 2500, xp: 3500, moedas: 3000, frase: "Seu sangue também vai congelar." },
 
-  { nome: "Monarca das Cinzas", emoji: "🌑", mapa: "Reino das Sombras", min: 250, raridade: "Mítica", vida: 48000, ataque: 2300, defesa: 1700, xp: 52000, moedas: 6800, frase: "As sombras reconhecem sua presença." },
-  { nome: "General Sombrio", emoji: "⚫", mapa: "Reino das Sombras", min: 250, raridade: "Lendária", vida: 43000, ataque: 2500, defesa: 1500, xp: 50000, moedas: 6500, frase: "Ajoelhe-se diante do exército." },
+  { nome: "Monarca das Cinzas", emoji: "🌑", mapa: "Reino das Sombras", min: 250, raridade: "Mítica", vida: 48000, ataque: 3500, defesa: 2500, xp: 5200, moedas: 4000, frase: "As sombras reconhecem sua presença." },
+  { nome: "General Sombrio", emoji: "⚫", mapa: "Reino das Sombras", min: 250, raridade: "Lendária", vida: 43000, ataque: 3500, defesa: 2500, xp: 5000, moedas: 4500, frase: "Ajoelhe-se diante do exército." },
 
-  { nome: "Serafim Caído", emoji: "👁️", mapa: "Templo Celestial", min: 300, raridade: "Mítica", vida: 62000, ataque: 3100, defesa: 2200, xp: 70000, moedas: 8500, frase: "O céu abandonou este mundo." },
-  { nome: "Juiz Celestial", emoji: "✨", mapa: "Templo Celestial", min: 300, raridade: "Lendária", vida: 68000, ataque: 2900, defesa: 2500, xp: 73000, moedas: 8800, frase: "Seu julgamento começa agora." },
+  { nome: "Serafim Caído", emoji: "👁️", mapa: "Templo Celestial", min: 300, raridade: "Mítica", vida: 62000, ataque: 3100, defesa: 2200, xp: 7000, moedas: 5000, frase: "O céu abandonou este mundo." },
+  { nome: "Juiz Celestial", emoji: "✨", mapa: "Templo Celestial", min: 300, raridade: "Lendária", vida: 68000, ataque: 3200, defesa: 2500, xp: 7300, moedas: 5500, frase: "Seu julgamento começa agora." },
 
-  { nome: "Deus das Sombras", emoji: "🖤", mapa: "Trono do Monarca", min: 350, raridade: "Sombria", vida: 95000, ataque: 4200, defesa: 3200, xp: 120000, moedas: 13000, frase: "ARISE..." },
-  { nome: "Monarca Absoluto", emoji: "👑", mapa: "Trono do Monarca", min: 350, raridade: "Mítica", vida: 110000, ataque: 4500, defesa: 3500, xp: 140000, moedas: 14500, frase: "Você chegou longe demais." },
+  { nome: "Deus das Sombras", emoji: "🖤", mapa: "Trono do Monarca", min: 350, raridade: "Sombria", vida: 95000, ataque: 4200, defesa: 3200, xp: 12000, moedas: 1300, frase: "ARISE..." },
+  { nome: "Monarca Absoluto", emoji: "👑", mapa: "Trono do Monarca", min: 350, raridade: "Mítica", vida: 110000, ataque: 4500, defesa: 3500, xp: 14000, moedas: 1450, frase: "Você chegou longe demais." },
 
-  { nome: "Devorador do Vazio", emoji: "🌀", mapa: "Fenda do Vazio", min: 380, raridade: "Mítica", vida: 135000, ataque: 5200, defesa: 4100, xp: 180000, moedas: 17000, frase: "Não existe luz onde eu caminho." },
-  { nome: "Arauto do Fim", emoji: "🔱", mapa: "Domínio Final", min: 400, raridade: "Sombria", vida: 180000, ataque: 6500, defesa: 5200, xp: 250000, moedas: 25000, frase: "Este é o último portal." }
+  { nome: "Devorador do Vazio", emoji: "🌀", mapa: "Fenda do Vazio", min: 380, raridade: "Mítica", vida: 135000, ataque: 5200, defesa: 4100, xp: 1800, moedas: 1700, frase: "Não existe luz onde eu caminho." },
+  { nome: "Arauto do Fim", emoji: "🔱", mapa: "Domínio Final", min: 400, raridade: "Sombria", vida: 180000, ataque: 6500, defesa: 5200, xp: 2500, moedas: 2500, frase: "Este é o último portal." }
 ];
 
 const loja = {
@@ -657,7 +657,7 @@ function criarEmbedPerfil(message, p) {
       { name: "🏆 Vitórias", value: `${p.vitorias}`, inline: true },
       { name: "☠️ Derrotas", value: `${p.derrotas}`, inline: true }
     )
-    .setFooter({ text: "Mostrinho RPG • Tum tum..." })
+    .setFooter({ text: "Mostrinho RPG •..." })
     .setTimestamp();
 }
 
@@ -1230,20 +1230,8 @@ if (cmd === "ultimate") {
           `🌌 **Eventos**\n` +
           `,evento — mostra evento global ativo\n\n` +
 
-          `👑 **Admin**\n` +
-          `,adm money @user 5000\n` +
-          `,adm xp @user 1000\n` +
-          `,adm level @user 10\n` +
-          `,adm heal @user\n` +
-          `,adm reset @user\n` +
-          `,adm sombras @user\n` +
-          `,adm gojo @user\n` +
-          `,adm sukuna @user\n` +
-          `,adm classe @user\n` +
-          `,adm mapa @user nome\n` +
-          `,adm evento eclipse/mana/raid/clear`
         )
-        .setFooter({ text: "Tum tum... Mostrinho apareceu." });
+        .setFooter({ text: "... Mostrinho ." });
 
       return message.reply({ embeds: [embed] });
     }

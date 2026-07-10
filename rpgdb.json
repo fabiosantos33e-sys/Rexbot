@@ -41,13 +41,13 @@
     },
     "1053803800340746261": {
       "nome": "sr_paz",
-      "nivel": 62,
-      "xp": 1459,
-      "vida": 1950,
-      "vidaMax": 1950,
-      "ataqueBase": 500,
-      "defesaBase": 245,
-      "moedas": 116454,
+      "nivel": 63,
+      "xp": 1737,
+      "vida": 2040,
+      "vidaMax": 2040,
+      "ataqueBase": 528,
+      "defesaBase": 259,
+      "moedas": 118725,
       "poder": {
         "nome": "Sombras",
         "emoji": "🌑",
@@ -249,6 +249,17 @@
           "tipo": "arma",
           "raridade": "Rara",
           "ataque": 120
+        },
+        {
+          "nome": "Katana Azul",
+          "tipo": "arma",
+          "raridade": "Rara",
+          "ataque": 180
+        },
+        {
+          "nome": "Anel do Caçador",
+          "tipo": "material",
+          "raridade": "Incomum"
         }
       ],
       "equipado": {
@@ -294,12 +305,12 @@
         }
       ],
       "sombraPendente": {
-        "nome": "Monstro de Ruínas do Rei Esqueleto",
-        "ataque": 283,
-        "defesa": 141
+        "nome": "Necromante Antigo",
+        "ataque": 136,
+        "defesa": 40
       },
       "bossPendente": null,
-      "vitorias": 34,
+      "vitorias": 36,
       "derrotas": 1,
       "mapaAtual": "Ruínas do Rei Esqueleto",
       "portalPendente": null,

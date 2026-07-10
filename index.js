@@ -1,9 +1,5 @@
-console.log("🚀 INDEX INICIOU");
-
 require("dotenv").config();
-
 const express = require("express");
-const fs = require("fs");
 
 const {
   Client,
@@ -15,6 +11,7 @@ const {
   EmbedBuilder
 } = require("discord.js");
 
+const fs = require("fs");
 
 const app = express();
 
@@ -22,15 +19,12 @@ app.get("/", (req, res) => {
   res.send("Mostrinho online 😎🔥");
 });
 
-
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log(`🌐 Porta aberta ${PORT}`);
 });
 
-
-// CLIENT DISCORD
 
 const client = new Client({
   intents: [
@@ -42,33 +36,23 @@ const client = new Client({
 });
 
 
-// ERROS
-
-process.on("uncaughtException", (err) => {
-  console.error("❌ ERRO GERAL:");
-  console.error(err);
+// DEBUG DISCORD
+client.on("debug", (info) => {
+  console.log("[DEBUG]", info);
 });
 
-
-process.on("unhandledRejection", (err) => {
-  console.error("❌ PROMISE ERRO:");
-  console.error(err);
+client.on("warn", (info) => {
+  console.log("[WARN]", info);
 });
-
 
 client.on("error", (err) => {
-  console.error("❌ CLIENT ERROR:");
-  console.error(err);
+  console.log("[ERROR]", err);
 });
-
 
 client.on("shardError", (err) => {
-  console.error("❌ SHARD ERROR:");
-  console.error(err);
+  console.log("[SHARD ERROR]", err);
 });
 
-
-// CONFIG
 
 let config = {
   canal: "",
@@ -77,41 +61,26 @@ let config = {
 
 
 if (fs.existsSync("./config.json")) {
-
-  try {
-
-    config = JSON.parse(
-      fs.readFileSync("./config.json")
-    );
-
-    console.log("✅ Config carregada");
-
-  } catch(err) {
-
-    console.log("❌ Erro lendo config.json");
-
-  }
-
+  config = JSON.parse(
+    fs.readFileSync("./config.json")
+  );
 }
 
 
-
-// ONLINE
-
+// BOT ONLINE
 client.once(Events.ClientReady, async (bot) => {
 
   console.log(`✅ Bot online como ${bot.user.tag}`);
 
 
   const commands = [
-
     new SlashCommandBuilder()
       .setName("painel")
       .setDescription("Configurar boas-vindas")
       .addChannelOption(option =>
         option
           .setName("canal")
-          .setDescription("Canal de boas-vindas")
+          .setDescription("Canal")
           .setRequired(true)
       )
       .addStringOption(option =>
@@ -124,7 +93,6 @@ client.once(Events.ClientReady, async (bot) => {
   ].map(command => command.toJSON());
 
 
-
   try {
 
     const rest = new REST({
@@ -132,25 +100,20 @@ client.once(Events.ClientReady, async (bot) => {
     }).setToken(process.env.TOKEN);
 
 
-
     await rest.put(
-
       Routes.applicationCommands(bot.user.id),
-
       {
         body: commands
       }
-
     );
 
 
-    console.log("✅ Slash registrados");
-
+    console.log("✅ Comandos slash registrados!");
 
   } catch(err) {
 
-    console.error("❌ Erro slash:");
-    console.error(err);
+    console.log("Erro registrando comandos:");
+    console.log(err);
 
   }
 
@@ -158,26 +121,22 @@ client.once(Events.ClientReady, async (bot) => {
 
 
 
-// PAINEL
-
+// INTERAÇÕES
 client.on(
   Events.InteractionCreate,
   async interaction => {
 
 
-    if (!interaction.isChatInputCommand())
-      return;
+  if (!interaction.isChatInputCommand())
+    return;
 
 
-    if (interaction.commandName !== "painel")
-      return;
-
+  if (interaction.commandName === "painel") {
 
 
     await interaction.deferReply({
       ephemeral: true
     });
-
 
 
     const canal =
@@ -188,10 +147,8 @@ client.on(
       interaction.options.getString("mensagem");
 
 
-
     config.canal = canal.id;
     config.mensagem = mensagem;
-
 
 
     fs.writeFileSync(
@@ -200,78 +157,57 @@ client.on(
     );
 
 
-
     const embed = new EmbedBuilder()
-
       .setColor("#00ff88")
-
-      .setTitle("✅ Painel atualizado")
-
+      .setTitle("✅ Painel Atualizado")
       .setDescription(
         `Canal: ${canal}\nMensagem: ${mensagem}`
       );
 
 
-
     await interaction.editReply({
-
-      embeds:[embed]
-
+      embeds: [embed]
     });
 
+  }
 
 });
 
 
 
-
 // BOAS VINDAS
-
 client.on(
   Events.GuildMemberAdd,
   async member => {
 
 
-    const canal =
-      member.guild.channels.cache.get(config.canal);
+  const canal =
+    member.guild.channels.cache.get(config.canal);
 
 
-
-    if (!canal)
-      return;
+  if (!canal) return;
 
 
-
-    const embed = new EmbedBuilder()
-
-      .setColor("#00ff88")
-
-      .setTitle("✨ Novo membro")
-
-      .setDescription(
-
-        config.mensagem.replace(
-          "{user}",
-          `${member}`
-        )
-
+  const embed = new EmbedBuilder()
+    .setColor("#00ff88")
+    .setTitle("✨ Novo membro")
+    .setDescription(
+      config.mensagem.replace(
+        "{user}",
+        `${member}`
       )
+    )
+    .setThumbnail(
+      member.user.displayAvatarURL({
+        dynamic:true
+      })
+    );
 
-      .setThumbnail(
-        member.user.displayAvatarURL({
-          dynamic:true
-        })
-      );
 
-
-
-    canal.send({
-
-      content:"@here",
-
-      embeds:[embed]
-
-    });
+  canal.send({
+    content:"@here",
+    embeds:[embed]
+  });
 
 
 });
@@ -279,11 +215,8 @@ client.on(
 
 
 // SISTEMAS
-
 console.log("PASSOU ANTES DOS SISTEMAS");
 
-
-try {
 
 require("./pet")(client);
 console.log("PET OK");
@@ -305,46 +238,19 @@ require("./canalplayer")(client);
 console.log("CANALPLAYER OK");
 
 
-} catch(err) {
-
-console.error("❌ ERRO NOS SISTEMAS:");
-console.error(err);
-
-}
-
-
-
-// LOGIN
 
 console.log("VAI FAZER LOGIN");
 
 
-console.log(
-  "TOKEN EXISTE:",
-  !!process.env.TOKEN
-);
-
-
-console.log(
-  "TOKEN TAMANHO:",
-  process.env.TOKEN?.length
-);
-
-
-
 client.login(process.env.TOKEN)
-
 .then(() => {
 
- console.log("✅ LOGIN OK");
+  console.log("✅ TOKEN ACEITO PELO DISCORD");
 
 })
-
-
 .catch(err => {
 
- console.error("❌ LOGIN FALHOU");
-
- console.error(err.message);
+  console.error("❌ ERRO LOGIN:");
+  console.error(err);
 
 });
