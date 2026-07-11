@@ -217,11 +217,6 @@ client.on(
 // SISTEMAS
 console.log("PASSOU ANTES DOS SISTEMAS");
 
-
-require("./pet")(client);
-console.log("PET OK");
-
-
 require("./rpg")(client);
 console.log("RPG OK");
 
