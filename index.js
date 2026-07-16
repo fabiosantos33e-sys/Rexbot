@@ -220,7 +220,6 @@ console.log("PASSOU ANTES DOS SISTEMAS");
 require("./rpg")(client);
 console.log("RPG OK");
 
-require("./pet")(client);
 
 require("./rpg_extra")(client);
 console.log("RPG EXTRA OK");
