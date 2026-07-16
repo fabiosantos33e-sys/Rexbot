@@ -1230,7 +1230,7 @@ if (cmd === "ultimate") {
           `🌌 **Eventos**\n` +
           `,evento — mostra evento global ativo\n\n` +
 
-        )
+        
         .setFooter({ text: "... Mostrinho ." });
 
       return message.reply({ embeds: [embed] });
