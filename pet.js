@@ -209,7 +209,7 @@ module.exports = (client) => {
       return message.reply(`Awww! Obrigado pelo presente **${presente}** 🎁💚`);
     }
 
-    if (msg.includes("mostrinho") || msg.includes("rexinho") || msg.includes("pet")) {
+    if (msg.includes("") || msg.includes("") || msg.includes("")) {
       db.xp += 3;
       user.amizade += 2;
       atualizarPet(db);
