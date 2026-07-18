@@ -20,127 +20,237 @@ if (!fs.existsSync(arquivo)) {
     }, null, 2));
 }
 
-const salvar = (db) => {
+function salvar(db){
     fs.writeFileSync(arquivo, JSON.stringify(db, null, 2));
-};
+}
 
-const carregar = () => JSON.parse(fs.readFileSync(arquivo));
+function carregar(){
+    return JSON.parse(fs.readFileSync(arquivo, "utf8"));
+}
 
+
+// Diminui status com o tempo
 setInterval(() => {
+
     let db = carregar();
 
     db.fome = Math.max(0, db.fome - 2);
     db.energia = Math.max(0, db.energia - 1);
 
-    if (db.fome < 30) db.humor = "Com fome";
-    else if (db.energia < 30) db.humor = "Com sono";
-    else db.humor = "Feliz";
+    if(db.fome < 30){
+        db.humor = "Com fome 🍖";
+    } 
+    else if(db.energia < 30){
+        db.humor = "Com sono 😴";
+    }
+    else{
+        db.humor = "Feliz ❤️";
+    }
 
     salvar(db);
-}, 60000);
 
-setInterval(async () => {
-    let db = carregar();
+},60000);
 
-    const frases = [
-        "Alguém quer brincar comigo? 🦖",
-        "Estou observando vocês 👀",
-        "Não esqueçam de me alimentar 🍖",
-        "Hoje estou muito feliz ❤️"
-    ];
 
-    const guild = client.guilds.cache.first();
-    if (!guild) return;
+// Mensagens aleatórias
+setInterval(()=>{
 
-    const canal = guild.channels.cache.find(c => c.isTextBased());
+const mensagens = [
+"Alguém quer brincar comigo? 🦖",
+"Estou andando pelo servidor 👀",
+"Não esqueçam de cuidar de mim 🍖",
+"Hoje estou muito feliz ❤️",
+"Vocês são minha família 🦖💚"
+];
 
-    if (canal) {
-        canal.send(frases[Math.floor(Math.random() * frases.length)]);
-    }
 
-}, 900000);
+const guild = client.guilds.cache.first();
 
-client.on("messageCreate", async (message) => {
+if(!guild) return;
 
-    if (message.author.bot) return;
 
-    let db = carregar();
+const canal = guild.channels.cache.find(c=>c.isTextBased());
 
-    if (!db.usuarios[message.author.id]) {
-        db.usuarios[message.author.id] = {
-            nome: message.author.username,
-            xp: 0
-        };
-    }
 
-    db.usuarios[message.author.id].xp++;
+if(canal){
+canal.send(
+mensagens[Math.floor(Math.random()*mensagens.length)]
+);
+}
 
-    if (message.content.toLowerCase().startsWith("aprender ")) {
 
-        let frase = message.content.slice(9);
+},900000);
 
-        if (!frase) return;
 
-        db.frases.push(frase);
-        salvar(db);
 
-        return message.reply("🧠 Aprendi!");
-    }
+client.on("messageCreate", async message=>{
 
-    if (message.content.toLowerCase() === "pet") {
 
-        const respostas = [
-            "Oi!",
-            "Estou aqui ❤️",
-            "Como posso ajudar?",
-            db.frases[Math.floor(Math.random() * db.frases.length)] || "Ainda não aprendi nada."
-        ];
+if(message.author.bot) return;
 
-        return message.reply(respostas[Math.floor(Math.random() * respostas.length)]);
-    }
 
-    if (message.content.toLowerCase() === "alimentar") {
+let texto = message.content.toLowerCase();
 
-        db.fome = 100;
-        salvar(db);
+let db = carregar();
 
-        return message.reply("🍖 Obrigado pela comida!");
-    }
 
-    if (message.content.toLowerCase() === "brincar") {
 
-        db.felicidade = Math.min(100, db.felicidade + 10);
-        db.energia = Math.max(0, db.energia - 10);
+if(!db.usuarios[message.author.id]){
 
-        salvar(db);
+db.usuarios[message.author.id]={
+nome: message.author.username,
+xp:0
+};
 
-        return message.reply("🎉 Foi divertido!");
-    }
+}
 
-    if (message.content.toLowerCase() === "dormir") {
 
-        db.energia = 100;
+db.usuarios[message.author.id].xp++;
 
-        salvar(db);
 
-        return message.reply("😴 Agora estou descansado!");
-    }
 
-    if (message.content.toLowerCase() === "status") {
+// Aprender
 
-        return message.reply(
+if(texto.startsWith("mostrinho aprender ")){
+
+let frase = message.content.slice(19);
+
+
+if(!frase) return;
+
+
+db.frases.push(frase);
+
+salvar(db);
+
+
+return message.reply(
+"🧠 Aprendi uma coisa nova!"
+);
+
+
+}
+
+
+
+// Conversa
+
+
+if(
+texto.includes("oi") ||
+texto.includes("oii") ||
+texto.includes("olá") ||
+texto.includes("ola")
+){
+
+return message.reply(
+"🦖 Oiii! Eu sou o Mostrinho ❤️ Estou bem e você?"
+);
+
+}
+
+
+
+if(texto.includes("tudo bem")){
+
+return message.reply(
+"🦖 Estou ótimo! Minha energia está em "+db.energia+"% ⚡"
+);
+
+}
+
+
+
+// Comandos do Mostrinho
+
+
+if(texto === "mostrinho brincar"){
+
+
+db.felicidade=Math.min(100,db.felicidade+10);
+
+db.energia=Math.max(0,db.energia-10);
+
+
+salvar(db);
+
+
+return message.reply(
+"🎉 Eu adorei brincar com você! 🦖❤️"
+);
+
+}
+
+
+
+if(texto === "mostrinho alimentar"){
+
+
+db.fome=100;
+
+salvar(db);
+
+
+return message.reply(
+"🍖 Obrigado pela comida! Agora estou cheio!"
+);
+
+}
+
+
+
+if(texto === "mostrinho dormir"){
+
+
+db.energia=100;
+
+salvar(db);
+
+
+return message.reply(
+"😴 Zzz... Agora estou descansado!"
+);
+
+}
+
+
+
+if(texto === "mostrinho status"){
+
+
+return message.reply(
 `🦖 **Mostrinho**
 
 ❤️ Humor: ${db.humor}
-🍖 Fome: ${db.fome}
-⚡ Energia: ${db.energia}
-😊 Felicidade: ${db.felicidade}
+
+🍖 Fome: ${db.fome}%
+
+⚡ Energia: ${db.energia}%
+
+😊 Felicidade: ${db.felicidade}%
 
 🧠 Frases aprendidas: ${db.frases.length}`
-        );
-    }
+);
 
-    salvar(db);
+
+}
+
+
+
+// Respostas aprendidas
+
+if(db.frases.length > 0 && Math.random() < 0.15){
+
+return message.reply(
+db.frases[Math.floor(Math.random()*db.frases.length)]
+);
+
+}
+
+
+
+salvar(db);
+
 
 });
 
