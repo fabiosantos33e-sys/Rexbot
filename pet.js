@@ -20,26 +20,31 @@ if (!fs.existsSync(arquivo)) {
     }, null, 2));
 }
 
+
 function salvar(db){
     fs.writeFileSync(arquivo, JSON.stringify(db, null, 2));
 }
+
 
 function carregar(){
     return JSON.parse(fs.readFileSync(arquivo, "utf8"));
 }
 
 
-// Diminui status com o tempo
-setInterval(() => {
+
+// Status diminuindo com o tempo
+
+setInterval(()=>{
 
     let db = carregar();
 
     db.fome = Math.max(0, db.fome - 2);
     db.energia = Math.max(0, db.energia - 1);
 
+
     if(db.fome < 30){
         db.humor = "Com fome 🍖";
-    } 
+    }
     else if(db.energia < 30){
         db.humor = "Com sono 😴";
     }
@@ -47,20 +52,24 @@ setInterval(() => {
         db.humor = "Feliz ❤️";
     }
 
+
     salvar(db);
 
 },60000);
 
 
-// Mensagens aleatórias
+
+
+// Mensagens automáticas
+
 setInterval(()=>{
 
 const mensagens = [
-"Alguém quer brincar comigo? 🦖",
-"Estou andando pelo servidor 👀",
-"Não esqueçam de cuidar de mim 🍖",
-"Hoje estou muito feliz ❤️",
-"Vocês são minha família 🦖💚"
+"🦖 Alguém quer brincar comigo?",
+"👀 Estou observando vocês",
+"🍖 Não esqueçam de me alimentar",
+"❤️ Estou muito feliz hoje",
+"🦖 Vocês são minha família"
 ];
 
 
@@ -73,13 +82,17 @@ const canal = guild.channels.cache.find(c=>c.isTextBased());
 
 
 if(canal){
+
 canal.send(
 mensagens[Math.floor(Math.random()*mensagens.length)]
 );
+
 }
 
 
 },900000);
+
+
 
 
 
@@ -95,9 +108,11 @@ let db = carregar();
 
 
 
+// Criar usuário
+
 if(!db.usuarios[message.author.id]){
 
-db.usuarios[message.author.id]={
+db.usuarios[message.author.id] = {
 nome: message.author.username,
 xp:0
 };
@@ -106,6 +121,87 @@ xp:0
 
 
 db.usuarios[message.author.id].xp++;
+
+
+
+
+
+// PET - frase aprendida aleatória
+
+if(texto === "pet"){
+
+if(db.frases.length > 0){
+
+let frase = db.frases[
+Math.floor(Math.random()*db.frases.length)
+];
+
+
+return message.reply(
+"🦖 " + frase
+);
+
+
+}else{
+
+return message.reply(
+"🦖 Ainda não aprendi nenhuma frase 😢"
+);
+
+}
+
+}
+
+
+
+
+
+// Palavrões
+
+const proibidas = [
+"porra",
+"caralho",
+"puta",
+"fdp",
+"merda",
+"desgraça",
+"buceta"
+];
+
+
+if(proibidas.some(p => texto.includes(p))){
+
+return message.reply(
+"🦖 Ei! Sem palavrão, vamos manter o servidor tranquilo ❤️"
+);
+
+}
+
+
+
+
+
+// Capeta
+
+if(texto.includes("capeta")){
+
+
+const respostas = [
+"🦖 Capeta? E tu? 😂",
+"👀 Ih, chamou quem?",
+"😂 Eu sou o Mostrinho, não o capeta",
+"🦖 Cuidado com essas palavras kkk"
+];
+
+
+return message.reply(
+respostas[Math.floor(Math.random()*respostas.length)]
+);
+
+
+}
+
+
 
 
 
@@ -133,8 +229,9 @@ return message.reply(
 
 
 
-// Conversa
 
+
+// Conversa
 
 if(
 texto.includes("oi") ||
@@ -144,10 +241,11 @@ texto.includes("ola")
 ){
 
 return message.reply(
-"🦖 Oiii! Eu sou o Mostrinho ❤️ Estou bem e você?"
+"🦖 Oiii! Eu sou o Mostrinho ❤️"
 );
 
 }
+
 
 
 
@@ -161,16 +259,15 @@ return message.reply(
 
 
 
-// Comandos do Mostrinho
 
+
+// Brincar
 
 if(texto === "mostrinho brincar"){
 
+db.felicidade = Math.min(100, db.felicidade + 10);
 
-db.felicidade=Math.min(100,db.felicidade+10);
-
-db.energia=Math.max(0,db.energia-10);
-
+db.energia = Math.max(0, db.energia - 10);
 
 salvar(db);
 
@@ -183,26 +280,32 @@ return message.reply(
 
 
 
+
+
+// Alimentar
+
 if(texto === "mostrinho alimentar"){
 
-
-db.fome=100;
+db.fome = 100;
 
 salvar(db);
 
 
 return message.reply(
-"🍖 Obrigado pela comida! Agora estou cheio!"
+"🍖 Obrigado pela comida! Estou cheio!"
 );
 
 }
 
 
 
+
+
+// Dormir
+
 if(texto === "mostrinho dormir"){
 
-
-db.energia=100;
+db.energia = 100;
 
 salvar(db);
 
@@ -215,8 +318,11 @@ return message.reply(
 
 
 
-if(texto === "mostrinho status"){
 
+
+// Status
+
+if(texto === "mostrinho status"){
 
 return message.reply(
 `🦖 **Mostrinho**
@@ -232,12 +338,13 @@ return message.reply(
 🧠 Frases aprendidas: ${db.frases.length}`
 );
 
-
 }
 
 
 
-// Respostas aprendidas
+
+
+// Fala frases aprendidas aleatoriamente
 
 if(db.frases.length > 0 && Math.random() < 0.15){
 
@@ -253,5 +360,6 @@ salvar(db);
 
 
 });
+
 
 };
