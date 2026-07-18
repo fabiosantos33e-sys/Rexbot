@@ -1227,10 +1227,9 @@ if (cmd === "ultimate") {
           `,guild info\n` +
           `,guild ranking\n\n` +
 
-          `🌌 **Eventos**\n` +
-          `,evento — mostra evento global ativo\n\n` +
-
-        
+           `🌌 **Eventos**\n` +
+          `,evento — mostra evento global ativo\n\n`
+        )
         .setFooter({ text: "... Mostrinho ." });
 
       return message.reply({ embeds: [embed] });
