@@ -644,5 +644,4 @@ return message.reply(
 respostasExtras[Math.floor(Math.random()*respostasExtras.length)]
 );
         salvar(db);
-
-};
+});
