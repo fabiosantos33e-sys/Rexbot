@@ -645,6 +645,4 @@ respostasExtras[Math.floor(Math.random()*respostasExtras.length)]
 );
         salvar(db);
 
-    });
-
 };
