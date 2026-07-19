@@ -278,9 +278,10 @@ client.on("messageCreate", async (message) => {
         texto.includes("quem fez você")  
     ) {  
 
+return message.reply(
+`🦖💙 Eu sou o Mostrinho! Um bot criado para divertir e ajudar a comunidade 💙`
+);
 
-        return message.reply(  
-            "🦖 Eu sou o Mostrinho! Um bot criado para divertir e ajudar a comunidade 💙"  
 // Ajuda
 
 if (
@@ -288,9 +289,8 @@ texto === "mostrinho ajuda" ||
 texto.includes("o que você sabe fazer")
 ) {
 
-return message.reply(
-
-`🦖💙 Ajuda do Mostrinho
+return message.reply(`
+🦖💙 Ajuda do Mostrinho
 
 👋 Conversar comigo
 😂 Contar piadas
@@ -300,8 +300,8 @@ return message.reply(
 🧠 Aprender frases
 📊 Ver informações
 
-Use: Mostrinho + mensagem`
-);
+Use: Mostrinho + mensagem
+`);
 
 }
 
