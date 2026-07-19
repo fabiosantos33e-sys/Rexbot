@@ -3,331 +3,648 @@ const path = require("path");
 
 module.exports = (client) => {
 
-const pasta = path.join(__dirname, "database");
-const arquivo = path.join(pasta, "pet.json");
+const pasta = path.join(__dirname, "database");  
+const arquivo = path.join(pasta, "mostrinho.json");  
 
-if (!fs.existsSync(pasta)) fs.mkdirSync(pasta);
+if (!fs.existsSync(pasta)) {  
+    fs.mkdirSync(pasta);  
+}  
 
-if (!fs.existsSync(arquivo)) {
-    fs.writeFileSync(
-        arquivo,
-        JSON.stringify({
-            nome: "Mostrinho",
-            fome: 100,
-            felicidade: 100,
-            energia: 100,
-            humor: "Animado 😄",
-            frases: [],
-            usuarios: {}
-        }, null, 2)
-    );
+if (!fs.existsSync(arquivo)) {  
+
+    fs.writeFileSync(  
+        arquivo,  
+        JSON.stringify({  
+            xp: {},  
+            frases: [],  
+            humor: "Animado 😄"  
+        }, null, 2)  
+    );  
+
+}  
+
+
+function carregar() {  
+    return JSON.parse(  
+        fs.readFileSync(arquivo, "utf8")  
+    );  
+}  
+
+
+function salvar(db) {  
+    fs.writeFileSync(  
+        arquivo,  
+        JSON.stringify(db, null, 2)  
+    );  
+}  
+
+
+client.on("messageCreate", async (message) => {  
+
+    if (message.author.bot) return;  
+
+
+    const texto = message.content  
+        .toLowerCase()  
+        .trim();  
+
+
+    const db = carregar();  
+
+
+    if (!db.xp[message.author.id]) {  
+
+        db.xp[message.author.id] = {  
+            nome: message.author.username,  
+            nivel: 1,  
+            xp: 0  
+        };  
+
+    }  
+
+
+    db.xp[message.author.id].xp++;  
+
+
+    const chamado =  
+        texto.startsWith("mostrinho") ||  
+        message.mentions.has(client.user);  
+
+
+    if (!chamado) {  
+
+        salvar(db);  
+        return;  
+
+    }  
+
+
+    // Oi  
+
+    if (  
+        texto.includes("oi") ||  
+        texto.includes("ola") ||  
+        texto.includes("olá") ||  
+        texto.includes("eae")  
+    ) {  
+
+        const respostas = [  
+
+            "👋 Oiii! Eu sou o Mostrinho 🦖💙",  
+            "😄 Opa! Cheguei, fala comigo!",  
+            "✨ Olá! Como está seu dia?",  
+            "🦖 E aí! O Mostrinho está online!"  
+
+        ];  
+
+
+        return message.reply(  
+            respostas[  
+                Math.floor(Math.random() * respostas.length)  
+            ]  
+        );  
+
+    }  
+
+
+    // Tudo bem  
+
+    if (  
+        texto.includes("tudo bem") ||  
+        texto.includes("como você está") ||  
+        texto.includes("como vc ta")  
+    ) {  
+
+
+        return message.reply(  
+            `😄 Estou bem! Meu humor está ${db.humor} 💙`  
+        );  
+
+    }  
+
+
+    // Capeta  
+
+    if (texto.includes("capeta")) {  
+
+
+        const respostas = [  
+
+            "👹 Chamou o capeta? Calma, o Mostrinho chegou primeiro 😂",  
+            "😈 O capeta está ocupado, deixou eu cuidar daqui kkk",  
+            "🔥 Ihhh falaram o nome proibido... brincadeira 😂",  
+            "🦖 Aqui só tem um monstrinho do bem!"  
+
+        ];  
+
+
+        return message.reply(  
+            respostas[  
+                Math.floor(Math.random() * respostas.length)  
+            ]  
+        );  
+
+    }  
+    // Piada  
+
+    if (  
+        texto.includes("piada") ||  
+        texto.includes("conta uma piada")  
+    ) {  
+
+        const piadas = [  
+
+            "😂 Por que o computador foi ao médico? Porque pegou um vírus!",  
+            "🤣 O que o pato falou para a pata? Vem quá!",  
+            "😆 Meu processador trabalha tanto que até pede férias!",  
+            "🦖 Por que o dinossauro não usa celular? Porque ele tem medo do Jurassic Wi-Fi!"  
+
+        ];  
+
+
+        return message.reply(  
+            piadas[  
+                Math.floor(Math.random() * piadas.length)  
+            ]  
+        );  
+
+    }  
+
+
+
+    // Eu te amo  
+
+    if (  
+        texto.includes("eu te amo") ||  
+        texto.includes("amo você") ||  
+        texto.includes("te amo")  
+    ) {  
+
+
+        return message.reply(  
+            "💙 Eu gosto muito de conversar com você! Obrigado pelo carinho 😄🦖"  
+        );  
+
+    }  
+
+
+
+    // Abraço  
+
+    if (  
+        texto.includes("abraço") ||  
+        texto.includes("me abraça")  
+    ) {  
+
+
+        return message.reply(  
+            `🤗 *Mostrinho dá um abraço virtual em ${message.author.username}!* 💙`  
+        );  
+
+    }  
+
+
+
+    // Carinho  
+
+    if (  
+        texto.includes("carinho") ||  
+        texto.includes("faz carinho")  
+    ) {  
+
+
+        return message.reply(  
+            "🥰 *Mostrinho fica feliz com o carinho* Obrigado! 🦖💙"  
+        );  
+
+    }  
+
+
+
+    // Dança  
+
+    if (  
+        texto.includes("dança") ||  
+        texto.includes("dance")  
+    ) {  
+
+
+        return message.reply(  
+            "🕺🦖 *Mostrinho começa a dançar todo estranho* 😂💃"  
+        );  
+
+    }  
+
+
+
+    // Triste  
+
+    if (  
+        texto.includes("estou triste") ||  
+        texto.includes("to triste") ||  
+        texto.includes("triste")  
+    ) {  
+
+
+        return message.reply(  
+            "😔 Poxa... espero que você fique melhor. Quer conversar? 💙"  
+        );  
+
+    }  
+
+
+
+    // Risada  
+
+    if (  
+        texto.includes("kkkk") ||  
+        texto.includes("kkk") ||  
+        texto.includes("haha")  
+    ) {  
+
+
+        return message.reply(  
+            "😂😂 Essa risada foi boa! Até eu ri aqui."  
+        );  
+
+    }  
+
+
+
+    // Quem criou  
+
+    if (  
+        texto.includes("quem criou você") ||  
+        texto.includes("quem fez você")  
+    ) {  
+
+
+        return message.reply(  
+            "🦖 Eu sou o Mostrinho! Um bot criado para divertir e ajudar a comunidade 💙"  
+// Ajuda
+
+if (
+texto === "mostrinho ajuda" ||
+texto.includes("o que você sabe fazer")
+) {
+
+return message.reply(
+
+`🦖💙 Ajuda do Mostrinho
+
+👋 Conversar comigo
+😂 Contar piadas
+🤗 Dar abraço
+🥰 Receber carinho
+💃 Dançar
+🧠 Aprender frases
+📊 Ver informações
+
+Use: Mostrinho + mensagem`
+);
+
 }
 
-function carregar() {
-    return JSON.parse(fs.readFileSync(arquivo, "utf8"));
+// Perguntar idade
+
+if (
+texto.includes("quantos anos você tem") ||
+texto.includes("sua idade")
+) {
+
+return message.reply(  
+    "🦖 Eu sou novinho ainda! Nasci para animar essa comunidade 💙"  
+);
+
 }
 
-function salvar(db) {
-    fs.writeFileSync(arquivo, JSON.stringify(db, null, 2));
+// Perguntar comida
+
+if (
+texto.includes("quer comer") ||
+texto.includes("está com fome")
+) {
+
+const comidas = [  
+    "🍕 pizza",  
+    "🍔 hambúrguer",  
+    "🍜 lámen",  
+    "🍰 bolo"  
+];  
+
+return message.reply(  
+    `😋 Eu aceitaria um ${comidas[Math.floor(Math.random()*comidas.length)]}!`  
+);
+
 }
 
-// Atualiza os status a cada minuto
-setInterval(() => {
+// Boa noite
 
-    const db = carregar();
+if (
+texto.includes("boa noite")
+) {
 
-    db.fome = Math.max(0, db.fome - 1);
-    db.energia = Math.max(0, db.energia - 1);
+return message.reply(  
+    "🌙 Boa noite! Dorme bem, amanhã tem mais aventuras com o Mostrinho 🦖💙"  
+);
 
-    if (db.fome <= 20) {
-        db.humor = "Com fome 🍔";
-    } else if (db.energia <= 20) {
-        db.humor = "Com sono 😴";
-    } else if (db.felicidade <= 30) {
-        db.humor = "Entediado 😐";
-    } else {
-        db.humor = "Animado 😄";
-    }
+}
 
-    salvar(db);
+// Tchau
 
-}, 60000);
+if (
+texto.includes("tchau") ||
+texto.includes("até logo")
+) {
 
-// Mensagens automáticas (bem raras)
-setInterval(() => {
+return message.reply(  
+    "👋 Até mais! Vou ficar aqui esperando você voltar 🦖💙"  
+);
 
-    const guild = client.guilds.cache.first();
-    if (!guild) return;
+}
 
-    const canal = guild.channels.cache.find(c => c.isTextBased());
-    if (!canal) return;
+// Elogio
 
-    const mensagens = [
-        "👀 Como vocês estão hoje?",
-        "☕ Alguém afim de conversar comigo?",
-        "✨ Espero que o dia de vocês esteja sendo incrível!",
-        "🎉 Sempre bom ver o servidor movimentado.",
-        "💙 Se precisarem de mim é só chamar: **Mostrinho**."
-    ];
+if (
+texto.includes("legal") ||
+texto.includes("bonito") ||
+texto.includes("bom")
+) {
 
-    if (Math.random() < 0.35) {
-        canal.send(mensagens[Math.floor(Math.random() * mensagens.length)]);
-    }
+return message.reply(  
+    "😄 Obrigado! Fico feliz que você gostou de mim 🦖✨"  
+);
 
-}, 1800000);
+}
 
-// Evento principal
-client.on("messageCreate", async (message) => {
+// Perguntar nome
 
-    if (message.author.bot) return;
+if (
+texto.includes("qual seu nome") ||
+texto.includes("como você chama")
+) {
 
-    const texto = message.content.toLowerCase().trim();
-    const db = carregar();
+return message.reply(  
+    "🦖 Meu nome é Mostrinho! Seu pequeno companheiro da comunidade 💙"  
+);
 
-    if (!db.usuarios[message.author.id]) {
-        db.usuarios[message.author.id] = {
-            nome: message.author.username,
-            xp: 0
-        };
-    }
+}
 
-    db.usuarios[message.author.id].xp++;
+// Modo assustador
 
-    // Só responde se falarem com ele
-    const citado =
-        texto.startsWith("mostrinho") ||
-        message.mentions.has(client.user) ||
-        (message.reference && message.reference.messageId);
+if (
+texto.includes("modo assustador") ||
+texto.includes("modo terror")
+) {
 
-    if (!citado) {
-        salvar(db);
-        return;
-    }
+return message.reply(  
+    "👹🦖 Modo terror ativado... brincadeira kkk, continuo sendo o Mostrinho do bem 😂"  
+);
 
-    // Aprender frases
-    if (texto.startsWith("mostrinho aprender ")) {
+}
+// Amizade com o Mostrinho
 
-        const frase = message.content.slice(20).trim();
+if (
+texto.includes("somos amigos") ||
+texto.includes("você é meu amigo") ||
+texto.includes("meu amigo")
+) {
 
-        if (!frase)
-            return message.reply("❌ Escreva uma frase para eu aprender.");
+return message.reply(  
+    `💙 Claro que sim, ${message.author.username}! O Mostrinho está aqui para conversar com você 🦖✨`  
+);
 
-        if (db.frases.includes(frase))
-            return message.reply("😊 Eu já conheço essa frase.");
+}
 
-        db.frases.push(frase);
+// Perguntar sentimento
 
-        salvar(db);
+if (
+texto.includes("você está feliz") ||
+texto.includes("você gosta de mim")
+) {
 
-        return message.reply("🧠 Nova frase aprendida com sucesso!");
-    }
+return message.reply(  
+    "😄 Eu fico feliz quando o servidor está animado e quando conversam comigo! 💙"  
+);
 
-    // Status
-    if (texto === "mostrinho status") {
+}
 
-        return message.reply(
-`🤖 **Mostrinho**
+// Mostrinho dormindo
 
-😄 Humor: ${db.humor}
-🍔 Fome: ${db.fome}%
-⚡ Energia: ${db.energia}%
-🎉 Felicidade: ${db.felicidade}%
-🧠 Frases aprendidas: ${db.frases.length}
-⭐ XP: ${db.usuarios[message.author.id].xp}`
-        );
-    }
+if (
+texto.includes("dorme") ||
+texto.includes("vai dormir")
+) {
 
-    // Saudações
-    if (
-        texto.includes("oi") ||
-        texto.includes("olá") ||
-        texto.includes("ola") ||
-        texto.includes("eae") ||
-        texto.includes("bom dia") ||
-        texto.includes("boa tarde") ||
-        texto.includes("boa noite")
-    ) {
+return message.reply(  
+    "😴 *Mostrinho boceja e vai tirar um cochilo...* 🦖💤"  
+);
 
-        const respostas = [
-            `👋 Oi, ${message.author.username}! Como você está?`,
-            `😊 Olá! É sempre bom conversar com você.`,
-            `✨ Opa! Me chamou? Estou por aqui.`,
-            `😄 E aí! Como posso deixar seu dia melhor?`,
-            `💙 Oi! Espero que esteja tudo certo por aí.`
-        ];
+}
 
-        return message.reply(
-            respostas[Math.floor(Math.random() * respostas.length)]
-        );
-    }
-    // Tudo bem
-    if (
-        texto.includes("tudo bem") ||
-        texto.includes("como você está") ||
-        texto.includes("como vc ta")
-    ) {
+// Acordar
 
-        const respostas = [
-            `😄 Estou muito bem! Meu humor está **${db.humor}**.`,
-            `😊 Estou ótimo! Obrigado por perguntar.`,
-            `⚡ Estou cheio de energia para conversar!`,
-            `💙 Estou bem sim! E você, como está?`
-        ];
+if (
+texto.includes("acorda") ||
+texto.includes("acordar")
+) {
 
-        return message.reply(
-            respostas[Math.floor(Math.random() * respostas.length)]
-        );
-    }
+return message.reply(  
+    "☀️ Bom dia! Mostrinho acordou cheio de energia! ⚡🦖"  
+);
 
-    // Quem é você
-    if (
-        texto.includes("quem é você") ||
-        texto.includes("quem é vc")
-    ) {
+}
 
-        return message.reply(
-            "🤖 Eu sou o **Mostrinho**, um bot criado para conversar, interagir e deixar o servidor mais divertido."
-        );
-    }
+// Surpresa
 
-    // Obrigado
-    if (
-        texto.includes("obrigado") ||
-        texto.includes("valeu")
-    ) {
+if (
+texto.includes("surpresa") ||
+texto.includes("me surpreenda")
+) {
 
-        const respostas = [
-            "💙 Sempre que precisar, é só me chamar!",
-            "😄 Foi um prazer ajudar.",
-            "✨ Disponha!",
-            "😊 Tamo junto!"
-        ];
+const surpresas = [  
 
-        return message.reply(
-            respostas[Math.floor(Math.random() * respostas.length)]
-        );
-    }
+    "🎁 Uma surpresa: você ganhou um sorriso do Mostrinho 😄",  
+    "✨ Surpresa! O Mostrinho mandou um abraço virtual 🤗",  
+    "🦖 Surpresa desbloqueada: modo diversão ativado!"  
 
-    // Brincar
-    if (texto === "mostrinho brincar") {
+];  
 
-        db.felicidade = Math.min(100, db.felicidade + 15);
-        db.energia = Math.max(0, db.energia - 8);
 
+return message.reply(  
+    surpresas[  
+        Math.floor(Math.random() * surpresas.length)  
+    ]  
+);
+
+}
+
+// Perguntar humor
+
+if (
+texto.includes("qual seu humor") ||
+texto.includes("como está seu humor")
+) {
+
+return message.reply(  
+    `😄 Meu humor agora está: **${db.humor}**`  
+);
+
+}
+
+// Falar sozinho
+
+if (
+texto === "mostrinho pensar"
+) {
+
+const pensamentos = [  
+
+    "🤔 Estou pensando em novas brincadeiras...",  
+    "💭 Será que dinossauros gostavam de pizza?",  
+    "🦖 Minha missão é deixar o servidor mais divertido!"  
+
+];  
+
+
+return message.reply(  
+    pensamentos[  
+        Math.floor(Math.random() * pensamentos.length)  
+    ]  
+);
+
+}
+
+// Agradecimento especial
+
+if (
+texto.includes("obrigado mostrinho") ||
+texto.includes("valeu mostrinho")
+) {
+
+return message.reply(  
+    "💙 De nada! Sempre que precisar, pode chamar o Mostrinho 🦖"  
+);
+
+}
+// Sistema de nível
+
+if (texto === "mostrinho nivel" || texto === "mostrinho xp") {
+
+const usuario = db.xp[message.author.id];  
+
+return message.reply(
+
+`⭐ Perfil do ${usuario.nome}
+
+🦖 Nível: ${usuario.nivel}
+✨ XP: ${usuario.xp}`
+);
+
+}
+
+// Comando sorte
+
+if (
+texto === "mostrinho sorte" ||
+texto.includes("minha sorte")
+) {
+
+const sorte = Math.floor(Math.random() * 100) + 1;  
+
+let resposta;  
+
+if (sorte >= 80) {  
+    resposta = "🍀 Sorte excelente! Hoje é seu dia!";  
+}   
+else if (sorte >= 50) {  
+    resposta = "😄 Uma sorte boa está com você!";  
+}   
+else {  
+    resposta = "😅 A sorte está tímida hoje, tente novamente!";  
+}  
+
+
+return message.reply(  
+    `🎲 Sua sorte é **${sorte}%**\n${resposta}`  
+);
+
+}
+
+// Escolher número
+
+if (texto.startsWith("mostrinho escolher")) {
+
+const numeros = [  
+    "1️⃣",  
+    "2️⃣",  
+    "3️⃣",  
+    "4️⃣",  
+    "5️⃣"  
+];  
+
+return message.reply(  
+    `🎲 Eu escolho o número ${numeros[Math.floor(Math.random()*numeros.length)]}`  
+);
+
+}
+
+// Pergunta aleatória
+
+if (texto.includes("pergunta")) {
+
+const perguntas = [  
+
+    "🤔 Qual seu jogo favorito?",  
+    "🎮 Se pudesse escolher um poder, qual seria?",  
+    "🦖 Você teria um dinossauro de estimação?",  
+    "🌎 Qual lugar você gostaria de conhecer?"  
+
+];  
+
+
+return message.reply(  
+    perguntas[Math.floor(Math.random()*perguntas.length)]  
+);
+
+}
+
+// Mensagem de diversão
+
+if (
+texto.includes("estou entediado") ||
+texto.includes("tédio")
+) {
+
+return message.reply(
+
+`🦖 Sem tédio por aqui!
+
+Podemos:
+🎲 Jogar
+😂 Contar piada
+💬 Conversar
+✨ Fazer uma brincadeira`
+);
+
+}
+
+// Resposta final aleatória
+
+const respostasExtras = [
+
+"🦖 Interessante! Conta mais para o Mostrinho.",  
+"💙 Estou ouvindo você.",  
+"😄 Essa foi boa!",  
+"✨ Cada conversa me deixa mais inteligente."
+
+];
+
+return message.reply(
+respostasExtras[Math.floor(Math.random()*respostasExtras.length)]
+);
         salvar(db);
 
-        const respostas = [
-            "🎮 Isso foi divertido demais!",
-            "😂 Gostei da brincadeira!",
-            "🥳 Vamos brincar mais vezes!",
-            "😄 Agora estou muito mais animado!"
-        ];
-
-        return message.reply(
-            respostas[Math.floor(Math.random() * respostas.length)]
-        );
-    }
-
-    // Alimentar
-    if (texto === "mostrinho alimentar") {
-
-        db.fome = 100;
-
-        salvar(db);
-
-        const comidas = [
-            "🍕 Pizza",
-            "🍔 Hambúrguer",
-            "🍗 Frango",
-            "🍜 Lámen",
-            "🌮 Taco",
-            "🍰 Bolo"
-        ];
-
-        return message.reply(
-            `😋 Humm... adorei o ${comidas[Math.floor(Math.random()*comidas.length)]}! Muito obrigado!`
-        );
-    }
-
-    // Dormir
-    if (texto === "mostrinho dormir") {
-
-        db.energia = 100;
-
-        salvar(db);
-
-        return message.reply(
-            "😴 Tirei um cochilo e agora estou com a energia renovada!"
-        );
-    }
-
-    // Carinho
-    if (texto === "mostrinho carinho") {
-
-        db.felicidade = Math.min(100, db.felicidade + 8);
-
-        salvar(db);
-
-        return message.reply(
-            "🥰 Amei o carinho! Você é muito gentil."
-        );
-    }
-
-    // Abraço
-    if (texto === "mostrinho abraço") {
-
-        db.felicidade = Math.min(100, db.felicidade + 10);
-
-        salvar(db);
-
-        return message.reply(
-            `🤗 *Abraça ${message.author.username} bem forte!*`
-        );
-    }
-
-    // Contar frase aprendida
-    if (texto === "mostrinho falar") {
-
-        if (db.frases.length === 0)
-            return message.reply("😅 Ainda não aprendi nenhuma frase.");
-
-        return message.reply(
-            db.frases[Math.floor(Math.random() * db.frases.length)]
-        );
-    }
-
-    // Palavrões apenas quando falar com o bot
-    const proibidas = [
-        "porra",
-        "caralho",
-        "fdp",
-        "merda",
-        "desgraça",
-        "puta"
-    ];
-
-    if (proibidas.some(p => texto.includes(p))) {
-
-        return message.reply(
-            "😅 Calma aí kkk... Vamos manter a conversa tranquila."
-        );
-    }
-
-    // Resposta padrão
-    const respostas = [
-        "🤔 Ainda não sei responder isso, mas posso aprender com **Mostrinho aprender**.",
-        "😊 Interessante... Conte mais!",
-        "💙 Gostei da sua mensagem.",
-        "😄 Ainda estou aprendendo coisas novas.",
-        "✨ Não entendi muito bem, pode explicar de outro jeito?"
-    ];
-
-    salvar(db);
-
-    return message.reply(
-        respostas[Math.floor(Math.random() * respostas.length)]
-    );
-
-});
+    });
 
 };
