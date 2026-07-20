@@ -641,7 +641,11 @@ const respostasExtras = [
 ];
 
 return message.reply(
-respostasExtras[Math.floor(Math.random()*respostasExtras.length)]
+    respostasExtras[Math.floor(Math.random()*respostasExtras.length)]
 );
-        salvar(db);
+
+}
+
 });
+
+};
