@@ -233,7 +233,7 @@ console.log("DUNGEON OK");
 require("./canalplayer")(client);
 console.log("CANALPLAYER OK");
 
-
+require("./alimentar")(client);
 
 console.log("VAI FAZER LOGIN");
 
