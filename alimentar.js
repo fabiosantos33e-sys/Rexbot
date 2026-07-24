@@ -91,7 +91,7 @@ if (texto.startsWith(".alimentar")) {
 Exemplo:
 `.alimentar pizza`
 `.alimentar café`
-`.alimentar hambúrguer``
+`.alimentar hambúrguer`
 );
 }
 
