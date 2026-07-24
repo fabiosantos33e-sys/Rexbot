@@ -500,7 +500,7 @@ if (
 ) {  
 
     return message.reply(  
-        "🤍 Fui criado pelo Fabio com muito carinho para ser o mascote desta comunidade. 🖤"  
+        "🤍 Fui criado pelo Naechi com muito carinho para ser o mascote desta comunidade. 🖤"  
     );  
 
 }  
