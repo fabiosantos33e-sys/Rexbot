@@ -1,4 +1,6 @@
 require("dotenv").config();
+
+const perguntarIA = require("./ia");
 const express = require("express");
 
 const {
@@ -212,7 +214,45 @@ client.on(
 
 });
 
+// IA DO MOSTRINHO
+client.on(
+  Events.MessageCreate,
+  async message => {
 
+    if (message.author.bot) return;
+
+
+    if (message.content.startsWith("Mostrinho")) {
+
+      const pergunta = message.content
+        .replace("Mostrinho", "")
+        .trim();
+
+
+      if (!pergunta) {
+        return message.reply("Oi 😄 fala comigo!");
+      }
+
+
+      try {
+
+        const resposta = await perguntarIA(pergunta);
+
+        await message.reply(resposta);
+
+
+      } catch (erro) {
+
+        console.log("Erro IA:", erro);
+
+        message.reply("Minha IA teve um problema 😅");
+
+      }
+
+    }
+
+  }
+);
 
 // SISTEMAS
 console.log("PASSOU ANTES DOS SISTEMAS");
