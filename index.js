@@ -235,7 +235,6 @@ console.log("CANALPLAYER OK");
 
 require("./alimentar")(client);
 
-require("./pete")(client);
 
 console.log("VAI FAZER LOGIN");
 
