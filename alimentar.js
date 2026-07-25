@@ -83,8 +83,7 @@ if (texto.startsWith(".alimentar")) {
 
     const comida = texto.replace(".alimentar", "").trim();  
 
-    if (!comida) {  
-        return message.reply(
+    if (!comida) {
 return message.reply(`🍽️ Você esqueceu de dizer a comida!
 
 Exemplo:
