@@ -46,7 +46,6 @@ const humores = [
 if (!db.humorAtual) {
     db.humorAtual = humores[Math.floor(Math.random() * humores.length)];
 }
-
 // 5% de chance de mudar o humor
 if (Math.random() < 0.05) {
 
@@ -736,11 +735,28 @@ if (
 }
 
 
-
 // Obrigado
 if (
     texto.includes("obrigado") ||
-   
+    texto.includes("valeu") ||
+    texto.includes("tmj")
+) {
+
+    user.amizade++;
+
+    const respostas = [
+        `🤝 Sempre que precisar!`,
+        `😁 Tamo junto!`,
+        `😎 Disponha!`,
+        `❤️ Não precisa agradecer.`,
+        `🫶 Conte comigo.`
+    ];
+
+    return message.reply(
+        respostas[Math.floor(Math.random() * respostas.length)]
+    );
+}
+
 // ==========================
 // PUXAR ASSUNTO
 // ==========================
@@ -1076,18 +1092,18 @@ if (
 
 const ultimo = user.ultimaInteracao || Date.now();
 
-const dias =
+const diasAusente =
 Math.floor(
 (Date.now() - ultimo) /
 1000 / 60 / 60 / 24
 );
 
-if (dias >= 7) {
+if (diasAusente >= 7) {
 
     message.reply(
 `👀 ${user.apelido}...
 
-Faz ${dias} dias que você não aparecia.
+Faz ${diasAusente} dias que você não aparecia.
 
 Achei que tinha me abandonado. 😂`
     );
