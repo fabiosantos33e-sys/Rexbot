@@ -85,14 +85,12 @@ if (texto.startsWith(".alimentar")) {
 
     if (!comida) {  
         return message.reply(
-
-`🍽️ Você esqueceu de dizer a comida!
+return message.reply(`🍽️ Você esqueceu de dizer a comida!
 
 Exemplo:
-`.alimentar pizza`
-`.alimentar café`
-`.alimentar hambúrguer`
-);
+.alimentar pizza
+.alimentar café
+.alimentar hambúrguer`);
 }
 
 if (db.fome >= 100) {  
