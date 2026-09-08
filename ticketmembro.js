@@ -122,7 +122,7 @@ module.exports = (client) => {
 
             const guild = interaction.guild;
             const usuario = interaction.user;
-
+            const nick = interaction.member.displayName;
 
             // Verifica se já possui ticket
             const ticketExistente = guild.channels.cache.find(
@@ -249,7 +249,7 @@ module.exports = (client) => {
                     "━━━━━━━━━━━━━━━━━━━━\n\n" +
 
                     "👤 **Aberto por:**\n" +
-                    usuario + "\n\n" +
+nick + "\n\n" +
 
                     "📅 **Data:**\n" +
                     data + "\n\n" +
