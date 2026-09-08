@@ -257,19 +257,6 @@ client.on(
 // SISTEMAS
 console.log("PASSOU ANTES DOS SISTEMAS");
 
-require("./rpg")(client);
-console.log("RPG OK");
-
-require("./rpg_extra")(client);
-console.log("RPG EXTRA OK");
-
-
-require("./rpg_dungeo_raid")(client);
-console.log("DUNGEON OK");
-
-
-require("./canalplayer")(client);
-console.log("CANALPLAYER OK");
 
 console.log("VAI FAZER LOGIN");
 
