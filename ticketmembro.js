@@ -13,7 +13,7 @@ module.exports = (client) => {
     // CONFIGURAÇÕES
     // =====================================================
 
-    const CATEGORIA_TICKETS = "1545925935008579605";
+    const CATEGORIA_TICKETS = "1546739373750624308";
 
     // Cargo de atendimento
     const CARGO_ATENDIMENTO = "1546716678891634740";
