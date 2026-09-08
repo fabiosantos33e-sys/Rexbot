@@ -1,4 +1,3 @@
-```js
 const {
     EmbedBuilder,
     ActionRowBuilder,
@@ -126,17 +125,17 @@ module.exports = (client) => {
 
             // Verifica se a pessoa já possui ticket
             const ticketExistente = guild.channels.cache.find(
-                canal =>
-                    canal.topic === `ticket-staff-${usuario.id}`
-            );
+    canal =>
+        canal.topic === "ticket-staff-" + usuario.id
+);
 
 
             if (ticketExistente) {
 
                 return interaction.reply({
                     content:
-                        `❌ Você já possui um ticket aberto!\n\n` +
-                        `🎫 ${ticketExistente}`,
+    "❌ Você já possui um ticket aberto!\n\n" +
+    "🎫 " + ticketExistente,
                     ephemeral: true
                 });
 
@@ -417,5 +416,4 @@ module.exports = (client) => {
 
     console.log("🎫 Sistema de Ticket STAFF carregado!");
 };
-```
 
