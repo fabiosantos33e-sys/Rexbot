@@ -1,4 +1,3 @@
-```js
 const {
     EmbedBuilder,
     ActionRowBuilder,
@@ -392,5 +391,3 @@ module.exports = (client) => {
     console.log("🎫 Sistema de Ticket MEMBRO carregado!");
 
 };
-```
-
