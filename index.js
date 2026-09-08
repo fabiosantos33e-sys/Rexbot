@@ -257,6 +257,7 @@ client.on(
 // SISTEMAS
 console.log("PASSOU ANTES DOS SISTEMAS");
 
+require("laaticket.js")(client);
 
 console.log("VAI FAZER LOGIN");
 
