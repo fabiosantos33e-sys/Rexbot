@@ -260,6 +260,8 @@ console.log("PASSOU ANTES DOS SISTEMAS");
 require("./laaticket.js")(client);
 
 require("./ticketmembro")(client);
+
+require("./carta")(client);
 console.log("VAI FAZER LOGIN");
 
 
