@@ -8,6 +8,7 @@ const {
   ButtonStyle,
   EmbedBuilder,
   SlashCommandBuilder
+  AttachmentBuilder
 } = require("discord.js");
 
 const fs = require("fs");
@@ -128,23 +129,65 @@ module.exports = function instagram(client) {
       const id =
         `${Date.now()}_${interaction.user.id}`;
 
-      db.posts[id] = {
-        id,
-        guildId: interaction.guild.id,
-        channelId: canal.id,
-        authorId: interaction.user.id,
-        authorName: interaction.member?.displayName ||
-          interaction.user.username,
-        authorAvatar:
-          interaction.user.displayAvatarURL({
-            size: 256
-          }),
-        image: imagem.url,
-        legenda,
-        likes: [],
-        comments: [],
-        createdAt: Date.now()
-      };
+      // BAIXA A IMAGEM ENVIADA
+const respostaImagem = await fetch(imagem.url);
+
+if (!respostaImagem.ok) {
+  await interaction.followUp({
+    content: "❌ Não consegui carregar essa imagem.",
+    ephemeral: true
+  });
+
+  return;
+}
+
+const bufferImagem =
+  Buffer.from(await respostaImagem.arrayBuffer());
+
+let extensao = "png";
+
+if (imagem.contentType === "image/jpeg") {
+  extensao = "jpg";
+} else if (imagem.contentType === "image/webp") {
+  extensao = "webp";
+} else if (imagem.contentType === "image/gif") {
+  extensao = "gif";
+}
+
+const nomeArquivo = `mostrinho-post-${id}.${extensao}`;
+
+const anexo = new AttachmentBuilder(
+  bufferImagem,
+  {
+    name: nomeArquivo
+  }
+);
+
+db.posts[id] = {
+  id,
+  guildId: interaction.guild.id,
+  channelId: canal.id,
+  authorId: interaction.user.id,
+
+  authorName:
+    interaction.member?.displayName ||
+    interaction.user.username,
+
+  authorAvatar:
+    interaction.user.displayAvatarURL({
+      size: 256
+    }),
+
+  image: `attachment://${nomeArquivo}`,
+
+  legenda,
+
+  likes: [],
+
+  comments: [],
+
+  createdAt: Date.now()
+};
 
       salvarBanco(db);
 
@@ -153,9 +196,10 @@ module.exports = function instagram(client) {
       const botoes = criarBotoes(db.posts[id]);
 
       const post = await canal.send({
-        embeds: [embed],
-        components: [botoes]
-      });
+  files: [anexo],
+  embeds: [embed],
+  components: [botoes]
+});
 
       db.posts[id].messageId = post.id;
 
