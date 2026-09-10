@@ -1,483 +1,812 @@
 const {
-  Events,
-  ModalBuilder,
-  TextInputBuilder,
-  TextInputStyle,
+  EmbedBuilder,
+  SlashCommandBuilder,
+  AttachmentBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  EmbedBuilder,
-  SlashCommandBuilder,
-  AttachmentBuilder
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  Events
 } = require("discord.js");
 
 const fs = require("fs");
 const path = require("path");
 
-module.exports = function instagram(client) {
+const database = path.join(__dirname, "database");
+const arquivo = path.join(database, "instagram.json");
 
-  const databaseFolder = path.join(__dirname, "database");
-  const databaseFile = path.join(databaseFolder, "instagram.json");
-
-  if (!fs.existsSync(databaseFolder)) {
-    fs.mkdirSync(databaseFolder, { recursive: true });
-  }
-
-  if (!fs.existsSync(databaseFile)) {
-    fs.writeFileSync(databaseFile, JSON.stringify({
-      posts: {}
-    }, null, 2));
-  }
-
-  function carregarBanco() {
-    try {
-      return JSON.parse(fs.readFileSync(databaseFile, "utf8"));
-    } catch {
-      return { posts: {} };
-    }
-  }
-
-  function salvarBanco(db) {
-    fs.writeFileSync(
-      databaseFile,
-      JSON.stringify(db, null, 2)
-    );
-  }
-
-  // =========================
-  // COMANDO /POSTAR
-  // =========================
-
-  client.on(Events.InteractionCreate, async interaction => {
-
-    if (!interaction.isChatInputCommand()) return;
-
-    if (interaction.commandName !== "postar") return;
-
-    const modal = new ModalBuilder()
-      .setCustomId("instagram_post_modal")
-      .setTitle("📸 Nova publicação");
-
-    const legenda = new TextInputBuilder()
-      .setCustomId("legenda")
-      .setLabel("Legenda da publicação")
-      .setStyle(TextInputStyle.Paragraph)
-      .setPlaceholder("Escreva uma legenda...")
-      .setRequired(false)
-      .setMaxLength(1000);
-
-    modal.addComponents(
-      new ActionRowBuilder().addComponents(legenda)
-    );
-
-    await interaction.showModal(modal);
-  });
-
-
-  // =========================
-  // MODAL
-  // =========================
-
-  client.on(Events.InteractionCreate, async interaction => {
-
-    if (!interaction.isModalSubmit()) return;
-
-    if (interaction.customId !== "instagram_post_modal") return;
-
-    const legenda =
-      interaction.fields.getTextInputValue("legenda") ||
-      "Sem legenda.";
-
-    await interaction.reply({
-      content:
-        "📸 **Envie agora a foto que deseja publicar neste canal.**\n\n" +
-        "Você tem **60 segundos**.",
-      ephemeral: true
-    });
-
-    const canal = interaction.channel;
-
-    const filtro = msg =>
-      msg.author.id === interaction.user.id &&
-      msg.attachments.size > 0;
-
-    try {
-
-      const coletadas = await canal.awaitMessages({
-        filter: filtro,
-        max: 1,
-        time: 60000,
-        errors: ["time"]
-      });
-
-      const mensagem = coletadas.first();
-
-      const imagem = mensagem.attachments.first();
-
-      if (!imagem.contentType?.startsWith("image/")) {
-
-        await interaction.followUp({
-          content: "❌ Esse arquivo não parece ser uma imagem.",
-          ephemeral: true
-        });
-
-        return;
-      }
-
-      const db = carregarBanco();
-
-      const id =
-        `${Date.now()}_${interaction.user.id}`;
-
-      // BAIXA A IMAGEM ENVIADA
-const respostaImagem = await fetch(imagem.url);
-
-if (!respostaImagem.ok) {
-  await interaction.followUp({
-    content: "❌ Não consegui carregar essa imagem.",
-    ephemeral: true
-  });
-
-  return;
+if (!fs.existsSync(database)) {
+  fs.mkdirSync(database, { recursive: true });
 }
 
-const bufferImagem =
-  Buffer.from(await respostaImagem.arrayBuffer());
-
-let extensao = "png";
-
-if (imagem.contentType === "image/jpeg") {
-  extensao = "jpg";
-} else if (imagem.contentType === "image/webp") {
-  extensao = "webp";
-} else if (imagem.contentType === "image/gif") {
-  extensao = "gif";
+if (!fs.existsSync(arquivo)) {
+  fs.writeFileSync(
+    arquivo,
+    JSON.stringify({ posts: [] }, null, 2)
+  );
 }
 
-const nomeArquivo = `mostrinho-post-${id}.${extensao}`;
-
-const anexo = new AttachmentBuilder(
-  bufferImagem,
-  {
-    name: nomeArquivo
+function carregar() {
+  try {
+    return JSON.parse(
+      fs.readFileSync(arquivo, "utf8")
+    );
+  } catch {
+    return { posts: [] };
   }
-);
-
-db.posts[id] = {
-  id,
-  guildId: interaction.guild.id,
-  channelId: canal.id,
-  authorId: interaction.user.id,
-
-  authorName:
-    interaction.member?.displayName ||
-    interaction.user.username,
-
-  authorAvatar:
-    interaction.user.displayAvatarURL({
-      size: 256
-    }),
-
-  image: `attachment://${nomeArquivo}`,
-
-  legenda,
-
-  likes: [],
-
-  comments: [],
-
-  createdAt: Date.now()
-};
-
-      salvarBanco(db);
-
-      const embed = criarEmbed(db.posts[id]);
-
-      const botoes = criarBotoes(db.posts[id]);
-
-      const post = await canal.send({
-  files: [anexo],
-  embeds: [embed],
-  components: [botoes]
-});
-
-      db.posts[id].messageId = post.id;
-
-      salvarBanco(db);
-
-      try {
-        await mensagem.delete();
-      } catch {}
-
-      await interaction.followUp({
-        content: "✅ **Sua publicação foi criada!** 📸",
-        ephemeral: true
-      });
-
-    } catch {
-
-      await interaction.followUp({
-        content:
-          "⏰ Tempo esgotado. Execute `/postar` novamente.",
-        ephemeral: true
-      });
-    }
-  });
-
-
-  // =========================
-  // BOTÕES
-  // =========================
-
-  client.on(Events.InteractionCreate, async interaction => {
-
-    if (!interaction.isButton()) return;
-
-    if (
-      !interaction.customId.startsWith("instagram_")
-    ) return;
-
-    const partes =
-      interaction.customId.split("_");
-
-    const acao = partes[1];
-    const postId = partes.slice(2).join("_");
-
-    const db = carregarBanco();
-
-    const post = db.posts[postId];
-
-    if (!post) {
-
-      return interaction.reply({
-        content: "❌ Essa publicação não existe mais.",
-        ephemeral: true
-      });
-    }
-
-    // =========================
-    // CURTIR
-    // =========================
-
-    if (acao === "like") {
-
-      const index =
-        post.likes.indexOf(interaction.user.id);
-
-      if (index === -1) {
-
-        post.likes.push(interaction.user.id);
-
-      } else {
-
-        post.likes.splice(index, 1);
-      }
-
-      salvarBanco(db);
-
-      const embed = criarEmbed(post);
-      const botoes = criarBotoes(post);
-
-      await interaction.update({
-        embeds: [embed],
-        components: [botoes]
-      });
-
-      return;
-    }
-
-
-    // =========================
-    // COMENTAR
-    // =========================
-
-    if (acao === "comment") {
-
-      await interaction.deferReply({
-        ephemeral: true
-      });
-
-      let thread;
-
-      try {
-
-        const canal =
-          interaction.guild.channels.cache.get(
-            post.channelId
-          );
-
-        const mensagem =
-          await canal.messages.fetch(
-            post.messageId
-          );
-
-        thread =
-          mensagem.thread ||
-          await mensagem.startThread({
-            name: `💬 Comentários`,
-            autoArchiveDuration: 1440
-          });
-
-      } catch (erro) {
-
-        console.log(
-          "Erro criando thread:",
-          erro
-        );
-
-        await interaction.editReply(
-          "❌ Não consegui abrir os comentários."
-        );
-
-        return;
-      }
-
-      await interaction.editReply(
-        `💬 **Comentários:** ${thread}\n\n` +
-        "Escreva sua mensagem dentro da thread."
-      );
-
-      return;
-    }
-
-
-    // =========================
-    // APAGAR
-    // =========================
-
-    if (acao === "delete") {
-
-      if (
-        interaction.user.id !== post.authorId &&
-        !interaction.member.permissions.has("ManageMessages")
-      ) {
-
-        await interaction.reply({
-          content:
-            "❌ Você não pode apagar essa publicação.",
-          ephemeral: true
-        });
-
-        return;
-      }
-
-      delete db.posts[postId];
-
-      salvarBanco(db);
-
-      try {
-
-        await interaction.message.delete();
-
-      } catch {}
-
-      await interaction.reply({
-        content:
-          "🗑️ Publicação apagada com sucesso.",
-        ephemeral: true
-      });
-    }
-  });
-
-
-  // =========================
-  // REGISTRAR /POSTAR
-  // =========================
+}
+
+function salvar(data) {
+  fs.writeFileSync(
+    arquivo,
+    JSON.stringify(data, null, 2)
+  );
+}
+
+module.exports = (client) => {
+
+  const comando = new SlashCommandBuilder()
+    .setName("postar")
+    .setDescription("Faça uma publicação no Instagram");
 
   client.once(Events.ClientReady, async () => {
-
-    const command = new SlashCommandBuilder()
-      .setName("postar")
-      .setDescription(
-        "📸 Fazer uma publicação no Instagram do servidor"
-      );
-
     try {
+      const comandos =
+        await client.application.commands.fetch();
 
-      await client.application.commands.create(
-        command
+      const existente = comandos.find(
+        cmd => cmd.name === "postar"
       );
 
-      console.log(
-        "📸 Comando /postar registrado!"
-      );
+      if (existente) {
+        await client.application.commands.edit(
+          existente.id,
+          comando.toJSON()
+        );
+      } else {
+        await client.application.commands.create(
+          comando.toJSON()
+        );
+      }
 
+      console.log("📸 /postar registrado!");
     } catch (erro) {
-
-      console.log(
-        "❌ Erro registrando /postar:",
+      console.error(
+        "❌ Erro ao registrar /postar:",
         erro
       );
     }
   });
 
+  client.on(
+    Events.InteractionCreate,
+    async (interaction) => {
 
-  // =========================
-  // FUNÇÕES
-  // =========================
+      try {
 
-  function criarEmbed(post) {
+        // ==============================
+        // /POSTAR
+        // ==============================
 
-    const embed = new EmbedBuilder()
-      .setColor("#8b5cf6")
-      .setAuthor({
-        name: post.authorName,
-        iconURL: post.authorAvatar
-      })
-      .setImage(post.image)
-      .setDescription(
-        `**${post.authorName}**\n\n` +
-        `${post.legenda}\n\n` +
-        `❤️ **${post.likes.length}** curtida(s)  •  ` +
-        `💬 **${post.comments.length}** comentário(s)`
-      )
-      .setFooter({
-        text: "Mostrinho • Instagram"
-      })
-      .setTimestamp(post.createdAt);
+        if (
+          interaction.isChatInputCommand() &&
+          interaction.commandName === "postar"
+        ) {
 
-    return embed;
-  }
+          const modal = new ModalBuilder()
+            .setCustomId("instagram_post")
+            .setTitle("📸 Nova publicação");
 
+          const legenda = new TextInputBuilder()
+            .setCustomId("legenda")
+            .setLabel("Legenda")
+            .setPlaceholder(
+              "Escreva algo sobre sua foto..."
+            )
+            .setStyle(TextInputStyle.Paragraph)
+            .setRequired(false)
+            .setMaxLength(1000);
 
-  function criarBotoes(post) {
+          modal.addComponents(
+            new ActionRowBuilder().addComponents(
+              legenda
+            )
+          );
 
-    const curtir =
-      new ButtonBuilder()
-        .setCustomId(
-          `instagram_like_${post.id}`
-        )
-        .setLabel(
-          `❤️ ${post.likes.length}`
-        )
-        .setStyle(ButtonStyle.Secondary);
+          await interaction.showModal(modal);
+          return;
+        }
 
-    const comentar =
-      new ButtonBuilder()
-        .setCustomId(
-          `instagram_comment_${post.id}`
-        )
-        .setLabel(
-          `💬 ${post.comments.length}`
-        )
-        .setStyle(ButtonStyle.Secondary);
+        // ==============================
+        // MODAL DA PUBLICAÇÃO
+        // ==============================
 
-    const apagar =
-      new ButtonBuilder()
-        .setCustomId(
-          `instagram_delete_${post.id}`
-        )
-        .setLabel("🗑️")
-        .setStyle(ButtonStyle.Danger);
+        if (
+          interaction.isModalSubmit() &&
+          interaction.customId === "instagram_post"
+        ) {
 
-    return new ActionRowBuilder()
-      .addComponents(
-        curtir,
-        comentar,
-        apagar
-      );
-  }
+          const legenda =
+            interaction.fields.getTextInputValue(
+              "legenda"
+            ) || "Sem legenda.";
 
+          await interaction.reply({
+            content:
+              "📸 **Envie sua foto neste canal!**\n" +
+              "Você tem **60 segundos**.",
+            ephemeral: true
+          });
 
-  console.log("📸 Sistema Instagram carregado!");
+          try {
+
+            const mensagens =
+              await interaction.channel.awaitMessages({
+                filter: msg =>
+                  msg.author.id ===
+                    interaction.user.id &&
+                  [...msg.attachments.values()]
+                    .some(a =>
+                      (a.contentType || "")
+                        .startsWith("image/")
+                    ),
+                max: 1,
+                time: 60000
+              });
+
+            if (!mensagens.size) {
+
+              await interaction.editReply({
+                content:
+                  "⏰ Tempo esgotado! Use `/postar` novamente."
+              });
+
+              return;
+            }
+
+            const mensagem =
+              mensagens.first();
+
+            const imagem =
+              [...mensagem.attachments.values()]
+                .find(a =>
+                  (a.contentType || "")
+                    .startsWith("image/")
+                );
+
+            if (!imagem) {
+              return;
+            }
+
+            await interaction.editReply({
+              content:
+                "⏳ **Publicando sua foto...**"
+            });
+
+            // ==============================
+            // BAIXAR IMAGEM
+            // ==============================
+
+            const resposta =
+              await fetch(imagem.url);
+
+            if (!resposta.ok) {
+              throw new Error(
+                "Não consegui baixar a imagem."
+              );
+            }
+
+            const buffer =
+              Buffer.from(
+                await resposta.arrayBuffer()
+              );
+
+            // ==============================
+            // EXTENSÃO
+            // ==============================
+
+            let extensao = "png";
+
+            if (
+              imagem.contentType?.includes("jpeg") ||
+              imagem.contentType?.includes("jpg")
+            ) {
+              extensao = "jpg";
+            } else if (
+              imagem.contentType?.includes("webp")
+            ) {
+              extensao = "webp";
+            } else if (
+              imagem.contentType?.includes("gif")
+            ) {
+              extensao = "gif";
+            }
+
+            const nome =
+              `foto_${Date.now()}.${extensao}`;
+
+            const anexo =
+              new AttachmentBuilder(
+                buffer,
+                { name: nome }
+              );
+
+            // ==============================
+            // CRIAR POST
+            // ==============================
+
+            const id =
+              `${Date.now()}_${interaction.user.id}`;
+
+            const banco = carregar();
+
+            banco.posts.push({
+              id: id,
+
+              autorId:
+                interaction.user.id,
+
+              autor:
+                interaction.member?.displayName ||
+                interaction.user.username,
+
+              legenda: legenda,
+
+              curtidas: [],
+
+              comentarios: [],
+
+              imagem:
+                `attachment://${nome}`,
+
+              data: Date.now()
+            });
+
+            salvar(banco);
+
+            // ==============================
+            // EMBED
+            // ==============================
+
+            const embed =
+              new EmbedBuilder()
+                .setColor(0xff0066)
+
+                .setAuthor({
+                  name:
+                    interaction.member?.displayName ||
+                    interaction.user.username,
+
+                  iconURL:
+                    interaction.user.displayAvatarURL({
+                      dynamic: true
+                    })
+                })
+
+                .setDescription(legenda)
+
+                .setImage(
+                  `attachment://${nome}`
+                )
+
+                .setFooter({
+                  text:
+                    "📸 Instagram • Mostrinho"
+                })
+
+                .setTimestamp();
+
+            // ==============================
+            // BOTÕES
+            // ==============================
+
+            const botoes =
+              new ActionRowBuilder()
+                .addComponents(
+
+                  new ButtonBuilder()
+                    .setCustomId(
+                      `insta_like_${id}`
+                    )
+                    .setLabel("0")
+                    .setEmoji("❤️")
+                    .setStyle(
+                      ButtonStyle.Secondary
+                    ),
+
+                  new ButtonBuilder()
+                    .setCustomId(
+                      `insta_comment_${id}`
+                    )
+                    .setLabel("Comentar")
+                    .setEmoji("💬")
+                    .setStyle(
+                      ButtonStyle.Secondary
+                    ),
+
+                  new ButtonBuilder()
+                    .setCustomId(
+                      `insta_comments_${id}`
+                    )
+                    .setLabel("Comentários")
+                    .setEmoji("👀")
+                    .setStyle(
+                      ButtonStyle.Secondary
+                    ),
+
+                  new ButtonBuilder()
+                    .setCustomId(
+                      `insta_delete_${id}`
+                    )
+                    .setEmoji("🗑️")
+                    .setStyle(
+                      ButtonStyle.Danger
+                    )
+                );
+
+            // ==============================
+            // ENVIAR PUBLICAÇÃO
+            // ==============================
+
+            await interaction.channel.send({
+              embeds: [embed],
+              files: [anexo],
+              components: [botoes]
+            });
+
+            // Apagar imagem original
+            await mensagem.delete()
+              .catch(() => {});
+
+            await interaction.editReply({
+              content:
+                "✅ **Foto publicada com sucesso!** 📸"
+            });
+
+          } catch (erro) {
+
+            console.error(
+              "❌ Erro Instagram:",
+              erro
+            );
+
+            await interaction.editReply({
+              content:
+                "❌ Deu erro ao publicar a foto."
+            }).catch(() => {});
+          }
+
+          return;
+        }
+
+        // ==============================
+        // CURTIR
+        // ==============================
+
+        if (
+          interaction.isButton() &&
+          interaction.customId.startsWith(
+            "insta_like_"
+          )
+        ) {
+
+          const id =
+            interaction.customId.replace(
+              "insta_like_",
+              ""
+            );
+
+          const banco = carregar();
+
+          const post =
+            banco.posts.find(
+              p => p.id === id
+            );
+
+          if (!post) {
+            await interaction.reply({
+              content:
+                "❌ Publicação não encontrada.",
+              ephemeral: true
+            });
+            return;
+          }
+
+          if (!post.curtidas) {
+            post.curtidas = [];
+          }
+
+          const index =
+            post.curtidas.indexOf(
+              interaction.user.id
+            );
+
+          if (index === -1) {
+            post.curtidas.push(
+              interaction.user.id
+            );
+          } else {
+            post.curtidas.splice(
+              index,
+              1
+            );
+          }
+
+          salvar(banco);
+
+          const botoes =
+            new ActionRowBuilder()
+              .addComponents(
+
+                new ButtonBuilder()
+                  .setCustomId(
+                    `insta_like_${id}`
+                  )
+                  .setLabel(
+                    `${post.curtidas.length}`
+                  )
+                  .setEmoji("❤️")
+                  .setStyle(
+                    ButtonStyle.Secondary
+                  ),
+
+                new ButtonBuilder()
+                  .setCustomId(
+                    `insta_comment_${id}`
+                  )
+                  .setLabel("Comentar")
+                  .setEmoji("💬")
+                  .setStyle(
+                    ButtonStyle.Secondary
+                  ),
+
+                new ButtonBuilder()
+                  .setCustomId(
+                    `insta_comments_${id}`
+                  )
+                  .setLabel("Comentários")
+                  .setEmoji("👀")
+                  .setStyle(
+                    ButtonStyle.Secondary
+                  ),
+
+                new ButtonBuilder()
+                  .setCustomId(
+                    `insta_delete_${id}`
+                  )
+                  .setEmoji("🗑️")
+                  .setStyle(
+                    ButtonStyle.Danger
+                  )
+              );
+
+          await interaction.message.edit({
+            components: [botoes]
+          });
+
+          await interaction.reply({
+            content:
+              index === -1
+                ? "❤️ Curtida adicionada!"
+                : "💔 Curtida removida!",
+            ephemeral: true
+          });
+
+          return;
+        }
+
+        // ==============================
+        // COMENTAR
+        // ==============================
+
+        if (
+          interaction.isButton() &&
+          interaction.customId.startsWith(
+            "insta_comment_"
+          )
+        ) {
+
+          const id =
+            interaction.customId.replace(
+              "insta_comment_",
+              ""
+            );
+
+          const banco = carregar();
+
+          const post =
+            banco.posts.find(
+              p => p.id === id
+            );
+
+          if (!post) {
+            await interaction.reply({
+              content:
+                "❌ Publicação não encontrada.",
+              ephemeral: true
+            });
+            return;
+          }
+
+          const modal =
+            new ModalBuilder()
+              .setCustomId(
+                `insta_comment_modal_${id}`
+              )
+              .setTitle(
+                "💬 Comentar"
+              );
+
+          const comentario =
+            new TextInputBuilder()
+              .setCustomId(
+                "comentario"
+              )
+              .setLabel(
+                "Seu comentário"
+              )
+              .setPlaceholder(
+                "Escreva seu comentário..."
+              )
+              .setStyle(
+                TextInputStyle.Paragraph
+              )
+              .setRequired(true)
+              .setMaxLength(500);
+
+          modal.addComponents(
+            new ActionRowBuilder()
+              .addComponents(
+                comentario
+              )
+          );
+
+          await interaction.showModal(
+            modal
+          );
+
+          return;
+        }
+
+        // ==============================
+        // SALVAR COMENTÁRIO
+        // ==============================
+
+        if (
+          interaction.isModalSubmit() &&
+          interaction.customId.startsWith(
+            "insta_comment_modal_"
+          )
+        ) {
+
+          const id =
+            interaction.customId.replace(
+              "insta_comment_modal_",
+              ""
+            );
+
+          const texto =
+            interaction.fields.getTextInputValue(
+              "comentario"
+            );
+
+          const banco = carregar();
+
+          const post =
+            banco.posts.find(
+              p => p.id === id
+            );
+
+          if (!post) {
+            await interaction.reply({
+              content:
+                "❌ Publicação não encontrada.",
+              ephemeral: true
+            });
+            return;
+          }
+
+          if (!post.comentarios) {
+            post.comentarios = [];
+          }
+
+          post.comentarios.push({
+            autor:
+              interaction.member?.displayName ||
+              interaction.user.username,
+
+            autorId:
+              interaction.user.id,
+
+            texto:
+              texto,
+
+            data:
+              Date.now()
+          });
+
+          salvar(banco);
+
+          await interaction.reply({
+            content:
+              "💬 **Comentário publicado!**",
+            ephemeral: true
+          });
+
+          return;
+        }
+
+        // ==============================
+        // VER COMENTÁRIOS
+        // ==============================
+
+        if (
+          interaction.isButton() &&
+          interaction.customId.startsWith(
+            "insta_comments_"
+          )
+        ) {
+
+          const id =
+            interaction.customId.replace(
+              "insta_comments_",
+              ""
+            );
+
+          const banco = carregar();
+
+          const post =
+            banco.posts.find(
+              p => p.id === id
+            );
+
+          if (!post) {
+            await interaction.reply({
+              content:
+                "❌ Publicação não encontrada.",
+              ephemeral: true
+            });
+            return;
+          }
+
+          const comentarios =
+            post.comentarios || [];
+
+          if (!comentarios.length) {
+
+            await interaction.reply({
+              content:
+                "💬 Essa publicação ainda não possui comentários.",
+              ephemeral: true
+            });
+
+            return;
+          }
+
+          const ultimos =
+            comentarios.slice(-15);
+
+          let texto = "";
+
+          for (
+            const comentario of ultimos
+          ) {
+            texto +=
+              `**${comentario.autor}**\n` +
+              `${comentario.texto}\n\n`;
+          }
+
+          const embed =
+            new EmbedBuilder()
+              .setColor(0xff0066)
+              .setTitle(
+                "💬 Comentários"
+              )
+              .setDescription(
+                texto
+              )
+              .setFooter({
+                text:
+                  `${comentarios.length} comentário(s)`
+              });
+
+          await interaction.reply({
+            embeds: [embed],
+            ephemeral: true
+          });
+
+          return;
+        }
+
+        // ==============================
+        // APAGAR
+        // ==============================
+
+        if (
+          interaction.isButton() &&
+          interaction.customId.startsWith(
+            "insta_delete_"
+          )
+        ) {
+
+          const id =
+            interaction.customId.replace(
+              "insta_delete_",
+              ""
+            );
+
+          const banco = carregar();
+
+          const post =
+            banco.posts.find(
+              p => p.id === id
+            );
+
+          if (!post) {
+            await interaction.reply({
+              content:
+                "❌ Publicação não encontrada.",
+              ephemeral: true
+            });
+            return;
+          }
+
+          const administrador =
+            interaction.member.permissions.has(
+              "ManageMessages"
+            );
+
+          const dono =
+            post.autorId ===
+            interaction.user.id;
+
+          if (!dono && !administrador) {
+            await interaction.reply({
+              content:
+                "❌ Você não pode apagar essa publicação.",
+              ephemeral: true
+            });
+            return;
+          }
+
+          banco.posts =
+            banco.posts.filter(
+              p => p.id !== id
+            );
+
+          salvar(banco);
+
+          await interaction.message
+            .delete()
+            .catch(() => {});
+
+          return;
+        }
+
+      } catch (erro) {
+
+        console.error(
+          "❌ Erro no Instagram:",
+          erro
+        );
+
+        if (
+          !interaction.replied &&
+          !interaction.deferred
+        ) {
+          await interaction.reply({
+            content:
+              "❌ Ocorreu um erro no sistema.",
+            ephemeral: true
+          }).catch(() => {});
+        }
+      }
+    }
+  );
+
+  console.log(
+    "📸 Sistema Instagram carregado!"
+  );
 };
