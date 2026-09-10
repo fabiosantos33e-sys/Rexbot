@@ -381,123 +381,177 @@ module.exports = (client) => {
           return;
         }
 
-        // ==============================
-        // CURTIR
-        // ==============================
 
-        if (
-          interaction.isButton() &&
-          interaction.customId.startsWith(
-            "insta_like_"
+ // ==============================
+// CURTIR + VER QUEM CURTIU
+// ==============================
+
+if (
+  interaction.isButton() &&
+  interaction.customId.startsWith("insta_like_")
+) {
+
+  const id = interaction.customId.replace(
+    "insta_like_",
+    ""
+  );
+
+  const banco = carregar();
+
+  const post = banco.posts.find(
+    p => p.id === id
+  );
+
+  if (!post) {
+    await interaction.reply({
+      content: "❌ Publicação não encontrada.",
+      ephemeral: true
+    });
+
+    return;
+  }
+
+  if (!post.curtidas) {
+    post.curtidas = [];
+  }
+
+  // ==============================
+  // CLICOU NA CURTIDA
+  // ==============================
+
+  const index = post.curtidas.indexOf(
+    interaction.user.id
+  );
+
+  if (index === -1) {
+
+    // Adiciona curtida
+    post.curtidas.push(
+      interaction.user.id
+    );
+
+  } else {
+
+    // Remove curtida
+    post.curtidas.splice(
+      index,
+      1
+    );
+  }
+
+  salvar(banco);
+
+  // ==============================
+  // ATUALIZAR BOTÃO
+  // ==============================
+
+  const botoes =
+    new ActionRowBuilder()
+      .addComponents(
+
+        new ButtonBuilder()
+          .setCustomId(
+            `insta_like_${id}`
           )
-        ) {
+          .setLabel(
+            `${post.curtidas.length}`
+          )
+          .setEmoji("❤️")
+          .setStyle(
+            ButtonStyle.Secondary
+          ),
 
-          const id =
-            interaction.customId.replace(
-              "insta_like_",
-              ""
-            );
+        new ButtonBuilder()
+          .setCustomId(
+            `insta_comment_${id}`
+          )
+          .setLabel("Comentar")
+          .setEmoji("💬")
+          .setStyle(
+            ButtonStyle.Secondary
+          ),
 
-          const banco = carregar();
+        new ButtonBuilder()
+          .setCustomId(
+            `insta_comments_${id}`
+          )
+          .setLabel("Comentários")
+          .setEmoji("👀")
+          .setStyle(
+            ButtonStyle.Secondary
+          ),
 
-          const post =
-            banco.posts.find(
-              p => p.id === id
-            );
+        new ButtonBuilder()
+          .setCustomId(
+            `insta_delete_${id}`
+          )
+          .setEmoji("🗑️")
+          .setStyle(
+            ButtonStyle.Danger
+          )
+      );
 
-          if (!post) {
-            await interaction.reply({
-              content:
-                "❌ Publicação não encontrada.",
-              ephemeral: true
-            });
-            return;
-          }
+  await interaction.message.edit({
+    components: [botoes]
+  });
 
-          if (!post.curtidas) {
-            post.curtidas = [];
-          }
+  // ==============================
+  // MOSTRAR QUEM CURTIU
+  // ==============================
 
-          const index =
-            post.curtidas.indexOf(
-              interaction.user.id
-            );
+  if (post.curtidas.length === 0) {
 
-          if (index === -1) {
-            post.curtidas.push(
-              interaction.user.id
-            );
-          } else {
-            post.curtidas.splice(
-              index,
-              1
-            );
-          }
+    await interaction.reply({
+      content:
+        "💔 Ninguém curtiu essa publicação ainda.",
+      ephemeral: true
+    });
 
-          salvar(banco);
+    return;
+  }
 
-          const botoes =
-            new ActionRowBuilder()
-              .addComponents(
+  let lista = "";
 
-                new ButtonBuilder()
-                  .setCustomId(
-                    `insta_like_${id}`
-                  )
-                  .setLabel(
-                    `${post.curtidas.length}`
-                  )
-                  .setEmoji("❤️")
-                  .setStyle(
-                    ButtonStyle.Secondary
-                  ),
+  for (
+    const usuarioId of post.curtidas
+  ) {
 
-                new ButtonBuilder()
-                  .setCustomId(
-                    `insta_comment_${id}`
-                  )
-                  .setLabel("Comentar")
-                  .setEmoji("💬")
-                  .setStyle(
-                    ButtonStyle.Secondary
-                  ),
+    try {
 
-                new ButtonBuilder()
-                  .setCustomId(
-                    `insta_comments_${id}`
-                  )
-                  .setLabel("Comentários")
-                  .setEmoji("👀")
-                  .setStyle(
-                    ButtonStyle.Secondary
-                  ),
+      const usuario =
+        await interaction.client.users.fetch(
+          usuarioId
+        );
 
-                new ButtonBuilder()
-                  .setCustomId(
-                    `insta_delete_${id}`
-                  )
-                  .setEmoji("🗑️")
-                  .setStyle(
-                    ButtonStyle.Danger
-                  )
-              );
+      lista +=
+        `❤️ ${usuario.username}\n`;
 
-          await interaction.message.edit({
-            components: [botoes]
-          });
+    } catch {
 
-          await interaction.reply({
-            content:
-              index === -1
-                ? "❤️ Curtida adicionada!"
-                : "💔 Curtida removida!",
-            ephemeral: true
-          });
+      lista +=
+        `❤️ Usuário desconhecido\n`;
+    }
+  }
 
-          return;
-        }
+  const embed =
+    new EmbedBuilder()
+      .setColor(0xff0066)
+      .setTitle("❤️ Quem curtiu")
+      .setDescription(lista)
+      .setFooter({
+        text:
+          `${post.curtidas.length} curtida(s)`
+      });
 
-        // ==============================
+  await interaction.reply({
+    embeds: [embed],
+    ephemeral: true
+  });
+
+  return;
+}
+
+         // ==============================
         // COMENTAR
         // ==============================
 
