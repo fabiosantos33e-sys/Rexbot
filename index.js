@@ -262,6 +262,8 @@ require("./laaticket.js")(client);
 require("./ticketmembro")(client);
 
 require("./carta")(client);
+
+require("./instagram")(client);
 console.log("VAI FAZER LOGIN");
 
 
