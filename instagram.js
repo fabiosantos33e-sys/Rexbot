@@ -7,7 +7,7 @@ const {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
-  SlashCommandBuilder
+  SlashCommandBuilder,
   AttachmentBuilder
 } = require("discord.js");
 
