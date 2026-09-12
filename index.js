@@ -264,6 +264,8 @@ require("./ticketmembro")(client);
 require("./carta")(client);
 
 require("./instagram")(client);
+
+require("./boasvindas.js")(client);
 console.log("VAI FAZER LOGIN");
 
 
