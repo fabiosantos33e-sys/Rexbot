@@ -265,6 +265,8 @@ require("./carta")(client);
 
 require("./instagram")(client);
 
+require('./ticketparceria')(client);
+
 console.log("VAI FAZER LOGIN");
 
 
