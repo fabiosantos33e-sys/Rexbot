@@ -274,7 +274,6 @@ require("./instagram")(client);
 
 require('./ticketparceria')(client);
 
-require("./profile")(client);
 
 console.log("VAI FAZER LOGIN");
 
