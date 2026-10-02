@@ -1,26 +1,14 @@
 const fs = require("fs");
 const path = require("path");
-
-const {
-    SlashCommandBuilder,
-    EmbedBuilder,
-    AttachmentBuilder
-} = require("discord.js");
-
-// ===============================
-// CONFIGURAÇÕES
-// ===============================
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 
 const DATA_DIR = path.join(__dirname, "database");
 const DATA_FILE = path.join(DATA_DIR, "users.json");
 
-const ZUNO_IMAGE = path.join(
-    __dirname,
-    "assets",
-    "zuno-profile.png"
-);
+// ===============================
+// BANCO DE DADOS
+// ===============================
 
-// Cria as pastas/arquivo automaticamente
 if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
 }
@@ -29,40 +17,24 @@ if (!fs.existsSync(DATA_FILE)) {
     fs.writeFileSync(DATA_FILE, "{}", "utf8");
 }
 
-// ===============================
-// BANCO DE DADOS
-// ===============================
-
 function carregarUsuarios() {
     try {
-        const dados = fs.readFileSync(DATA_FILE, "utf8");
-
-        if (!dados.trim()) {
-            return {};
-        }
-
-        return JSON.parse(dados);
+        return JSON.parse(
+            fs.readFileSync(DATA_FILE, "utf8")
+        );
     } catch (erro) {
-        console.error("❌ Erro ao carregar users.json:", erro);
+        console.error("❌ Erro ao carregar usuários:", erro);
         return {};
     }
 }
 
 function salvarUsuarios(usuarios) {
-    try {
-        fs.writeFileSync(
-            DATA_FILE,
-            JSON.stringify(usuarios, null, 2),
-            "utf8"
-        );
-    } catch (erro) {
-        console.error("❌ Erro ao salvar users.json:", erro);
-    }
+    fs.writeFileSync(
+        DATA_FILE,
+        JSON.stringify(usuarios, null, 2),
+        "utf8"
+    );
 }
-
-// ===============================
-// CRIAR PERFIL
-// ===============================
 
 function criarPerfil(user) {
     const usuarios = carregarUsuarios();
@@ -71,15 +43,11 @@ function criarPerfil(user) {
         usuarios[user.id] = {
             id: user.id,
             nome: user.username,
-
             nivel: 1,
             xp: 0,
-
             interacoes: 0,
             conquistas: 0,
-
             relacao: "Desconhecido",
-
             criadoEm: new Date().toISOString()
         };
 
@@ -89,15 +57,20 @@ function criarPerfil(user) {
     return usuarios[user.id];
 }
 
-// ===============================
-// XP
-// ===============================
-
 function adicionarXP(user, quantidade) {
     const usuarios = carregarUsuarios();
 
     if (!usuarios[user.id]) {
-        criarPerfil(user);
+        usuarios[user.id] = {
+            id: user.id,
+            nome: user.username,
+            nivel: 1,
+            xp: 0,
+            interacoes: 0,
+            conquistas: 0,
+            relacao: "Desconhecido",
+            criadoEm: new Date().toISOString()
+        };
     }
 
     const perfil = usuarios[user.id];
@@ -105,14 +78,9 @@ function adicionarXP(user, quantidade) {
     perfil.xp += quantidade;
     perfil.interacoes += 1;
 
-    // 100 XP por nível
-    const novoNivel = Math.floor(perfil.xp / 100) + 1;
+    perfil.nivel =
+        Math.floor(perfil.xp / 100) + 1;
 
-    if (novoNivel > perfil.nivel) {
-        perfil.nivel = novoNivel;
-    }
-
-    // Relação básica
     if (perfil.interacoes >= 100) {
         perfil.relacao = "Melhor amigo";
     } else if (perfil.interacoes >= 50) {
@@ -131,210 +99,134 @@ function adicionarXP(user, quantidade) {
 }
 
 // ===============================
-// COMANDO /PROFILE
+// COMANDO
 // ===============================
 
-module.exports = (client) => {
+function comandoProfile() {
+    return new SlashCommandBuilder()
+        .setName("profile")
+        .setDescription("Veja seu perfil social com o Zuno.")
+        .addUserOption(option =>
+            option
+                .setName("membro")
+                .setDescription("Veja o perfil de outro membro.")
+                .setRequired(false)
+        );
+}
 
-    // Registra o comando sem apagar os outros comandos
-    client.once("ready", async () => {
+// ===============================
+// EXECUTAR /PROFILE
+// ===============================
 
-        try {
-            const comandos = await client.application.commands.fetch();
+async function executarProfile(interaction) {
 
-            const existente = comandos.find(
-                comando => comando.name === "profile"
-            );
+    const membro =
+        interaction.options.getUser("membro") ||
+        interaction.user;
 
-            const comandoData = new SlashCommandBuilder()
-                .setName("profile")
-                .setDescription("Veja seu perfil social com o Zuno.")
-                .addUserOption(option =>
-                    option
-                        .setName("membro")
-                        .setDescription("Veja o perfil de outro membro.")
-                        .setRequired(false)
-                );
+    criarPerfil(membro);
 
-            if (!existente) {
+    // Ganha interação somente ao abrir o próprio perfil
+    if (membro.id === interaction.user.id) {
+        adicionarXP(interaction.user, 5);
+    }
 
-                await client.application.commands.create(
-                    comandoData.toJSON()
-                );
+    const usuarios = carregarUsuarios();
+    const perfil = usuarios[membro.id];
 
-                console.log("✅ Comando /profile registrado.");
+    let frase;
 
-            } else {
+    switch (perfil.relacao) {
 
-                await client.application.commands.edit(
-                    existente.id,
-                    comandoData.toJSON()
-                );
-
-                console.log("🔄 Comando /profile atualizado.");
-            }
-
-        } catch (erro) {
-            console.error(
-                "❌ Erro ao registrar /profile:",
-                erro
-            );
-        }
-    });
-
-    // ===============================
-    // INTERAÇÃO
-    // ===============================
-
-    client.on("interactionCreate", async (interaction) => {
-
-        if (!interaction.isChatInputCommand()) {
-            return;
-        }
-
-        if (interaction.commandName !== "profile") {
-            return;
-        }
-
-        const membro =
-            interaction.options.getUser("membro") ||
-            interaction.user;
-
-        // Cria o perfil se ainda não existir
-        const perfil = criarPerfil(membro);
-
-        // Se a pessoa estiver vendo o próprio perfil,
-        // recebe uma pequena quantidade de XP.
-        if (membro.id === interaction.user.id) {
-            adicionarXP(interaction.user, 5);
-        }
-
-        // Recarrega para pegar os dados atualizados
-        const perfilAtualizado = criarPerfil(membro);
-
-        // ===============================
-        // FRASES DO ZUNO
-        // ===============================
-
-        let frase;
-
-        if (perfilAtualizado.relacao === "Melhor amigo") {
-
+        case "Melhor amigo":
             frase =
                 "Esse aqui já faz parte da minha história. ❤️";
+            break;
 
-        } else if (perfilAtualizado.relacao === "Amigo") {
-
+        case "Amigo":
             frase =
                 "Olha quem apareceu! Já considero da casa. 😎";
+            break;
 
-        } else if (perfilAtualizado.relacao === "Conhecido") {
-
+        case "Conhecido":
             frase =
                 "Hmm... já vi você algumas vezes por aqui. 👀";
+            break;
 
-        } else if (
-            perfilAtualizado.relacao === "Já vi você por aqui"
-        ) {
-
+        case "Já vi você por aqui":
             frase =
                 "Acho que finalmente estamos começando a nos conhecer.";
+            break;
 
-        } else {
-
+        default:
             frase =
                 "Ainda estamos nos conhecendo... 👀";
-        }
+    }
 
-        // ===============================
-        // DATA DE ENTRADA NO SISTEMA
-        // ===============================
+    const data = new Date(perfil.criadoEm);
 
-        const data = new Date(
-            perfilAtualizado.criadoEm
-        );
+    const dataFormatada =
+        data.toLocaleDateString("pt-BR");
 
-        const dataFormatada =
-            data.toLocaleDateString("pt-BR");
-
-        // ===============================
-        // EMBED
-        // ===============================
-
-        const embed = new EmbedBuilder()
-            .setTitle("🏛️ ZUNO • PROFILE")
-            .setDescription(
-                `## 👤 ${membro.username}\n` +
-                `> ${frase}`
-            )
-            .setThumbnail(membro.displayAvatarURL({
+    const embed = new EmbedBuilder()
+        .setTitle("🏛️ PROFILE")
+        .setDescription(
+            `## 👤 ${membro.username}\n` +
+            `> ${frase}`
+        )
+        .setThumbnail(
+            membro.displayAvatarURL({
                 size: 256,
                 extension: "png"
-            }))
-            .addFields(
-                {
-                    name: "⭐ Nível",
-                    value: `\`${perfilAtualizado.nivel}\``,
-                    inline: true
-                },
-                {
-                    name: "💬 Interações",
-                    value: `\`${perfilAtualizado.interacoes}\``,
-                    inline: true
-                },
-                {
-                    name: "✨ XP",
-                    value: `\`${perfilAtualizado.xp}/${
-                        perfilAtualizado.nivel * 100
-                    }\``,
-                    inline: true
-                },
-                {
-                    name: "❤️ Relação com Zuno",
-                    value: `\`${perfilAtualizado.relacao}\``,
-                    inline: true
-                },
-                {
-                    name: "🏆 Conquistas",
-                    value: `\`${perfilAtualizado.conquistas}\``,
-                    inline: true
-                },
-                {
-                    name: "📅 Primeiro registro",
-                    value: `\`${dataFormatada}\``,
-                    inline: true
-                }
-            )
-            .setFooter({
-                text: "Zuno • Seu servidor, sua história."
             })
-            .setTimestamp();
+        )
+        .addFields(
+            {
+                name: "⭐ Nível",
+                value: `\`${perfil.nivel}\``,
+                inline: true
+            },
+            {
+                name: "✨ XP",
+                value: `\`${perfil.xp}\``,
+                inline: true
+            },
+            {
+                name: "💬 Interações",
+                value: `\`${perfil.interacoes}\``,
+                inline: true
+            },
+            {
+                name: "❤️ Relação",
+                value: `\`${perfil.relacao}\``,
+                inline: true
+            },
+            {
+                name: "🏆 Conquistas",
+                value: `\`${perfil.conquistas}\``,
+                inline: true
+            },
+            {
+                name: "📅 Registro",
+                value: `\`${dataFormatada}\``,
+                inline: true
+            }
+        )
+        .setFooter({
+            text: "Zuno • Seu servidor, sua história."
+        })
+        .setTimestamp();
 
-        // ===============================
-        // IMAGEM DO ZUNO
-        // ===============================
-
-        const arquivos = [];
-
-        if (fs.existsSync(ZUNO_IMAGE)) {
-
-            const arquivo = new AttachmentBuilder(
-                ZUNO_IMAGE,
-                {
-                    name: "zuno-profile.png"
-                }
-            );
-
-            arquivos.push(arquivo);
-
-            embed.setImage(
-                "attachment://zuno-profile.png"
-            );
-        }
-
-        await interaction.reply({
-            embeds: [embed],
-            files: arquivos
-        });
+    await interaction.reply({
+        embeds: [embed]
     });
+}
+
+// ===============================
+// EXPORTAÇÃO
+// ===============================
+
+module.exports = {
+    comandoProfile,
+    executarProfile
 };
