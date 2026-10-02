@@ -91,8 +91,7 @@ client.once(Events.ClientReady, async (bot) => {
           .setDescription("Mensagem")
           .setRequired(true)
       )
-,
-require("./profile").comandoProfile()
+
   ].map(command => command.toJSON());
 
 
@@ -128,13 +127,6 @@ require("./profile").comandoProfile()
 client.on(
   Events.InteractionCreate,
   async interaction => {
-
-if (
-    interaction.isChatInputCommand() &&
-    interaction.commandName === "profile"
-) {
-    return require("./profile").executarProfile(interaction);
-}
 
   if (!interaction.isChatInputCommand())
     return;
@@ -274,6 +266,7 @@ require("./instagram")(client);
 
 require('./ticketparceria')(client);
 
+require("./interactions")(client);
 
 console.log("VAI FAZER LOGIN");
 
