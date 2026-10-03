@@ -1716,10 +1716,8 @@ function criarDuelo(
     desafiado
 ) {
 
-    const id =
-        `duelo_${Date.now()}_${Math.random()
-            .toString(36)
-            .slice(2, 7)`;
+const id =
+    `duelo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 
     duelos.set(
         id,
@@ -1769,12 +1767,10 @@ function criarBoss(
     canal
 ) {
 
-    const id =
-        `boss_${Date.now()}_${Math.random()
-            .toString(36)
-            .slice(2, 7)`;
+const id =
+    `boss_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 
-    bossesAtivos.set(
+        bossesAtivos.set(
         id,
         {
 
