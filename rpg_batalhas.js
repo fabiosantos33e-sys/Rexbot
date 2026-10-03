@@ -1,29 +1,7 @@
-// ============================================================
-// 🐉 ZUNO RPG — ARENA DAS CRIATURAS
-// ============================================================
-// SISTEMA 100% POR COMANDOS COM VÍRGULA
-//
-// ,rpg
-// ,invocar
-// ,pets
-// ,pet
-// ,equipar
-// ,mapas
-// ,explorar
-// ,meumapa
-// ,treinar 10
-// ,treinar 20
-// ,duelo @membro
-// ,perfilrpg
-// ,ranking
-// ,daily
-// ,moedas
-//
-// NO index.js:
-//
+// ZUNO RPG — BATALHAS AUTOMÁTICAS
+// Prefixo: ,
+// No index.js:
 // require("./rpg_batalhas")(client);
-//
-// ============================================================
 
 const {
     EmbedBuilder,
@@ -35,17 +13,9 @@ const {
 const fs = require("fs");
 const path = require("path");
 
-// ============================================================
-// ⚙️ CONFIGURAÇÃO
-// ============================================================
-
 const PREFIX = ",";
-const PREFIX_RPG = ",";
-const ADM_ID = "1053803800340746261";
-const MAX_LEVEL = 100;
-const MAX_BATALHA = 1;
-
 const DB_FILE = path.join(__dirname, "rpg_batalhas_db.json");
+
 
 // ============================================================
 // 🖼️ IMAGENS DOS PETS
@@ -114,25 +84,6 @@ const IMAGENS = {
         "https://cdn.discordapp.com/attachments/1555632676709343285/1555993560698847262/Screenshot_20261003-1413022.jpg?backend=b2&ex=6ac28b6d&is=6ac139ed&hm=1a25112b8c4dfce3de89e22bec32a46f3d4975d8177c9998b76be76759cb6a52&.png"
 };
 
-// ============================================================
-// 👑 IMAGENS DOS BOSSES
-// ============================================================
-
-const IMAGENS_BOSS = {
-
-    dragao_apocalipse:
-        "https://cdn.discordapp.com/attachments/1555632676709343285/1555984946768646225/IMG-20261003-WA0004.jpg?backend=b2&ex=6ac28368&is=6ac131e8&hm=f4768c07bef82e20faff5163bb836db2c297e2eb5a0d20846703025766eadce7&.png",
-
-    titan_olimpiano:
-        "https://cdn.discordapp.com/attachments/1555632676709343285/1555985158971203684/IMG-20261003-WA0006.jpg?backend=b2&ex=6ac2839a&is=6ac1321a&hm=88b1f910c1c52f1cad096c91ffd0502492279dd53ed7375ec8a3bef480a14953&.png",
-
-    serpente_cosmica:
-        "https://cdn.discordapp.com/attachments/1555632676709343285/1555985172334125159/IMG-20261003-WA0005.jpg?backend=b2&ex=6ac2839d&is=6ac1321d&hm=8a5042befe24a2d8dc6529cde6dffa4b617e6a1c054b95c2112cdb46b906e296&.png"
-};
-
-// ============================================================
-// 🐾 PETS
-// ============================================================
 
 const PETS = {
 
@@ -146,10 +97,7 @@ const PETS = {
         defesa: 150,
         velocidade: 120,
         habilidade: "Chama Oriental",
-        descricao: "Uma criatura ancestral que domina as chamas celestiais.",
-        habilidadeDescricao: "Causa dano aumentado e pode causar queimadura.",
         tipo: "fogo",
-        chance: 8,
         cor: 0xff4d4d,
         imagem: IMAGENS.dragao_oriente
     },
@@ -164,10 +112,7 @@ const PETS = {
         defesa: 140,
         velocidade: 160,
         habilidade: "Fúria Nórdica",
-        descricao: "O lobo colossal das antigas lendas nórdicas.",
-        habilidadeDescricao: "Aumenta o ataque durante alguns turnos.",
         tipo: "buff",
-        chance: 18,
         cor: 0x8e44ad,
         imagem: IMAGENS.fenrir
     },
@@ -182,10 +127,7 @@ const PETS = {
         defesa: 130,
         velocidade: 170,
         habilidade: "Investida Divina",
-        descricao: "Uma criatura alada guardiã dos céus.",
-        habilidadeDescricao: "Possui grande chance de causar crítico.",
         tipo: "critico",
-        chance: 30,
         cor: 0x3498db,
         imagem: IMAGENS.grifo_celestial
     },
@@ -200,10 +142,7 @@ const PETS = {
         defesa: 200,
         velocidade: 180,
         habilidade: "Eclipse Eterno",
-        descricao: "Uma serpente nascida durante um eclipse sobrenatural.",
-        habilidadeDescricao: "Causa dano sombrio e reduz a defesa inimiga.",
         tipo: "sombra",
-        chance: 5,
         cor: 0x9b59b6,
         imagem: IMAGENS.serpente_eclipse
     },
@@ -218,10 +157,7 @@ const PETS = {
         defesa: 160,
         velocidade: 190,
         habilidade: "Cura Estelar",
-        descricao: "Uma criatura que carrega a energia das estrelas.",
-        habilidadeDescricao: "Recupera uma parte da própria vida.",
         tipo: "cura",
-        chance: 30,
         cor: 0xb084ff,
         imagem: IMAGENS.unicornio_astral
     },
@@ -236,10 +172,7 @@ const PETS = {
         defesa: 170,
         velocidade: 140,
         habilidade: "Tempestade Glacial",
-        descricao: "Um dragão capaz de congelar campos inteiros.",
-        habilidadeDescricao: "Pode congelar o inimigo e impedir seu próximo ataque.",
         tipo: "gelo",
-        chance: 25,
         cor: 0x5dade2,
         imagem: IMAGENS.dragao_gelo
     },
@@ -254,10 +187,7 @@ const PETS = {
         defesa: 150,
         velocidade: 160,
         habilidade: "Renascimento",
-        descricao: "Uma criatura que retorna das próprias cinzas.",
-        habilidadeDescricao: "Pode reviver uma vez com parte da vida.",
         tipo: "renascimento",
-        chance: 7,
         cor: 0xff7b00,
         imagem: IMAGENS.fenix
     },
@@ -272,10 +202,7 @@ const PETS = {
         defesa: 250,
         velocidade: 200,
         habilidade: "Vórtice Sombrio",
-        descricao: "Uma criatura misteriosa que habita dimensões de escuridão.",
-        habilidadeDescricao: "Causa enorme dano e drena parte da vida.",
         tipo: "dreno",
-        chance: 2,
         cor: 0x3b235e,
         imagem: IMAGENS.dragao_noite
     },
@@ -290,10 +217,7 @@ const PETS = {
         defesa: 190,
         velocidade: 100,
         habilidade: "Abismo Oceânico",
-        descricao: "O monstro colossal das profundezas.",
-        habilidadeDescricao: "Causa dano pesado e reduz a velocidade inimiga.",
         tipo: "agua",
-        chance: 15,
         cor: 0x2980b9,
         imagem: IMAGENS.kraken
     },
@@ -308,10 +232,7 @@ const PETS = {
         defesa: 220,
         velocidade: 80,
         habilidade: "Investida Brutal",
-        descricao: "O guardião monstruoso do antigo labirinto.",
-        habilidadeDescricao: "Golpe físico extremamente poderoso.",
         tipo: "brutal",
-        chance: 40,
         cor: 0x8b4513,
         imagem: IMAGENS.minotauro
     },
@@ -326,10 +247,7 @@ const PETS = {
         defesa: 100,
         velocidade: 230,
         habilidade: "Ilusão das Nove Caudas",
-        descricao: "Uma raposa mística capaz de manipular ilusões.",
-        habilidadeDescricao: "Pode esquivar completamente de um ataque.",
         tipo: "evasao",
-        chance: 15,
         cor: 0xe84393,
         imagem: IMAGENS.kitsune
     },
@@ -344,10 +262,7 @@ const PETS = {
         defesa: 140,
         velocidade: 130,
         habilidade: "Olhar Mortal",
-        descricao: "A criatura cujo olhar pode paralisar seus inimigos.",
-        habilidadeDescricao: "Aplica veneno e pode impedir o próximo ataque.",
         tipo: "veneno",
-        chance: 28,
         cor: 0x27ae60,
         imagem: IMAGENS.basilisco
     },
@@ -362,10 +277,7 @@ const PETS = {
         defesa: 180,
         velocidade: 150,
         habilidade: "Fúria das Três Almas",
-        descricao: "Uma criatura formada pela união de três feras.",
-        habilidadeDescricao: "Realiza múltiplos golpes.",
         tipo: "multi",
-        chance: 6,
         cor: 0xd35400,
         imagem: IMAGENS.quimera
     },
@@ -380,10 +292,7 @@ const PETS = {
         defesa: 120,
         velocidade: 240,
         habilidade: "Asas Celestiais",
-        descricao: "Uma criatura alada capaz de atravessar os céus.",
-        habilidadeDescricao: "Possui grande chance de atacar primeiro.",
         tipo: "velocidade",
-        chance: 30,
         cor: 0xffffff,
         imagem: IMAGENS.pegasus
     },
@@ -398,10 +307,7 @@ const PETS = {
         defesa: 210,
         velocidade: 130,
         habilidade: "Tríplice Mordida",
-        descricao: "O lendário cão guardião do submundo.",
-        habilidadeDescricao: "Ataca o adversário três vezes.",
         tipo: "triplo",
-        chance: 6,
         cor: 0xc0392b,
         imagem: IMAGENS.cerbero
     },
@@ -416,10 +322,7 @@ const PETS = {
         defesa: 230,
         velocidade: 90,
         habilidade: "Cabeças Regenerativas",
-        descricao: "Uma criatura cujas cabeças parecem nunca parar de crescer.",
-        habilidadeDescricao: "Recupera vida constantemente.",
         tipo: "regen",
-        chance: 14,
         cor: 0x16a085,
         imagem: IMAGENS.hidra
     },
@@ -434,10 +337,7 @@ const PETS = {
         defesa: 240,
         velocidade: 110,
         habilidade: "Maré Devastadora",
-        descricao: "Uma criatura colossal dos oceanos primordiais.",
-        habilidadeDescricao: "Ataque de água extremamente poderoso.",
         tipo: "agua",
-        chance: 4,
         cor: 0x2471a3,
         imagem: IMAGENS.leviata
     },
@@ -452,10 +352,7 @@ const PETS = {
         defesa: 130,
         velocidade: 190,
         habilidade: "Garras da Escuridão",
-        descricao: "Um grifo corrompido pelas sombras.",
-        habilidadeDescricao: "Causa dano aumentado contra inimigos fracos.",
         tipo: "execucao",
-        chance: 13,
         cor: 0x6c3483,
         imagem: IMAGENS.grifo_sombrio
     },
@@ -470,10 +367,7 @@ const PETS = {
         defesa: 100,
         velocidade: 200,
         habilidade: "Uivo Lunar",
-        descricao: "Um lobo que recebe poder da lua.",
-        habilidadeDescricao: "Aumenta ataque e velocidade.",
         tipo: "buff",
-        chance: 45,
         cor: 0x5dade2,
         imagem: IMAGENS.lobo_lunar
     },
@@ -481,219 +375,485 @@ const PETS = {
     guardiao_astral: {
         id: "guardiao_astral",
         nome: "Guardião Astral",
-        emoji: "🛡️",
-        raridade: "Secreto",
+        emoji: "🌌",
+        raridade: "Mítico",
         hp: 1800,
-        ataque: 350,
-        defesa: 300,
+        ataque: 340,
+        defesa: 280,
         velocidade: 170,
-        habilidade: "Julgamento Astral",
-        descricao: "Uma entidade que protege os limites entre os mundos.",
-        habilidadeDescricao: "Libera um ataque astral devastador.",
+        habilidade: "Explosão Astral",
         tipo: "astral",
-        chance: 1,
         cor: 0x8e44ad,
         imagem: IMAGENS.guardiao_astral
     }
 };
 
-// ============================================================
-// 👑 BOSSES
-// ============================================================
-
-const BOSSES = {
-
-    dragao_apocalipse: {
-        id: "dragao_apocalipse",
-        nome: "Dragão do Apocalipse",
-        emoji: "🐉",
-        raridade: "Boss Lendário",
-        hp: 35000,
-        ataque: 780,
-        defesa: 650,
-        velocidade: 420,
-        imagem: IMAGENS_BOSS.dragao_apocalipse,
-        recompensas: [
-            "dragao_noite",
-            "serpente_eclipse",
-            "quimera",
-            "leviata"
-        ]
-    },
-
-    titan_olimpiano: {
-        id: "titan_olimpiano",
-        nome: "Titã Olimpiano",
-        emoji: "⚡",
-        raridade: "Boss Mítico",
-        hp: 50000,
-        ataque: 920,
-        defesa: 800,
-        velocidade: 380,
-        imagem: IMAGENS_BOSS.titan_olimpiano,
-        recompensas: [
-            "guardiao_astral",
-            "dragao_noite"
-        ]
-    },
-
-    serpente_cosmica: {
-        id: "serpente_cosmica",
-        nome: "Serpente Cósmica",
-        emoji: "🐍",
-        raridade: "Boss Secreto",
-        hp: 70000,
-        ataque: 1100,
-        defesa: 950,
-        velocidade: 500,
-        imagem: IMAGENS_BOSS.serpente_cosmica,
-        recompensas: [
-            "guardiao_astral",
-            "dragao_noite",
-            "serpente_eclipse"
-        ]
-    }
-};
 
 // ============================================================
 // 🗺️ MAPAS
 // ============================================================
 
-const MAPAS = {
+const MAPAS = [
 
-    floresta_lunar: {
-        nome: "Floresta Lunar",
-        emoji: "🌙",
+    {
+        id: "floresta_lunar",
+        nome: "🌙 Floresta Lunar",
         nivel: 1,
-        descricao:
-            "Uma floresta coberta pela luz da lua, onde criaturas antigas observam entre as árvores.",
+
         monstros: [
-            "lobo_lunar",
-            "kitsune",
-            "grifo_celestial"
+            {
+                nome: "Lobo Lunar Selvagem",
+                emoji: "🐺",
+                hp: 900,
+                ataque: 115,
+                defesa: 75,
+                xp: 45
+            },
+            {
+                nome: "Coruja da Névoa",
+                emoji: "🦉",
+                hp: 760,
+                ataque: 130,
+                defesa: 60,
+                xp: 50
+            },
+            {
+                nome: "Urso Prateado",
+                emoji: "🐻",
+                hp: 1250,
+                ataque: 145,
+                defesa: 100,
+                xp: 65
+            },
+            {
+                nome: "Pantera Lunar",
+                emoji: "🐆",
+                hp: 1050,
+                ataque: 175,
+                defesa: 80,
+                xp: 70
+            },
+            {
+                nome: "Serpente da Lua",
+                emoji: "🐍",
+                hp: 980,
+                ataque: 165,
+                defesa: 85,
+                xp: 72
+            },
+            {
+                nome: "Cervo Astral",
+                emoji: "🦌",
+                hp: 1350,
+                ataque: 150,
+                defesa: 120,
+                xp: 80
+            }
         ],
-        elite: "fenrir",
-        bossChance: 0.004
+
+        boss: {
+            nome: "Guardião da Lua",
+            emoji: "🌑",
+            hp: 9000,
+            ataque: 390,
+            defesa: 260,
+            xp: 650,
+            poderes: [
+                "Eclipse Lunar",
+                "Uivo da Noite"
+            ]
+        }
     },
 
-    reino_glacial: {
-        nome: "Reino Glacial",
-        emoji: "❄️",
+    {
+        id: "reino_glacial",
+        nome: "❄️ Reino Glacial",
         nivel: 10,
-        descricao:
-            "Montanhas congeladas escondem predadores que suportam o frio eterno.",
+
         monstros: [
-            "dragao_gelo",
-            "unicornio_astral",
-            "grifo_celestial"
+            {
+                nome: "Lobo de Gelo",
+                emoji: "🐺",
+                hp: 1900,
+                ataque: 250,
+                defesa: 170,
+                xp: 110
+            },
+            {
+                nome: "Golem Congelado",
+                emoji: "🗿",
+                hp: 2700,
+                ataque: 220,
+                defesa: 260,
+                xp: 135
+            },
+            {
+                nome: "Serpente Glacial",
+                emoji: "🐍",
+                hp: 2300,
+                ataque: 310,
+                defesa: 180,
+                xp: 145
+            },
+            {
+                nome: "Yeti Ancestral",
+                emoji: "👹",
+                hp: 3300,
+                ataque: 290,
+                defesa: 250,
+                xp: 165
+            }
         ],
-        elite: "dragao_gelo",
-        bossChance: 0.003
+
+        boss: {
+            nome: "Rei do Gelo",
+            emoji: "👑",
+            hp: 18000,
+            ataque: 620,
+            defesa: 430,
+            xp: 1100,
+            poderes: [
+                "Prisão Congelante",
+                "Tempestade Glacial"
+            ]
+        }
     },
 
-    vulcao_caos: {
-        nome: "Vulcão do Caos",
-        emoji: "🌋",
+    {
+        id: "vulcao_caos",
+        nome: "🌋 Vulcão do Caos",
         nivel: 20,
-        descricao:
-            "Rios de lava atravessam um território dominado por criaturas de grande poder.",
+
         monstros: [
-            "fenix",
-            "dragao_oriente",
-            "basilisco",
-            "quimera"
+            {
+                nome: "Salamandra Infernal",
+                emoji: "🦎",
+                hp: 3800,
+                ataque: 440,
+                defesa: 260,
+                xp: 210
+            },
+            {
+                nome: "Golem de Magma",
+                emoji: "🗿",
+                hp: 5200,
+                ataque: 390,
+                defesa: 430,
+                xp: 250
+            },
+            {
+                nome: "Demônio de Cinzas",
+                emoji: "👿",
+                hp: 4500,
+                ataque: 520,
+                defesa: 300,
+                xp: 270
+            },
+            {
+                nome: "Serpente de Lava",
+                emoji: "🐍",
+                hp: 4900,
+                ataque: 550,
+                defesa: 320,
+                xp: 290
+            }
         ],
-        elite: "dragao_oriente",
-        bossChance: 0.003
+
+        boss: {
+            nome: "Senhor da Lava",
+            emoji: "🔥",
+            hp: 32000,
+            ataque: 920,
+            defesa: 610,
+            xp: 1900,
+            poderes: [
+                "Erupção Infernal",
+                "Chão Incandescente"
+            ]
+        }
     },
 
-    abismo_oceanico: {
-        nome: "Abismo Oceânico",
-        emoji: "🌊",
+    {
+        id: "abismo_oceanico",
+        nome: "🌊 Abismo Oceânico",
         nivel: 35,
-        descricao:
-            "Nas profundezas do oceano, monstros colossais aguardam os treinadores.",
+
         monstros: [
-            "kraken",
-            "leviata",
-            "serpente_eclipse"
+            {
+                nome: "Tubarão Abissal",
+                emoji: "🦈",
+                hp: 7200,
+                ataque: 680,
+                defesa: 430,
+                xp: 360
+            },
+            {
+                nome: "Medusa Sombria",
+                emoji: "🪼",
+                hp: 6500,
+                ataque: 740,
+                defesa: 390,
+                xp: 390
+            },
+            {
+                nome: "Serpente Marinha",
+                emoji: "🐍",
+                hp: 8800,
+                ataque: 710,
+                defesa: 510,
+                xp: 430
+            },
+            {
+                nome: "Kraken Jovem",
+                emoji: "🐙",
+                hp: 10500,
+                ataque: 780,
+                defesa: 590,
+                xp: 480
+            }
         ],
-        elite: "leviata",
-        bossChance: 0.0025
+
+        boss: {
+            nome: "Abissal",
+            emoji: "👹",
+            hp: 52000,
+            ataque: 1350,
+            defesa: 850,
+            xp: 3100,
+            poderes: [
+                "Tsunami",
+                "Tentáculos do Abismo"
+            ]
+        }
     },
 
-    ruinas_ancestrais: {
-        nome: "Ruínas Ancestrais",
-        emoji: "🏜️",
+    {
+        id: "ruinas_antigas",
+        nome: "🏜️ Ruínas Antigas",
         nivel: 50,
-        descricao:
-            "Templos esquecidos guardam criaturas que sobreviveram a eras inteiras.",
+
         monstros: [
-            "minotauro",
-            "cerbero",
-            "hidra",
-            "basilisco"
+            {
+                nome: "Guardião de Pedra",
+                emoji: "🗿",
+                hp: 12000,
+                ataque: 850,
+                defesa: 800,
+                xp: 560
+            },
+            {
+                nome: "Esfinge Perdida",
+                emoji: "🦁",
+                hp: 13500,
+                ataque: 980,
+                defesa: 700,
+                xp: 620
+            },
+            {
+                nome: "Múmia Real",
+                emoji: "🧟",
+                hp: 11000,
+                ataque: 1050,
+                defesa: 650,
+                xp: 590
+            },
+            {
+                nome: "Colosso de Areia",
+                emoji: "🏜️",
+                hp: 16000,
+                ataque: 920,
+                defesa: 920,
+                xp: 700
+            }
         ],
-        elite: "hidra",
-        bossChance: 0.002
+
+        boss: {
+            nome: "Colosso Ancestral",
+            emoji: "🗿",
+            hp: 76000,
+            ataque: 1800,
+            defesa: 1200,
+            xp: 4700,
+            poderes: [
+                "Terremoto",
+                "Maldição das Ruínas"
+            ]
+        }
     },
 
-    dimensao_astral: {
-        nome: "Dimensão Astral",
-        emoji: "🌌",
+    {
+        id: "dimensao_astral",
+        nome: "🌌 Dimensão Astral",
         nivel: 65,
-        descricao:
-            "Um lugar fora do mundo conhecido, onde a própria realidade parece viva.",
+
         monstros: [
-            "guardiao_astral",
-            "unicornio_astral",
-            "grifo_sombrio",
-            "serpente_eclipse"
+            {
+                nome: "Espirito Estelar",
+                emoji: "✨",
+                hp: 19000,
+                ataque: 1350,
+                defesa: 900,
+                xp: 800
+            },
+            {
+                nome: "Serafim Caído",
+                emoji: "😇",
+                hp: 23000,
+                ataque: 1550,
+                defesa: 1100,
+                xp: 950
+            },
+            {
+                nome: "Devorador Cósmico",
+                emoji: "👁️",
+                hp: 27000,
+                ataque: 1700,
+                defesa: 1200,
+                xp: 1100
+            },
+            {
+                nome: "Espectro do Vazio",
+                emoji: "👻",
+                hp: 21000,
+                ataque: 1800,
+                defesa: 850,
+                xp: 1050
+            }
         ],
-        elite: "guardiao_astral",
-        bossChance: 0.0015
+
+        boss: {
+            nome: "Arauto Astral",
+            emoji: "🌠",
+            hp: 115000,
+            ataque: 2500,
+            defesa: 1650,
+            xp: 7000,
+            poderes: [
+                "Chuva Estelar",
+                "Distorção Temporal"
+            ]
+        }
     },
 
-    reino_apocalipse: {
-        nome: "Reino do Apocalipse",
-        emoji: "☠️",
+    {
+        id: "reino_apocalipse",
+        nome: "☠️ Reino do Apocalipse",
         nivel: 80,
-        descricao:
-            "Um território destruído por forças ancestrais. Apenas os treinadores preparados chegam aqui.",
+
         monstros: [
-            "dragao_noite",
-            "quimera",
-            "leviata",
-            "grifo_sombrio"
+            {
+                nome: "Cavaleiro do Fim",
+                emoji: "💀",
+                hp: 30000,
+                ataque: 2200,
+                defesa: 1500,
+                xp: 1350
+            },
+            {
+                nome: "Fera Apocalíptica",
+                emoji: "👹",
+                hp: 36000,
+                ataque: 2400,
+                defesa: 1650,
+                xp: 1500
+            },
+            {
+                nome: "Ceifador Sombrio",
+                emoji: "☠️",
+                hp: 33000,
+                ataque: 2700,
+                defesa: 1400,
+                xp: 1650
+            },
+            {
+                nome: "Dragão da Ruína",
+                emoji: "🐲",
+                hp: 45000,
+                ataque: 2800,
+                defesa: 1900,
+                xp: 1900
+            }
         ],
-        elite: "dragao_noite",
-        bossChance: 0.001
+
+        boss: {
+            nome: "Arauto do Fim",
+            emoji: "☠️",
+            hp: 180000,
+            ataque: 3900,
+            defesa: 2500,
+            xp: 11000,
+            poderes: [
+                "Cataclismo",
+                "Marca da Morte"
+            ]
+        }
     },
 
-    dominio_divino: {
-        nome: "Domínio Divino",
-        emoji: "👑",
+    {
+        id: "dominio_divino",
+        nome: "👑 Domínio Divino",
         nivel: 100,
-        descricao:
-            "O último mapa conhecido. Criaturas lendárias habitam este domínio.",
+
         monstros: [
-            "guardiao_astral",
-            "dragao_oriente",
-            "serpente_eclipse",
-            "dragao_noite"
+            {
+                nome: "Anjo Guardião",
+                emoji: "👼",
+                hp: 52000,
+                ataque: 3400,
+                defesa: 2500,
+                xp: 2200
+            },
+            {
+                nome: "Titã Celestial",
+                emoji: "⚡",
+                hp: 68000,
+                ataque: 3900,
+                defesa: 3100,
+                xp: 2600
+            },
+            {
+                nome: "Serafim Supremo",
+                emoji: "✨",
+                hp: 75000,
+                ataque: 4300,
+                defesa: 3300,
+                xp: 3000
+            },
+            {
+                nome: "Avatar Divino",
+                emoji: "🌟",
+                hp: 90000,
+                ataque: 4700,
+                defesa: 3600,
+                xp: 3500
+            }
         ],
-        elite: "serpente_eclipse",
-        bossChance: 0.0007
+
+        boss: {
+            nome: "Executor Divino",
+            emoji: "👑",
+            hp: 300000,
+            ataque: 6200,
+            defesa: 4700,
+            xp: 18000,
+            poderes: [
+                "Julgamento Celestial",
+                "Ira dos Deuses"
+            ]
+        }
     }
-};
+];
 
-const ORDEM_MAPAS = Object.keys(MAPAS);
+
+const MAPA_BATALHAS = new Map();
+const CONVITES = new Map();
+const DUELOS = new Map();
+const cooldownExplorar = new Map();
+
 
 // ============================================================
-// 💾 BANCO DE DADOS
+// 💾 BANCO
 // ============================================================
-
-const batalhas = new Map();
 
 function carregarBanco() {
 
@@ -706,25 +866,29 @@ function carregarBanco() {
                 JSON.stringify({}, null, 2)
             );
 
-            return {};
         }
 
         return JSON.parse(
-            fs.readFileSync(DB_FILE, "utf8")
+            fs.readFileSync(
+                DB_FILE,
+                "utf8"
+            )
         );
 
-    } catch (erro) {
+    } catch (e) {
 
         console.error(
-            "❌ Erro ao carregar banco RPG:",
-            erro
+            "Erro lendo banco RPG:",
+            e
         );
 
         return {};
     }
 }
 
+
 let db = carregarBanco();
+
 
 function salvarBanco() {
 
@@ -732,17 +896,22 @@ function salvarBanco() {
 
         fs.writeFileSync(
             DB_FILE,
-            JSON.stringify(db, null, 2)
+            JSON.stringify(
+                db,
+                null,
+                2
+            )
         );
 
-    } catch (erro) {
+    } catch (e) {
 
         console.error(
-            "❌ Erro ao salvar banco RPG:",
-            erro
+            "Erro salvando banco RPG:",
+            e
         );
     }
 }
+
 
 // ============================================================
 // 👤 JOGADOR
@@ -754,21 +923,13 @@ function jogador(id) {
 
         db[id] = {
 
-            moedas: 25,
-
             nivel: 1,
-
             xp: 0,
 
             vitorias: 0,
-
             derrotas: 0,
 
             bossesDerrotados: 0,
-
-            invocacaoInicial: false,
-
-            ultimaDaily: 0,
 
             criaturas: {},
 
@@ -776,2132 +937,1404 @@ function jogador(id) {
 
             ultimosPets: [],
 
-            mapasDescobertos: {}
-        };
-
-        salvarBanco();
-    }
-
-    const p = db[id];
-
-    p.moedas ??= 25;
-    p.nivel ??= 1;
-    p.xp ??= 0;
-    p.vitorias ??= 0;
-    p.derrotas ??= 0;
-    p.bossesDerrotados ??= 0;
-    p.invocacaoInicial ??= false;
-    p.ultimaDaily ??= 0;
-    p.criaturas ??= {};
-    p.equipe ??= [];
-    p.ultimosPets ??= [];
-    p.mapasDescobertos ??= {};
-
-    return p;
-}
-
-// ============================================================
-// 🐾 DADOS DO PET
-// ============================================================
-
-function dadosPet(id, petId) {
-
-    const p = jogador(id);
-
-    if (!p.criaturas[petId]) {
-
-        p.criaturas[petId] = {
-
-            nivel: 1,
-
-            xp: 0,
-
-            treino: 0,
-
-            bonusHp: 0,
-
-            bonusAtaque: 0,
-
-            bonusDefesa: 0,
-
-            bonusVelocidade: 0
+            exploracoes: 0
         };
     }
 
-    const d = p.criaturas[petId];
 
-    d.nivel ??= 1;
-    d.xp ??= 0;
-    d.treino ??= 0;
-    d.bonusHp ??= 0;
-    d.bonusAtaque ??= 0;
-    d.bonusDefesa ??= 0;
-    d.bonusVelocidade ??= 0;
+    if (!db[id].criaturas)
+        db[id].criaturas = {};
 
-    return d;
+    if (!db[id].equipe)
+        db[id].equipe = [];
+
+    if (!db[id].ultimosPets)
+        db[id].ultimosPets = [];
+
+    if (!db[id].exploracoes)
+        db[id].exploracoes = 0;
+
+    if (!db[id].nivel)
+        db[id].nivel = 1;
+
+    if (!db[id].xp)
+        db[id].xp = 0;
+
+
+    if (!db[id].equipe.length) {
+
+        db[id].criaturas.lobo_lunar =
+            db[id].criaturas.lobo_lunar ||
+            {
+                nivel: 1,
+                xp: 0
+            };
+
+        db[id].equipe.push(
+            "lobo_lunar"
+        );
+    }
+
+
+    return db[id];
 }
+
 
 // ============================================================
-// 📈 XP
+// 🐾 PET ATIVO
 // ============================================================
 
-function xpTreinador(nivel) {
+function petDoJogador(id) {
 
-    return 250 + ((nivel - 1) * 150);
-}
+    const u = jogador(id);
 
-function xpPet(nivel) {
+    const idPet =
+        u.equipe[0];
 
-    return 120 + ((nivel - 1) * 90);
-}
-
-function ganharXpTreinador(id, quantidade) {
-
-    const p = jogador(id);
-
-    p.xp += quantidade;
-
-    let subiu = 0;
-
-    while (
-        p.nivel < MAX_LEVEL &&
-        p.xp >= xpTreinador(p.nivel)
+    if (
+        idPet &&
+        PETS[idPet]
     ) {
-
-        p.xp -= xpTreinador(p.nivel);
-
-        p.nivel++;
-
-        subiu++;
+        return idPet;
     }
-
-    return subiu;
-}
-
-function ganharXpPet(id, petId, quantidade) {
-
-    const d = dadosPet(id, petId);
-
-    d.xp += quantidade;
-
-    let subiu = 0;
-
-    while (
-        d.nivel < MAX_LEVEL &&
-        d.xp >= xpPet(d.nivel)
-    ) {
-
-        d.xp -= xpPet(d.nivel);
-
-        d.nivel++;
-
-        subiu++;
-    }
-
-    return subiu;
-}
-
-// ============================================================
-// 🐾 ADICIONAR PET
-// ============================================================
-
-function adicionarPet(id, petId) {
-
-    const p = jogador(id);
-
-    if (!PETS[petId]) return false;
-
-    dadosPet(id, petId);
-
-    if (!p.equipe.includes(petId)) {
-
-        p.equipe.push(petId);
-    }
-
-    if (!p.equipe.length) {
-
-        p.equipe.push(petId);
-    }
-
-    salvarBanco();
-
-    return true;
-}
-
-// ============================================================
-// 🐾 PET EQUIPADO
-// ============================================================
-
-function petEquipado(id) {
-
-    const p = jogador(id);
 
     return (
-        p.equipe[0] &&
-        PETS[p.equipe[0]]
-    )
-        ? p.equipe[0]
-        : null;
+        Object.keys(
+            u.criaturas
+        )[0] ||
+        "lobo_lunar"
+    );
 }
+
 
 // ============================================================
 // 📊 STATUS DO PET
 // ============================================================
 
-function statsPet(id, petId) {
+function dadosPet(id, petId) {
 
-    const base = PETS[petId];
-
-    const d = dadosPet(
-        id,
-        petId
-    );
-
-    const nivelMult =
-        1 + ((d.nivel - 1) * 0.06);
-
-    const treinoMult =
-        1 + (d.treino * 0.012);
-
-    return {
-
-        hp:
-            Math.floor(
-                base.hp * nivelMult +
-                d.bonusHp
-            ),
-
-        ataque:
-            Math.floor(
-                base.ataque *
-                nivelMult *
-                treinoMult +
-                d.bonusAtaque
-            ),
-
-        defesa:
-            Math.floor(
-                base.defesa *
-                nivelMult *
-                treinoMult +
-                d.bonusDefesa
-            ),
-
-        velocidade:
-            Math.floor(
-                base.velocidade *
-                nivelMult *
-                treinoMult +
-                d.bonusVelocidade
-            )
-    };
-}
-
-// ============================================================
-// ❤️ BARRA DE VIDA
-// ============================================================
-
-function barraVida(
-    atual,
-    maximo,
-    tamanho = 18
-) {
-
-    maximo =
-        Math.max(
-            1,
-            maximo
-        );
-
-    atual =
-        Math.max(
-            0,
-            Math.min(
-                atual,
-                maximo
-            )
-        );
-
-    const cheios =
-        Math.round(
-            (atual / maximo) *
-            tamanho
-        );
-
-    return (
-        "█".repeat(cheios) +
-        "░".repeat(
-            tamanho - cheios
-        )
-    );
-}
-
-function porcentagem(
-    atual,
-    maximo
-) {
-
-    return Math.round(
-        (
-            Math.max(
-                0,
-                atual
-            ) /
-            Math.max(
-                1,
-                maximo
-            )
-        ) * 100
-    );
-}
-
-// ============================================================
-// 🖼️ FUNÇÕES VISUAIS
-// ============================================================
-
-function imagemValida(url) {
-
-    return (
-        typeof url === "string" &&
-        url.startsWith("http")
-    );
-}
-
-function raridadeEmoji(raridade) {
-
-    if (!raridade)
-        return "⚪";
-
-    if (
-        /Lendário|Secreto/i
-            .test(raridade)
-    )
-        return "🌟";
-
-    if (
-        /Mítico/i
-            .test(raridade)
-    )
-        return "🔮";
-
-    if (
-        /Épico/i
-            .test(raridade)
-    )
-        return "💜";
-
-    if (
-        /Raro/i
-            .test(raridade)
-    )
-        return "💎";
-
-    return "⚪";
-}
-
-// ============================================================
-// 🗺️ MAPA
-// ============================================================
-
-function nivelMapaLiberado(
-    p,
-    mapaId
-) {
-
-    return (
-        p.nivel >=
-        MAPAS[mapaId].nivel
-    );
-}
-
-function mapaAtualSugerido(p) {
-
-    let escolhido =
-        ORDEM_MAPAS[0];
-
-    for (
-        const id of ORDEM_MAPAS
-    ) {
-
-        if (
-            p.nivel >=
-            MAPAS[id].nivel
-        ) {
-
-            escolhido = id;
-
-        } else {
-
-            break;
-        }
-    }
-
-    return escolhido;
-}
-
-// ============================================================
-// 👹 MONSTRO
-// ============================================================
-
-function monstroDoMapa(
-    mapa
-) {
-
-    const candidatos =
-        mapa.monstros.filter(
-            id => PETS[id]
-        );
-
-    if (!candidatos.length)
-        return "lobo_lunar";
-
-    return candidatos[
-        Math.floor(
-            Math.random() *
-            candidatos.length
-        )
-    ];
-}
-
-function nivelInimigo(
-    mapa,
-    jogadorNivel,
-    elite = false
-) {
-
-    const base = mapa.nivel;
-
-    const variacao =
-        Math.floor(
-            Math.random() * 4
-        ) - 1;
-
-    return Math.min(
-        MAX_LEVEL,
-        Math.max(
-            1,
-            base +
-            variacao +
-            (elite ? 4 : 0),
-            jogadorNivel - 4
-        )
-    );
-}
-
-function statsMonstro(
-    petId,
-    nivel,
-    elite = false
-) {
+    const u =
+        jogador(id);
 
     const base =
         PETS[petId];
 
-    const mult =
-        1 + (
-            (nivel - 1) *
-            0.06
+    if (
+        !base ||
+        !u.criaturas[petId]
+    ) {
+        return null;
+    }
+
+
+    const nivel =
+        Math.max(
+            1,
+            Math.min(
+                100,
+                u.criaturas[petId].nivel || 1
+            )
         );
 
-    const eliteMult =
-        elite
-            ? 1.30
-            : 1;
+
+    const mult =
+        1 +
+        ((nivel - 1) * 0.08);
+
 
     return {
 
+        id: petId,
+
+        nome: base.nome,
+
+        emoji: base.emoji,
+
+        raridade: base.raridade,
+
+        nivel,
+
+        xp:
+            u.criaturas[petId].xp || 0,
+
+        maxHp:
+            Math.floor(
+                base.hp * mult
+            ),
+
         hp:
             Math.floor(
-                base.hp *
-                mult *
-                eliteMult
+                base.hp * mult
             ),
 
         ataque:
             Math.floor(
-                base.ataque *
-                mult *
-                eliteMult
+                base.ataque * mult
             ),
 
         defesa:
             Math.floor(
-                base.defesa *
-                mult *
-                eliteMult
+                base.defesa * mult
             ),
 
         velocidade:
             Math.floor(
-                base.velocidade *
-                mult *
-                eliteMult
-            )
+                base.velocidade * mult
+            ),
+
+        habilidade:
+            base.habilidade,
+
+        tipo:
+            base.tipo,
+
+        imagem:
+            base.imagem
     };
 }
 
+
 // ============================================================
-// 💰 RECOMPENSAS
+// ✨ XP DO PET
 // ============================================================
 
-function recompensaBatalha(
-    nivel,
-    elite = false
+function xpPetLimite(nivel) {
+
+    return (
+        100 +
+        (nivel * 50)
+    );
+}
+
+
+function darXPPet(
+    id,
+    quantidade
 ) {
 
-    const moedas =
-        elite
-            ? 12 + nivel
-            : 5 + Math.floor(
-                nivel / 2
+    const petId =
+        petDoJogador(id);
+
+    const u =
+        jogador(id);
+
+    if (
+        !u.criaturas[petId]
+    ) {
+
+        u.criaturas[petId] = {
+
+            nivel: 1,
+
+            xp: 0
+        };
+    }
+
+
+    const p =
+        u.criaturas[petId];
+
+
+    let subiu = false;
+
+
+    p.xp =
+        (p.xp || 0) +
+        quantidade;
+
+
+    while (
+        p.nivel < 100 &&
+        p.xp >=
+        xpPetLimite(p.nivel)
+    ) {
+
+        p.xp -=
+            xpPetLimite(
+                p.nivel
             );
 
-    const xpPetVal =
-        elite
-            ? 90 + nivel * 4
-            : 45 + nivel * 3;
+        p.nivel++;
 
-    const xpTreinadorVal =
-        elite
-            ? 30 + Math.floor(
-                nivel / 2
-            )
-            : 15 + Math.floor(
-                nivel / 3
+        subiu = true;
+    }
+
+
+    if (
+        p.nivel >= 100
+    ) {
+
+        p.xp =
+            Math.min(
+                p.xp,
+                xpPetLimite(100) - 1
             );
+    }
+
 
     return {
 
-        moedas,
+        petId,
 
-        xpPet:
-            xpPetVal,
+        nivel:
+            p.nivel,
 
-        xpTreinador:
-            xpTreinadorVal
+        subiu
     };
 }
+
+
+// ============================================================
+// 🌟 XP DO TREINADOR
+// ============================================================
+
+function xpTreinadorLimite(
+    nivel
+) {
+
+    return (
+        250 +
+        (nivel * 180)
+    );
+}
+
+
+function darXPTreinador(
+    id,
+    quantidade
+) {
+
+    const u =
+        jogador(id);
+
+    let subiu =
+        false;
+
+
+    u.xp +=
+        quantidade;
+
+
+    while (
+        u.nivel < 100 &&
+        u.xp >=
+        xpTreinadorLimite(
+            u.nivel
+        )
+    ) {
+
+        u.xp -=
+            xpTreinadorLimite(
+                u.nivel
+            );
+
+        u.nivel++;
+
+        subiu = true;
+    }
+
+
+    if (
+        u.nivel >= 100
+    ) {
+
+        u.xp =
+            Math.min(
+                u.xp,
+                xpTreinadorLimite(100) - 1
+            );
+    }
+
+
+    return subiu;
+}
+
+
+// ============================================================
+// 🗺️ MAPA DO JOGADOR
+// ============================================================
+
+function mapaDoNivel(
+    nivel
+) {
+
+    let escolhido =
+        MAPAS[0];
+
+
+    for (
+        const mapa
+        of MAPAS
+    ) {
+
+        if (
+            nivel >=
+            mapa.nivel
+        ) {
+
+            escolhido =
+                mapa;
+        }
+    }
+
+
+    return escolhido;
+}
+
+
+// ============================================================
+// ❤️ BARRA
+// ============================================================
+
+function barra(
+    valor,
+    max,
+    tamanho = 18
+) {
+
+    max =
+        Math.max(
+            1,
+            max
+        );
+
+
+    valor =
+        Math.max(
+            0,
+            Math.min(
+                max,
+                valor
+            )
+        );
+
+
+    const cheios =
+        Math.round(
+            (valor / max) *
+            tamanho
+        );
+
+
+    return (
+        "█".repeat(
+            cheios
+        ) +
+        "░".repeat(
+            tamanho -
+            cheios
+        )
+    );
+}
+
+
+// ============================================================
+// 🖼️ IMAGEM
+// ============================================================
+
+function imagemValida(
+    url
+) {
+
+    return (
+        typeof url ===
+        "string" &&
+        url.startsWith(
+            "http"
+        )
+    );
+}
+
+
+// ============================================================
+// 👤 PERFIL
+// ============================================================
+
+function petPerfilEmbed(
+    userId,
+    alvoUser
+) {
+
+    const u =
+        jogador(userId);
+
+    const petId =
+        petDoJogador(
+            userId
+        );
+
+    const pet =
+        PETS[petId];
+
+    const dados =
+        dadosPet(
+            userId,
+            petId
+        );
+
+
+    const embed =
+        new EmbedBuilder()
+
+            .setColor(
+                pet.cor ||
+                0x6c5ce7
+            )
+
+            .setTitle(
+                `👤 PERFIL RPG — ${alvoUser.username}`
+            )
+
+            .setDescription(
+
+                `🌟 **Treinador Nv. ${u.nivel}**\n` +
+
+                `✨ XP: **${u.xp}/${xpTreinadorLimite(u.nivel)}**\n` +
+
+                `⚔️ Vitórias: **${u.vitorias || 0}**\n` +
+
+                `💀 Derrotas: **${u.derrotas || 0}**\n` +
+
+                `🗺️ Explorações: **${u.exploracoes || 0}**\n\n` +
+
+                `🐾 **Pet ativo**\n` +
+
+                `${pet.emoji} **${pet.nome}** — Nv. **${dados.nivel}**\n` +
+
+                `🌟 ${pet.raridade}\n` +
+
+                `✨ XP: **${dados.xp}/${xpPetLimite(dados.nivel)}**\n` +
+
+                `❤️ HP: **${dados.maxHp.toLocaleString()}**\n` +
+
+                `⚔️ ATK: **${dados.ataque.toLocaleString()}**\n` +
+
+                `🛡️ DEF: **${dados.defesa.toLocaleString()}**\n` +
+
+                `💨 VEL: **${dados.velocidade.toLocaleString()}**`
+            )
+
+            .setFooter({
+                text:
+                    "A imagem do Pet aparece somente no perfil."
+            });
+
+
+    if (
+        imagemValida(
+            pet.imagem
+        )
+    ) {
+
+        embed.setImage(
+            pet.imagem
+        );
+    }
+
+
+    return embed;
+}
+
+
+// ============================================================
+// 🐾 COLEÇÃO
+// ============================================================
+
+function colecaoEmbed(
+    userId
+) {
+
+    const u =
+        jogador(userId);
+
+    let texto = "";
+
+
+    for (
+        const [
+            id,
+            dados
+        ]
+        of Object.entries(
+            u.criaturas
+        )
+    ) {
+
+        const p =
+            PETS[id];
+
+        if (!p)
+            continue;
+
+
+        texto +=
+            `${p.emoji} **${p.nome}** — Nv. ${dados.nivel || 1} — ${p.raridade}\n`;
+    }
+
+
+    if (!texto) {
+
+        texto =
+            "❌ Você ainda não possui criaturas.";
+    }
+
+
+    return new EmbedBuilder()
+
+        .setColor(
+            0x8e44ad
+        )
+
+        .setTitle(
+            "🐾 SUA COLEÇÃO"
+        )
+
+        .setDescription(
+            texto
+        );
+}
+
+
+// ============================================================
+// 🎲 MONSTRO
+// ============================================================
+
+function escolherMonstro(
+    mapa
+) {
+
+    return mapa.monstros[
+        Math.floor(
+            Math.random() *
+            mapa.monstros.length
+        )
+    ];
+}
+
+
+// ============================================================
+// 👑 CHANCE DE BOSS
+// ============================================================
+
+function raro() {
+
+    return (
+        Math.random() <
+        0.02
+    );
+}
+
 
 // ============================================================
 // ⚔️ CRIAR BATALHA
 // ============================================================
 
-function criarBatalha(
-    userId,
-    mapaId,
-    inimigoId,
-    inimigoNivel,
-    elite = false,
-    bossId = null
+function criarBatalhaMapa(
+    criadorId,
+    mapa,
+    inimigo,
+    ehBoss = false
 ) {
-
-    const petId =
-        petEquipado(userId);
-
-    if (!petId)
-        return null;
-
-    const meuStats =
-        statsPet(
-            userId,
-            petId
-        );
-
-    const inimigo =
-        bossId
-            ? BOSSES[bossId]
-            : PETS[inimigoId];
-
-    const inimigoStats =
-        bossId
-            ? {
-
-                hp: inimigo.hp,
-
-                ataque:
-                    inimigo.ataque,
-
-                defesa:
-                    inimigo.defesa,
-
-                velocidade:
-                    inimigo.velocidade
-            }
-            : statsMonstro(
-                inimigoId,
-                inimigoNivel,
-                elite
-            );
 
     const id =
-        `${userId}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        `map_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-    const batalha = {
 
+    MAPA_BATALHAS.set(
         id,
+        {
 
-        tipo: "exploracao",
+            id,
 
-        userId,
+            criadorId,
 
-        mapaId,
+            mapaId:
+                mapa.id,
 
-        petId,
+            inimigo:
+                {
+                    ...inimigo
+                },
 
-        inimigoId,
+            ehBoss,
 
-        inimigoNivel,
+            participantes:
+                [
+                    criadorId
+                ],
 
-        bossId,
+            iniciado:
+                false,
 
-        elite,
+            turno:
+                1,
 
-        turno: 1,
+            canalId:
+                null,
 
-        defensor: false,
-
-        meuHpMax:
-            meuStats.hp,
-
-        meuHp:
-            meuStats.hp,
-
-        inimigoHpMax:
-            inimigoStats.hp,
-
-        inimigoHp:
-            inimigoStats.hp,
-
-        meuStats,
-
-        inimigoStats,
-
-        criada:
-            Date.now(),
-
-        log: []
-    };
-
-    batalhas.set(
-        id,
-        batalha
+            mensagemId:
+                null
+        }
     );
 
-    return batalha;
+
+    return id;
 }
 
-// ============================================================
-// 🎨 EMBED DA BATALHA
-// ============================================================
-
-function batalhaEmbed(b) {
-
-    const mapa =
-        MAPAS[b.mapaId];
-
-    const pet =
-        PETS[b.petId];
-
-    const inimigo =
-        b.bossId
-            ? BOSSES[b.bossId]
-            : PETS[b.inimigoId];
-
-    const hpPet =
-        `${barraVida(
-            b.meuHp,
-            b.meuHpMax
-        )} ${b.meuHp}/${b.meuHpMax} (${porcentagem(
-            b.meuHp,
-            b.meuHpMax
-        )}%)`;
-
-    const hpInimigo =
-        `${barraVida(
-            b.inimigoHp,
-            b.inimigoHpMax
-        )} ${b.inimigoHp}/${b.inimigoHpMax} (${porcentagem(
-            b.inimigoHp,
-            b.inimigoHpMax
-        )}%)`;
-
-    const titulo =
-        b.bossId
-            ? `👑 ${inimigo.nome}`
-            : `${inimigo.emoji} ${inimigo.nome}`;
-
-    const descricao =
-        b.log.slice(-5)
-            .join("\n\n") ||
-        "A batalha começou...";
-
-    const embed =
-        new EmbedBuilder()
-            .setColor(
-                b.bossId
-                    ? 0xffc107
-                    : (
-                        pet.cor ||
-                        0x8e44ad
-                    )
-            )
-            .setTitle(
-                `${mapa.emoji} ${mapa.nome} • ⚔️ Turno ${b.turno}`
-            )
-            .setDescription(
-                `**🐾 ${pet.nome} — Nv. ${dadosPet(
-                    b.userId,
-                    b.petId
-                ).nivel}**\n` +
-                `❤️ ${hpPet}\n\n` +
-                `**${titulo} — Nv. ${b.inimigoNivel || "???"}**\n` +
-                `❤️ ${hpInimigo}\n\n` +
-                `${descricao}`
-            )
-            .setFooter({
-                text:
-                    "ZUNO RPG • 1 treinador = 1 pet por batalha"
-            });
-
-    if (
-        imagemValida(
-            inimigo.imagem
-        )
-    ) {
-
-        embed.setImage(
-            inimigo.imagem
-        );
-
-    } else if (
-        imagemValida(
-            pet.imagem
-        )
-    ) {
-
-        embed.setThumbnail(
-            pet.imagem
-        );
-    }
-
-    return embed;
-}
 
 // ============================================================
-// 🔘 BOTÕES DA BATALHA
+// 👥 CONVITE
 // ============================================================
 
-function botoesBatalha(
-    b,
-    disabled = false
+function conviteEmbed(
+    batalha
 ) {
 
-    return [
-
-        new ActionRowBuilder()
-            .addComponents(
-
-                new ButtonBuilder()
-                    .setCustomId(
-                        `rpg_batalha_atacar_${b.id}`
-                    )
-                    .setLabel("Atacar")
-                    .setEmoji("⚔️")
-                    .setStyle(
-                        ButtonStyle.Primary
-                    )
-                    .setDisabled(
-                        disabled
-                    ),
-
-                new ButtonBuilder()
-                    .setCustomId(
-                        `rpg_batalha_habilidade_${b.id}`
-                    )
-                    .setLabel("Habilidade")
-                    .setEmoji("✨")
-                    .setStyle(
-                        ButtonStyle.Success
-                    )
-                    .setDisabled(
-                        disabled
-                    ),
-
-                new ButtonBuilder()
-                    .setCustomId(
-                        `rpg_batalha_defender_${b.id}`
-                    )
-                    .setLabel("Defender")
-                    .setEmoji("🛡️")
-                    .setStyle(
-                        ButtonStyle.Secondary
-                    )
-                    .setDisabled(
-                        disabled
-                    ),
-
-                new ButtonBuilder()
-                    .setCustomId(
-                        `rpg_batalha_fugir_${b.id}`
-                    )
-                    .setLabel("Fugir")
-                    .setEmoji("🏃")
-                    .setStyle(
-                        ButtonStyle.Danger
-                    )
-                    .setDisabled(
-                        disabled
-                    )
-            )
-    ];
-}
-
-// ============================================================
-// 📖 NARRAÇÃO INICIAL
-// ============================================================
-
-function narrativaInicio(b) {
-
     const mapa =
-        MAPAS[b.mapaId];
+        MAPAS.find(
+            x =>
+                x.id ===
+                batalha.mapaId
+        );
 
     const inimigo =
-        b.bossId
-            ? BOSSES[b.bossId]
-            : PETS[b.inimigoId];
+        batalha.inimigo;
 
-    const pet =
-        PETS[b.petId];
 
-    if (b.bossId) {
+    const nomes =
+        batalha.participantes
+            .map(
+                id =>
+                    `<@${id}>`
+            )
+            .join(", ");
 
-        b.log.push(
-            `╭────────────── ✦ ──────────────╮\n` +
-            `**🌟 ENCONTRO LENDÁRIO**\n\n` +
-            `A paisagem muda completamente.\n` +
-            `Uma presença colossal surge diante de ${pet.nome}.\n\n` +
-            `**👑 ${inimigo.nome.toUpperCase()} APARECEU!**\n` +
-            `╰───────────────────────────────╯`
+
+    return new EmbedBuilder()
+
+        .setColor(
+            batalha.ehBoss
+                ? 0x8e44ad
+                : 0xe67e22
+        )
+
+        .setTitle(
+
+            batalha.ehBoss
+
+                ? `👑 ENCONTRO LENDÁRIO — ${inimigo.nome}`
+
+                : `⚔️ ${inimigo.nome} APARECEU!`
+        )
+
+        .setDescription(
+
+            `${mapa.nome}\n\n` +
+
+            `${inimigo.emoji} **${inimigo.nome}**\n` +
+
+            `❤️ ${inimigo.hp.toLocaleString()} HP\n` +
+
+            `⚔️ ${inimigo.ataque.toLocaleString()} ATK\n` +
+
+            `🛡️ ${inimigo.defesa.toLocaleString()} DEF\n\n` +
+
+            `👥 **Treinadores:** ${nomes}\n\n` +
+
+            (
+                batalha.ehBoss
+
+                    ? `🌑 Este é um Boss do mapa. Ele não é um Pet e possui poderes próprios.\n\n`
+
+                    : `🐾 Seu Pet enfrentará esta criatura.\n\n`
+            ) +
+
+            `⚔️ **Iniciar Batalha** para começar automaticamente.\n` +
+
+            `👥 **Chamar Aliados** para abrir a batalha para seus amigos.`
         );
-
-    } else {
-
-        b.log.push(
-            `╭────────────── ✦ ──────────────╮\n` +
-            `**${mapa.emoji} ${mapa.nome.toUpperCase()}**\n\n` +
-            `${mapa.descricao}\n` +
-            `╰───────────────────────────────╯\n\n` +
-            `🌲 Algo se move entre os caminhos...\n\n` +
-            `**${inimigo.emoji} ${inimigo.nome.toUpperCase()} APARECEU!**\n\n` +
-            `${pet.emoji} **${pet.nome}** se posiciona para a batalha.`
-        );
-    }
 }
+
+
+// ============================================================
+// 🔘 BOTÕES
+// ============================================================
+
+function botoesInicio(
+    id
+) {
+
+    return new ActionRowBuilder()
+
+        .addComponents(
+
+            new ButtonBuilder()
+
+                .setCustomId(
+                    `rpg_iniciar_${id}`
+                )
+
+                .setLabel(
+                    "⚔️ Iniciar Batalha"
+                )
+
+                .setStyle(
+                    ButtonStyle.Danger
+                ),
+
+            new ButtonBuilder()
+
+                .setCustomId(
+                    `rpg_chamar_${id}`
+                )
+
+                .setLabel(
+                    "👥 Chamar Aliados"
+                )
+
+                .setStyle(
+                    ButtonStyle.Primary
+                )
+        );
+}
+
+
+// ============================================================
+// ⚔️ EMBED DA BATALHA
+// ============================================================
+
+function batalhaEmbed(
+    batalha,
+    narrativa = ""
+) {
+
+    const inimigo =
+        batalha.inimigo;
+
+    const mapa =
+        MAPAS.find(
+            x =>
+                x.id ===
+                batalha.mapaId
+        );
+
+
+    const hp =
+        Math.max(
+            0,
+            batalha.hpInimigo ||
+            inimigo.hp
+        );
+
+
+    const participantes =
+        batalha.participantes
+
+            .map(
+                id => {
+
+                    const p =
+                        dadosPet(
+                            id,
+                            petDoJogador(id)
+                        );
+
+                    const vida =
+                        batalha.pets?.[id]?.hp ??
+                        p.maxHp;
+
+
+                    return (
+
+                        `${p.emoji} **${p.nome}** — <@${id}>\n` +
+
+                        `❤️ ${barra(
+                            vida,
+                            p.maxHp
+                        )} ${vida.toLocaleString()}/${p.maxHp.toLocaleString()}`
+                    );
+                }
+            )
+
+            .join("\n");
+
+
+    return new EmbedBuilder()
+
+        .setColor(
+            batalha.ehBoss
+                ? 0x8e44ad
+                : 0xe67e22
+        )
+
+        .setTitle(
+            `${batalha.ehBoss ? "👑" : "⚔️"} ${mapa.nome}`
+        )
+
+        .setDescription(
+
+            `╭─────────────── ✦ ───────────────╮\n` +
+
+            `${inimigo.emoji} **${inimigo.nome}**\n` +
+
+            `❤️ ${barra(
+                hp,
+                inimigo.hp
+            )} ${hp.toLocaleString()}/${inimigo.hp.toLocaleString()}\n` +
+
+            `╰─────────────────────────────────╯\n\n` +
+
+            `👥 **Treinadores e Pets**\n` +
+
+            `${participantes}\n\n` +
+
+            `⚔️ **TURNO ${batalha.turno}**\n\n` +
+
+            `${narrativa || "A batalha está prestes a começar..."}`
+        )
+
+        .setFooter({
+            text:
+                "A batalha acontece automaticamente. Nenhuma ação é necessária."
+        });
+}
+
 
 // ============================================================
 // 💥 DANO
 // ============================================================
 
 function dano(
-    atk,
-    defesa,
-    multiplicador = 1
+    atacante,
+    defensor
 ) {
-
-    const base =
-        Math.max(
-            1,
-            atk -
-            Math.floor(
-                defesa * 0.45
-            )
-        );
 
     const variacao =
         0.85 +
         Math.random() *
         0.30;
 
-    return Math.max(
-        1,
+
+    const crit =
+        Math.random() <
+        Math.min(
+            0.25,
+            0.05 +
+            atacante.velocidade /
+            3000
+        );
+
+
+    let valor =
         Math.floor(
-            base *
-            multiplicador *
-            variacao
-        )
-    );
-}
 
-// ============================================================
-// 💀 DERROTA
-// ============================================================
-
-function mensagemDerrota(b) {
-
-    const pet =
-        PETS[b.petId];
-
-    return (
-        `💀 **A batalha terminou.**\n\n` +
-        `${pet.emoji} ${pet.nome} caiu após uma longa luta.\n\n` +
-        `✨ *Treine seu pet e tente novamente.*`
-    );
-}
-
-// ============================================================
-// 🏆 VITÓRIA
-// ============================================================
-
-function mensagemVitoria(b) {
-
-    const pet =
-        PETS[b.petId];
-
-    const recompensa =
-        recompensaBatalha(
-            b.inimigoNivel || 1,
-            b.elite
-        );
-
-    const subiuPet =
-        ganharXpPet(
-            b.userId,
-            b.petId,
-            recompensa.xpPet
-        );
-
-    const subiuTreinador =
-        ganharXpTreinador(
-            b.userId,
-            recompensa.xpTreinador
-        );
-
-    const p =
-        jogador(b.userId);
-
-    p.moedas +=
-        recompensa.moedas;
-
-    p.vitorias++;
-
-    if (b.bossId) {
-
-        p.bossesDerrotados++;
-    }
-
-    salvarBanco();
-
-    return (
-        `🏆 **VITÓRIA!**\n\n` +
-        `${pet.emoji} **${pet.nome}** venceu a batalha.\n\n` +
-        `💰 +${recompensa.moedas} moedas\n` +
-        `✨ +${recompensa.xpPet} XP do pet\n` +
-        `📈 +${recompensa.xpTreinador} XP do treinador` +
-
-        (
-            subiuPet
-                ? `\n🎉 **Seu pet subiu ${subiuPet} nível(is)!**`
-                : ""
-        ) +
-
-        (
-            subiuTreinador
-                ? `\n🌟 **Você subiu ${subiuTreinador} nível(is)!**`
-                : ""
-        )
-    );
-}
-
-// ============================================================
-// ⚔️ EXECUTAR TURNO
-// ============================================================
-
-async function executarTurno(
-    interaction,
-    b,
-    acao
-) {
-
-    const pet =
-        PETS[b.petId];
-
-    const inimigo =
-        b.bossId
-            ? BOSSES[b.bossId]
-            : PETS[b.inimigoId];
-
-    let texto = "";
-
-    let mult = 1;
-
-    // --------------------------------------------------------
-    // 🏃 FUGIR
-    // --------------------------------------------------------
-
-    if (acao === "fugir") {
-
-        const chance =
-            b.bossId
-                ? 0.10
-                : 0.45;
-
-        if (
-            Math.random() <
-            chance
-        ) {
-
-            batalhas.delete(
-                b.id
-            );
-
-            return interaction.update({
-
-                content:
-                    "🏃 **Você conseguiu fugir da batalha.**",
-
-                embeds: [],
-
-                components: []
-            });
-        }
-
-        texto =
-            "🏃 **Tentativa de fuga!**\n\n" +
-            "A criatura bloqueia o caminho. **Você não conseguiu escapar.**";
-    }
-
-    // --------------------------------------------------------
-    // 🛡️ DEFENDER
-    // --------------------------------------------------------
-
-    else if (
-        acao === "defender"
-    ) {
-
-        b.defensor = true;
-
-        texto =
-            `🛡️ **${pet.nome} entra em posição defensiva.**\n\n` +
-            `O próximo ataque recebido terá seu dano reduzido.`;
-    }
-
-    // --------------------------------------------------------
-    // ⚔️ ATAQUE
-    // --------------------------------------------------------
-
-    else {
-
-        if (
-            acao === "habilidade"
-        ) {
-
-            mult = 1.45;
-
-            texto =
-                `✨ **${pet.nome} usa ${pet.habilidade}!**\n\n` +
-                `${pet.habilidadeDescricao}`;
-
-        } else {
-
-            texto =
-                `⚔️ **${pet.nome} ataca!**\n\n` +
-                `${pet.nome} avança e desfere um golpe preciso.`;
-        }
-
-        let critico =
-            Math.random() <
-            (
-                acao === "habilidade"
-                    ? 0.12
-                    : 0.08
-            );
-
-        if (critico) {
-
-            mult *= 1.45;
-        }
-
-        const danoCausado =
-            dano(
-                b.meuStats.ataque,
-                b.inimigoStats.defesa,
-                mult
-            );
-
-        b.inimigoHp =
             Math.max(
-                0,
-                b.inimigoHp -
-                danoCausado
+
+                20,
+
+                (
+                    atacante.ataque -
+                    defensor.defesa *
+                    0.42
+                ) *
+                variacao
+            )
+        );
+
+
+    if (crit) {
+
+        valor =
+            Math.floor(
+                valor * 1.5
             );
-
-        texto +=
-            `\n\n💥 **${critico ? "ACERTO CRÍTICO! " : ""}${danoCausado} de dano!**\n` +
-            `❤️ Inimigo: **${b.inimigoHp}/${b.inimigoHpMax} HP**`;
     }
 
-    b.log.push(texto);
-
-    // --------------------------------------------------------
-    // 🏆 INIMIGO DERROTADO
-    // --------------------------------------------------------
-
-    if (
-        b.inimigoHp <= 0
-    ) {
-
-        const fim =
-            mensagemVitoria(b);
-
-        batalhas.delete(
-            b.id
-        );
-
-        return interaction.update({
-
-            embeds: [
-
-                new EmbedBuilder()
-                    .setColor(
-                        0x2ecc71
-                    )
-                    .setTitle(
-                        "🏆 Vitória"
-                    )
-                    .setDescription(
-                        `${texto}\n\n${fim}`
-                    )
-            ],
-
-            components: []
-        });
-    }
-
-    // --------------------------------------------------------
-    // 👹 TURNO DO INIMIGO
-    // --------------------------------------------------------
-
-    const defesaMult =
-        b.defensor
-            ? 0.45
-            : 1;
-
-    const danoInimigo =
-        dano(
-            b.inimigoStats.ataque,
-            b.meuStats.defesa,
-            defesaMult
-        );
-
-    b.meuHp =
-        Math.max(
-            0,
-            b.meuHp -
-            danoInimigo
-        );
-
-    b.log.push(
-        `🐾 **TURNO DO INIMIGO**\n\n` +
-        `${inimigo.emoji || "👹"} **${inimigo.nome} ataca!**\n\n` +
-        `💥 **${danoInimigo} de dano!**` +
-        (
-            b.defensor
-                ? "\n🛡️ A defesa reduziu o impacto do golpe."
-                : ""
-        )
-    );
-
-    b.defensor = false;
-
-    // --------------------------------------------------------
-    // 💀 JOGADOR DERROTADO
-    // --------------------------------------------------------
-
-    if (
-        b.meuHp <= 0
-    ) {
-
-        jogador(
-            b.userId
-        ).derrotas++;
-
-        salvarBanco();
-
-        const fim =
-            mensagemDerrota(b);
-
-        batalhas.delete(
-            b.id
-        );
-
-        return interaction.update({
-
-            embeds: [
-
-                new EmbedBuilder()
-                    .setColor(
-                        0xe74c3c
-                    )
-                    .setTitle(
-                        "💀 Derrota"
-                    )
-                    .setDescription(
-                        `${texto}\n\n${fim}`
-                    )
-            ],
-
-            components: []
-        });
-    }
-
-    b.turno++;
-
-    salvarBanco();
-
-    return interaction.update({
-
-        embeds: [
-            batalhaEmbed(b)
-        ],
-
-        components:
-            botoesBatalha(b)
-    });
-}
-
-// ============================================================
-// 🗺️ EMBED MAPAS
-// ============================================================
-
-function mapaEmbed(p) {
-
-    const linhas =
-        ORDEM_MAPAS.map(
-            id => {
-
-                const m =
-                    MAPAS[id];
-
-                const aberto =
-                    nivelMapaLiberado(
-                        p,
-                        id
-                    );
-
-                return (
-                    `${aberto ? "🔓" : "🔒"} **${m.nome}** — Nv. ${m.nivel}\n` +
-                    (
-                        aberto
-                            ? `　${m.emoji} ${m.descricao}`
-                            : "　*Desbloqueie aumentando seu nível.*"
-                    )
-                );
-            }
-        );
-
-    return new EmbedBuilder()
-        .setColor(
-            0x8e44ad
-        )
-        .setTitle(
-            "🗺️ Mapas de ZUNO RPG"
-        )
-        .setDescription(
-            `Seu nível: **${p.nivel}/${MAX_LEVEL}**\n\n` +
-            linhas.join("\n\n")
-        )
-        .setFooter({
-            text:
-                "Explore mapas desbloqueados para encontrar criaturas."
-        });
-}
-
-// ============================================================
-// 📜 PERFIL
-// ============================================================
-
-function perfilEmbed(
-    id,
-    user
-) {
-
-    const p =
-        jogador(id);
-
-    const petId =
-        petEquipado(id);
-
-    const pet =
-        petId
-            ? PETS[petId]
-            : null;
-
-    const d =
-        petId
-            ? dadosPet(
-                id,
-                petId
-            )
-            : null;
-
-    const s =
-        petId
-            ? statsPet(
-                id,
-                petId
-            )
-            : null;
-
-    return new EmbedBuilder()
-        .setColor(
-            0x8e44ad
-        )
-        .setTitle(
-            `📜 Perfil de ${user.username}`
-        )
-        .setDescription(
-
-            `🌟 **Treinador Nv. ${p.nivel}/${MAX_LEVEL}**\n` +
-            `✨ XP: ${p.xp}/${xpTreinador(p.nivel)}\n` +
-            `💰 Moedas: **${p.moedas}**\n` +
-            `🏆 Vitórias: **${p.vitorias}**\n` +
-            `💀 Derrotas: **${p.derrotas}**\n` +
-            `👑 Bosses derrotados: **${p.bossesDerrotados}**\n\n` +
-
-            (
-                pet
-
-                    ? (
-                        `${pet.emoji} **${pet.nome} — Nv. ${d.nivel}/${MAX_LEVEL}**\n` +
-                        `❤️ ${s.hp} HP  •  ⚔️ ${s.ataque} ATK  •  🛡️ ${s.defesa} DEF  •  💨 ${s.velocidade} SPD`
-                    )
-
-                    : "🐾 Nenhum pet equipado."
-            )
-        )
-
-        .setThumbnail(
-            pet?.imagem || null
-        );
-}
-
-// ============================================================
-// ❓ AJUDA
-// ============================================================
-
-function ajudaEmbed() {
-
-    return new EmbedBuilder()
-
-        .setColor(
-            0x8e44ad
-        )
-
-        .setTitle(
-            "🐉 ZUNO RPG — Arena das Criaturas"
-        )
-
-        .setDescription(
-
-            [
-
-                "**🌟 COMEÇO**",
-
-                "`,invocar` — recebe sua primeira criatura",
-
-                "`,pets` — mostra suas criaturas",
-
-                "`,pet nome` — detalhes de um pet",
-
-                "`,equipar nome` — escolhe seu único pet ativo",
-
-                "",
-
-                "**🗺️ EXPLORAÇÃO**",
-
-                "`,mapas` — mostra os mapas e níveis",
-
-                "`,explorar` — procura uma batalha no mapa adequado",
-
-                "`,meumapa` — mostra o mapa atual",
-
-                "",
-
-                "**⚔️ PROGRESSÃO**",
-
-                "`,treinar 10` ou `,treinar 20` — treina o pet equipado",
-
-                "`,perfilrpg` — seu perfil",
-
-                "`,ranking` — ranking de treinadores",
-
-                "`,daily` — recompensa diária",
-
-                "`,moedas` — suas moedas",
-
-                "",
-
-                "**⚔️ SOCIAL**",
-
-                "`,duelo @membro` — duelo entre treinadores",
-
-                "",
-
-                "Cada batalha usa **1 único pet por jogador**."
-
-            ].join("\n")
-        );
-}
-
-// ============================================================
-// 🔎 ENCONTRAR PET PELO NOME
-// ============================================================
-
-function nomePorTexto(texto) {
-
-    const limpo =
-        texto
-            .toLowerCase()
-            .trim();
-
-    const alvo =
-        limpo.replace(
-            /\s+/g,
-            "_"
-        );
-
-    if (
-        PETS[alvo]
-    )
-        return alvo;
-
-    return Object.keys(
-        PETS
-    ).find(
-        id =>
-            PETS[id]
-                .nome
-                .toLowerCase() ===
-            limpo
-    ) || null;
-}
-
-// ============================================================
-// 🏋️ TREINAMENTO
-// ============================================================
-
-function treinamento(
-    id,
-    quantidade
-) {
-
-    const p =
-        jogador(id);
-
-    const petId =
-        petEquipado(id);
-
-    if (!petId) {
-
-        return {
-            erro:
-                "Você não possui um pet equipado."
-        };
-    }
-
-    if (
-        ![10, 20]
-            .includes(
-                quantidade
-            )
-    ) {
-
-        return {
-            erro:
-                "Use `,treinar 10` ou `,treinar 20`."
-        };
-    }
-
-    const d =
-        dadosPet(
-            id,
-            petId
-        );
-
-    const custoCada =
-        6 +
-        (d.nivel * 2);
-
-    const custo =
-        custoCada *
-        quantidade;
-
-    if (
-        p.moedas <
-        custo
-    ) {
-
-        return {
-
-            erro:
-                `Você precisa de **${custo} moedas** para esse treino. Você possui **${p.moedas}**.`
-        };
-    }
-
-    p.moedas -=
-        custo;
-
-    d.treino +=
-        quantidade;
-
-    d.bonusHp +=
-        8 *
-        quantidade;
-
-    d.bonusAtaque +=
-        3 *
-        quantidade;
-
-    d.bonusDefesa +=
-        2 *
-        quantidade;
-
-    d.bonusVelocidade +=
-        2 *
-        quantidade;
-
-    const subiu =
-        ganharXpPet(
-            id,
-            petId,
-            10 *
-            quantidade
-        );
-
-    ganharXpTreinador(
-        id,
-        2 *
-        quantidade
-    );
-
-    salvarBanco();
 
     return {
-
-        petId,
-
-        custo,
-
-        subiu,
-
-        treino:
-            d.treino
+        valor,
+        crit
     };
 }
 
-// ============================================================
-// ⚔️ VERIFICAR BATALHA DO USUÁRIO
-// ============================================================
-
-function batalhasHasUser(id) {
-
-    for (
-        const b of batalhas.values()
-    ) {
-
-        if (
-            b.userId === id
-        )
-            return true;
-    }
-
-    return false;
-}
 
 // ============================================================
-// 🌲 EXPLORAR
+// 👑 PODER DO BOSS
 // ============================================================
 
-async function iniciarExploracao(
-    message
+function escolherPoderBoss(
+    boss,
+    turno
 ) {
 
-    const p =
-        jogador(
-            message.author.id
-        );
+    if (
+        !boss.poderes?.length
+    ) {
+        return null;
+    }
 
-    const petId =
-        petEquipado(
-            message.author.id
-        );
 
-    if (!petId) {
+    if (
+        turno % 4 === 0
+    ) {
 
-        return message.reply(
-            "🐾 Primeiro use `,invocar` para receber seu pet inicial."
+        return (
+            boss.poderes[1] ||
+            boss.poderes[0]
         );
     }
 
+
     if (
-        batalhasHasUser(
-            message.author.id
+        Math.random() <
+        0.22
+    ) {
+
+        return boss.poderes[
+            Math.floor(
+                Math.random() *
+                boss.poderes.length
+            )
+        ];
+    }
+
+
+    return null;
+}
+
+
+// ============================================================
+// 🔄 ATUALIZAR
+// ============================================================
+
+async function atualizarBatalha(
+    message,
+    batalha,
+    texto
+) {
+
+    try {
+
+        await message.edit({
+
+            embeds: [
+                batalhaEmbed(
+                    batalha,
+                    texto
+                )
+            ],
+
+            components: []
+        });
+
+    } catch (e) {
+
+        console.error(
+            "Erro atualizando batalha:",
+            e
+        );
+    }
+}
+
+
+// ============================================================
+// ⚔️ BATALHA AUTOMÁTICA
+// ============================================================
+
+async function executarBatalhaMapa(
+    message,
+    batalha
+) {
+
+    if (
+        !batalha ||
+        batalha.iniciado
+    ) {
+        return;
+    }
+
+
+    batalha.iniciado =
+        true;
+
+    batalha.hpInimigo =
+        batalha.inimigo.hp;
+
+    batalha.pets = {};
+
+
+    for (
+        const id
+        of batalha.participantes
+    ) {
+
+        const p =
+            dadosPet(
+                id,
+                petDoJogador(id)
+            );
+
+
+        batalha.pets[id] = {
+
+            hp:
+                p.maxHp,
+
+            maxHp:
+                p.maxHp,
+
+            defesa:
+                p.defesa,
+
+            velocidade:
+                p.velocidade
+        };
+    }
+
+
+    await atualizarBatalha(
+        message,
+        batalha,
+        "🌙 O silêncio desaparece... A batalha começou!"
+    );
+
+
+    await new Promise(
+        r =>
+            setTimeout(
+                r,
+                2200
+            )
+    );
+
+
+    while (
+        MAPA_BATALHAS.has(
+            batalha.id
         )
     ) {
 
-        return message.reply(
-            "⚔️ Você já está em uma batalha. Termine-a antes de explorar novamente."
-        );
-    }
-
-    const mapaId =
-        mapaAtualSugerido(p);
-
-    const mapa =
-        MAPAS[mapaId];
-
-    p.mapasDescobertos[
-        mapaId
-    ] = true;
-
-    // ========================================================
-    // 👑 BOSS EXTREMAMENTE RARO
-    // ========================================================
-
-    const bossRoll =
-        Math.random();
-
-    if (
-        bossRoll <
-        mapa.bossChance
-    ) {
-
-        const bossIds =
-            Object.keys(
-                BOSSES
+        const vivos =
+            batalha.participantes.filter(
+                id =>
+                    batalha.pets[id].hp >
+                    0
             );
 
-        const bossId =
-            bossIds[
+
+        if (
+            !vivos.length ||
+            batalha.hpInimigo <= 0
+        ) {
+            break;
+        }
+
+
+        batalha.turno++;
+
+
+        const ordem =
+            [...vivos].sort(
+                (a, b) => {
+
+                    const pa =
+                        dadosPet(
+                            a,
+                            petDoJogador(a)
+                        );
+
+                    const pb =
+                        dadosPet(
+                            b,
+                            petDoJogador(b)
+                        );
+
+
+                    return (
+
+                        (
+                            pb.velocidade +
+                            Math.random() *
+                            50
+                        ) -
+
+                        (
+                            pa.velocidade +
+                            Math.random() *
+                            50
+                        )
+                    );
+                }
+            );
+
+
+        let narrativa =
+            "";
+
+
+        for (
+            const id
+            of ordem
+        ) {
+
+            if (
+                batalha.hpInimigo <= 0
+            ) {
+                break;
+            }
+
+
+            if (
+                batalha.pets[id].hp <= 0
+            ) {
+                continue;
+            }
+
+
+            const p =
+                dadosPet(
+                    id,
+                    petDoJogador(id)
+                );
+
+
+            const d =
+                dano(
+                    p,
+                    batalha.inimigo
+                );
+
+
+            batalha.hpInimigo =
+                Math.max(
+                    0,
+                    batalha.hpInimigo -
+                    d.valor
+                );
+
+
+            narrativa +=
+
+                `${p.emoji} **${p.nome} ataca!**\n` +
+
+                `💥 ${d.valor.toLocaleString()} de dano` +
+
+                (
+                    d.crit
+                        ? " — 💢 CRÍTICO!"
+                        : ""
+                ) +
+
+                `\n`;
+        }
+
+
+        if (
+            batalha.hpInimigo <= 0
+        ) {
+            break;
+        }
+
+
+        const alvoId =
+            vivos[
                 Math.floor(
                     Math.random() *
-                    bossIds.length
+                    vivos.length
                 )
             ];
 
-        const boss =
-            BOSSES[bossId];
 
-        const b =
-            criarBatalha(
-                message.author.id,
-                mapaId,
-                null,
-                100,
-                false,
-                bossId
-            );
-
-        if (!b) {
-
-            return message.reply(
-                "❌ Não foi possível iniciar a batalha."
-            );
-        }
-
-        b.inimigoNivel =
-            Math.min(
-                MAX_LEVEL,
-                Math.max(
-                    p.nivel,
-                    mapa.nivel
+        const alvo =
+            dadosPet(
+                alvoId,
+                petDoJogador(
+                    alvoId
                 )
             );
 
-        narrativaInicio(b);
 
-        salvarBanco();
+        const poder =
+            batalha.ehBoss
 
-        return message.reply({
+                ? escolherPoderBoss(
+                    batalha.inimigo,
+                    batalha.turno
+                )
 
-            embeds: [
-                batalhaEmbed(b)
-            ],
+                : null;
 
-            components:
-                botoesBatalha(b)
-        });
-    }
 
-    // ========================================================
-    // 👑 ELITE
-    // ========================================================
+        let ataqueBoss = {
 
-    const elite =
-        Math.random() <
-        0.035;
+            valor:
 
-    const inimigoId =
-        elite
-            ? mapa.elite
-            : monstroDoMapa(
-                mapa
-            );
+                Math.max(
 
-    const nivel =
-        nivelInimigo(
-            mapa,
-            p.nivel,
-            elite
-        );
+                    15,
 
-    const b =
-        criarBatalha(
-            message.author.id,
-            mapaId,
-            inimigoId,
-            nivel,
-            elite,
-            null
-        );
+                    Math.floor(
 
-    if (!b) {
+                        (
+                            batalha.inimigo.ataque -
 
-        return message.reply(
-            "❌ Não foi possível iniciar a batalha."
-        );
-    }
+                            alvo.defesa *
+                            0.35
 
-    narrativaInicio(b);
+                        ) *
 
-    salvarBanco();
+                        (
+                            0.88 +
+                            Math.random() *
+                            0.24
+                        )
+                    )
+                ),
 
-    return message.reply({
+            crit:
+                false
+        };
 
-        embeds: [
-            batalhaEmbed(b)
-        ],
 
-        components:
-            botoesBatalha(b)
-    });
-}
+        if (poder) {
 
-// ============================================================
-// ⚔️ DUELO
-// ============================================================
-
-async function iniciarDuelo(
-    message,
-    alvo
-) {
-
-    if (
-        !alvo ||
-        alvo.bot ||
-        alvo.id ===
-        message.author.id
-    ) {
-
-        return message.reply(
-            "⚔️ Escolha um treinador válido para duelar."
-        );
-    }
-
-    if (
-        batalhasHasUser(
-            message.author.id
-        )
-    ) {
-
-        return message.reply(
-            "⚔️ Termine sua batalha de exploração primeiro."
-        );
-    }
-
-    const p1 =
-        jogador(
-            message.author.id
-        );
-
-    const p2 =
-        jogador(
-            alvo.id
-        );
-
-    const pet1 =
-        petEquipado(
-            message.author.id
-        );
-
-    const pet2 =
-        petEquipado(
-            alvo.id
-        );
-
-    if (
-        !pet1 ||
-        !pet2
-    ) {
-
-        return message.reply(
-            "🐾 Os dois treinadores precisam ter um pet equipado."
-        );
-    }
-
-    const s1 =
-        statsPet(
-            message.author.id,
-            pet1
-        );
-
-    const s2 =
-        statsPet(
-            alvo.id,
-            pet2
-        );
-
-    const primeiro =
-        s1.velocidade >=
-        s2.velocidade
-            ? message.author.id
-            : alvo.id;
-
-    const id =
-        `duelo_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-
-    const desafio = {
-
-        id,
-
-        p1:
-            message.author.id,
-
-        p2:
-            alvo.id,
-
-        pet1,
-
-        pet2,
-
-        hp1:
-            s1.hp,
-
-        hp2:
-            s2.hp,
-
-        max1:
-            s1.hp,
-
-        max2:
-            s2.hp,
-
-        s1,
-
-        s2,
-
-        turno:
-            primeiro,
-
-        log: [
-
-            `⚔️ **${message.author.username}** desafiou **${alvo.username}**!\n\n` +
-
-            `🐾 Cada treinador entrou com **1 único pet**.\n\n` +
-
-            `🏁 **${
-                primeiro ===
-                message.author.id
-                    ? message.author.username
-                    : alvo.username
-            } começa por possuir maior velocidade.`
-        ]
-    };
-
-    batalhas.set(
-        id,
-        {
-            ...desafio,
-            tipo: "duelo",
-            userId:
-                message.author.id
+            ataqueBoss.valor =
+                Math.floor(
+                    ataqueBoss.valor *
+                    1.45
+                );
         }
-    );
 
-    return message.reply({
 
-        content:
-            `⚔️ **DUELO INICIADO**\n${message.author} vs ${alvo}`,
+        batalha.pets[
+            alvoId
+        ].hp =
 
-        embeds: [
-            dueloEmbed(
-                desafio,
-                message.client
-            )
-        ],
-
-        components:
-            dueloBotoes(
-                desafio,
-                message.author.id
-            )
-    });
-}
-
-// ============================================================
-// ⚔️ EMBED DUELO
-// ============================================================
-
-function dueloEmbed(
-    d,
-    client
-) {
-
-    const u1 =
-        client.users.cache.get(
-            d.p1
-        );
-
-    const u2 =
-        client.users.cache.get(
-            d.p2
-        );
-
-    const pet1 =
-        PETS[d.pet1];
-
-    const pet2 =
-        PETS[d.pet2];
-
-    return new EmbedBuilder()
-
-        .setColor(
-            0xe67e22
-        )
-
-        .setTitle(
-            `⚔️ Duelo • Turno ${
-                d.turno === d.p1
-                    ? u1?.username
-                    : u2?.username
-            }`
-        )
-
-        .setDescription(
-
-            `**${u1?.username || "Treinador 1"}**\n` +
-
-            `${pet1.emoji} ${pet1.nome}\n` +
-
-            `❤️ ${barraVida(
-                d.hp1,
-                d.max1
-            )} ${d.hp1}/${d.max1}\n\n` +
-
-            `**${u2?.username || "Treinador 2"}**\n` +
-
-            `${pet2.emoji} ${pet2.nome}\n` +
-
-            `❤️ ${barraVida(
-                d.hp2,
-                d.max2
-            )} ${d.hp2}/${d.max2}\n\n` +
-
-            d.log
-                .slice(-4)
-                .join("\n\n")
-        );
-}
-
-// ============================================================
-// 🔘 BOTÕES DO DUELO
-// ============================================================
-
-function dueloBotoes(
-    d,
-    userId
-) {
-
-    return [
-
-        new ActionRowBuilder()
-            .addComponents(
-
-                new ButtonBuilder()
-                    .setCustomId(
-                        `rpg_duelo_atacar_${d.id}`
-                    )
-                    .setLabel(
-                        "Atacar"
-                    )
-                    .setEmoji(
-                        "⚔️"
-                    )
-                    .setStyle(
-                        ButtonStyle.Primary
-                    )
-                    .setDisabled(
-                        d.turno !==
-                        userId
-                    ),
-
-                new ButtonBuilder()
-                    .setCustomId(
-                        `rpg_duelo_habilidade_${d.id}`
-                    )
-                    .setLabel(
-                        "Habilidade"
-                    )
-                    .setEmoji(
-                        "✨"
-                    )
-                    .setStyle(
-                        ButtonStyle.Success
-                    )
-                    .setDisabled(
-                        d.turno !==
-                        userId
-                    )
-            )
-    ];
-}
-
-// ============================================================
-// ⚔️ TURNO DO DUELO
-// ============================================================
-
-async function turnoDuelo(
-    interaction,
-    d,
-    acao
-) {
-
-    const atacante =
-        d.turno;
-
-    const defensor =
-        atacante === d.p1
-            ? d.p2
-            : d.p1;
-
-    const petAtk =
-        atacante === d.p1
-            ? d.pet1
-            : d.pet2;
-
-    const petDef =
-        defensor === d.p1
-            ? d.pet1
-            : d.pet2;
-
-    const sAtk =
-        atacante === d.p1
-            ? d.s1
-            : d.s2;
-
-    const sDef =
-        defensor === d.p1
-            ? d.s1
-            : d.s2;
-
-    let mult =
-        acao === "habilidade"
-            ? 1.4
-            : 1;
-
-    const danoCausado =
-        dano(
-            sAtk.ataque,
-            sDef.defesa,
-            mult
-        );
-
-    if (
-        defensor === d.p1
-    ) {
-
-        d.hp1 =
             Math.max(
+
                 0,
-                d.hp1 -
-                danoCausado
+
+                batalha.pets[
+                    alvoId
+                ].hp -
+                ataqueBoss.valor
             );
 
-    } else {
 
-        d.hp2 =
-            Math.max(
-                0,
-                d.hp2 -
-                danoCausado
-            );
+        narrativa +=
+
+            `\n${batalha.inimigo.emoji} **${batalha.inimigo.nome} contra-ataca!**\n`;
+
+
+        if (poder) {
+
+            narrativa +=
+                `✨ **${poder}!**\n`;
+        }
+
+
+        narrativa +=
+
+            `💥 ${ataqueBoss.valor.toLocaleString()} de dano em ${alvo.emoji} **${alvo.nome}**!`;
+
+
+        await atualizarBatalha(
+            message,
+            batalha,
+            narrativa
+        );
+
+
+        await new Promise(
+            r =>
+                setTimeout(
+                    r,
+                    2400
+                )
+        );
     }
 
-    d.log.push(
 
-        `⚔️ **${PETS[petAtk].nome}** ` +
+    const venceu =
+        batalha.hpInimigo <= 0;
 
-        (
-            acao === "habilidade"
-                ? `usa **${PETS[petAtk].habilidade}**`
-                : "ataca"
-        ) +
 
-        `.\n\n💥 **${danoCausado} de dano!**`
-    );
+    if (venceu) {
 
-    // ========================================================
-    // 🏆 FIM DO DUELO
-    // ========================================================
+        const recompensa =
+            batalha.inimigo.xp;
 
-    if (
-        (
-            defensor === d.p1
-                ? d.hp1
-                : d.hp2
-        ) <= 0
-    ) {
 
-        const vencedor =
-            atacante;
+        let subidas = [];
 
-        const perdedor =
-            defensor;
 
-        jogador(
-            vencedor
-        ).vitorias++;
+        for (
+            const id
+            of batalha.participantes
+        ) {
 
-        jogador(
-            vencedor
-        ).moedas += 12;
+            const petXp =
+                darXPPet(
+                    id,
+                    Math.floor(
+                        recompensa *
+                        (
+                            batalha.ehBoss
+                                ? 0.9
+                                : 1
+                        )
+                    )
+                );
 
-        ganharXpTreinador(
-            vencedor,
-            80
-        );
 
-        ganharXpPet(
-            vencedor,
-            petAtk,
-            100
-        );
+            const trainerUp =
+                darXPTreinador(
+                    id,
+                    Math.floor(
+                        recompensa *
+                        0.55
+                    )
+                );
 
-        jogador(
-            perdedor
-        ).derrotas++;
 
-        jogador(
-            perdedor
-        ).moedas += 3;
+            if (
+                petXp.subiu
+            ) {
+
+                subidas.push(
+                    `<@${id}> — 🐾 Pet chegou ao **Nv. ${petXp.nivel}**!`
+                );
+            }
+
+
+            if (
+                trainerUp
+            ) {
+
+                subidas.push(
+                    `<@${id}> — 🌟 Treinador chegou ao **Nv. ${jogador(id).nivel}**!`
+                );
+            }
+
+
+            if (
+                batalha.ehBoss
+            ) {
+
+                jogador(id).bossesDerrotados =
+                    (
+                        jogador(id)
+                            .bossesDerrotados ||
+                        0
+                    ) + 1;
+            }
+        }
+
 
         salvarBanco();
 
-        batalhas.delete(
-            d.id
-        );
 
-        return interaction.update({
+        await message.edit({
 
             embeds: [
 
@@ -2912,20 +2345,56 @@ async function turnoDuelo(
                     )
 
                     .setTitle(
-                        "🏆 Fim do duelo"
+                        "🏆 VITÓRIA!"
                     )
 
                     .setDescription(
 
-                        `${d.log.slice(-1)[0]}\n\n` +
+                        `${batalha.inimigo.emoji} **${batalha.inimigo.nome} foi derrotado!**\n\n` +
 
-                        `🏆 <@${vencedor}> venceu o duelo!\n` +
+                        `✨ Recompensa de batalha: **+${recompensa} XP**\n` +
 
-                        `💰 +12 moedas\n` +
+                        `🐾 O XP foi distribuído aos Pets participantes.\n\n` +
 
-                        `✨ +80 XP treinador\n` +
+                        (
+                            subidas.length
 
-                        `🐾 +100 XP pet`
+                                ? `🎉 **EVOLUÇÕES!**\n${subidas.join("\n")}`
+
+                                : "🌟 Continue explorando para ficar mais forte!"
+                        )
+                    )
+            ],
+
+            components: []
+        });
+
+    } else {
+
+        salvarBanco();
+
+
+        await message.edit({
+
+            embeds: [
+
+                new EmbedBuilder()
+
+                    .setColor(
+                        0xe74c3c
+                    )
+
+                    .setTitle(
+                        "💀 DERROTA"
+                    )
+
+                    .setDescription(
+
+                        `O grupo não conseguiu derrotar **${batalha.inimigo.nome}**.\n\n` +
+
+                        `🐾 Seus Pets sobreviveram ao treinamento, mas a batalha foi perdida.\n` +
+
+                        `💡 Fortaleça seus Pets e tente novamente.`
                     )
             ],
 
@@ -2933,36 +2402,385 @@ async function turnoDuelo(
         });
     }
 
-    d.turno =
-        defensor;
 
-    salvarBanco();
+    MAPA_BATALHAS.delete(
+        batalha.id
+    );
+}
 
-    return interaction.update({
+
+// ============================================================
+// ⚔️ DUELO AUTOMÁTICO
+// ============================================================
+
+function dueloEmbedAuto(
+    duelo,
+    texto = ""
+) {
+
+    const p1 =
+        dadosPet(
+            duelo.a,
+            petDoJogador(
+                duelo.a
+            )
+        );
+
+
+    const p2 =
+        dadosPet(
+            duelo.b,
+            petDoJogador(
+                duelo.b
+            )
+        );
+
+
+    return new EmbedBuilder()
+
+        .setColor(
+            0x9b59b6
+        )
+
+        .setTitle(
+            "⚔️ DUELO DE CRIATURAS"
+        )
+
+        .setDescription(
+
+            `${p1.emoji} **${p1.nome}** — <@${duelo.a}>\n` +
+
+            `❤️ ${barra(
+                duelo.hpA,
+                p1.maxHp
+            )} ${duelo.hpA.toLocaleString()}/${p1.maxHp.toLocaleString()}\n\n` +
+
+            `━━━━━━━━━━━━━━━━━━━━\n\n` +
+
+            `${p2.emoji} **${p2.nome}** — <@${duelo.b}>\n` +
+
+            `❤️ ${barra(
+                duelo.hpB,
+                p2.maxHp
+            )} ${duelo.hpB.toLocaleString()}/${p2.maxHp.toLocaleString()}\n\n` +
+
+            `⚔️ **TURNO ${duelo.turno}**\n\n` +
+
+            `${texto || "A batalha está começando..."}`
+        )
+
+        .setFooter({
+            text:
+                "Duelo Pet vs Pet — batalha automática."
+        });
+}
+
+
+// ============================================================
+// ⚔️ EXECUTAR DUELO
+// ============================================================
+
+async function executarDuelo(
+    message,
+    duelo
+) {
+
+    duelo.iniciado =
+        true;
+
+
+    const p1 =
+        dadosPet(
+            duelo.a,
+            petDoJogador(
+                duelo.a
+            )
+        );
+
+
+    const p2 =
+        dadosPet(
+            duelo.b,
+            petDoJogador(
+                duelo.b
+            )
+        );
+
+
+    duelo.hpA =
+        p1.maxHp;
+
+    duelo.hpB =
+        p2.maxHp;
+
+
+    await message.edit({
 
         embeds: [
-            dueloEmbed(
-                d,
-                interaction.client
+
+            dueloEmbedAuto(
+                duelo,
+                "⚔️ Os dois Pets entram na arena!"
             )
         ],
 
-        components:
-            dueloBotoes(
-                d,
-                d.turno
-            )
+        components: []
     });
+
+
+    await new Promise(
+        r =>
+            setTimeout(
+                r,
+                2200
+            )
+    );
+
+
+    while (
+        duelo.hpA > 0 &&
+        duelo.hpB > 0
+    ) {
+
+        duelo.turno++;
+
+
+        const primeiro =
+
+            (
+                p1.velocidade +
+                Math.random() *
+                100
+            ) >=
+
+            (
+                p2.velocidade +
+                Math.random() *
+                100
+            )
+
+                ? "a"
+                : "b";
+
+
+        const segundo =
+            primeiro === "a"
+                ? "b"
+                : "a";
+
+
+        let texto =
+            "";
+
+
+        for (
+            const lado
+            of [
+                primeiro,
+                segundo
+            ]
+        ) {
+
+            if (
+                duelo.hpA <= 0 ||
+                duelo.hpB <= 0
+            ) {
+                break;
+            }
+
+
+            const atk =
+                lado === "a"
+                    ? p1
+                    : p2;
+
+
+            const def =
+                lado === "a"
+                    ? p2
+                    : p1;
+
+
+            const res =
+                dano(
+                    atk,
+                    def
+                );
+
+
+            if (
+                lado === "a"
+            ) {
+
+                duelo.hpB =
+                    Math.max(
+                        0,
+                        duelo.hpB -
+                        res.valor
+                    );
+
+            } else {
+
+                duelo.hpA =
+                    Math.max(
+                        0,
+                        duelo.hpA -
+                        res.valor
+                    );
+            }
+
+
+            texto +=
+
+                `${atk.emoji} **${atk.nome} ataca!**\n` +
+
+                `💥 ${res.valor.toLocaleString()} de dano` +
+
+                (
+                    res.crit
+                        ? " — 💢 CRÍTICO!"
+                        : ""
+                ) +
+
+                `\n\n`;
+        }
+
+
+        await message.edit({
+
+            embeds: [
+
+                dueloEmbedAuto(
+                    duelo,
+                    texto
+                )
+            ],
+
+            components: []
+        });
+
+
+        await new Promise(
+            r =>
+                setTimeout(
+                    r,
+                    2300
+                )
+        );
+    }
+
+
+    const vencedor =
+        duelo.hpA > 0
+            ? duelo.a
+            : duelo.b;
+
+
+    const perdedor =
+        vencedor === duelo.a
+            ? duelo.b
+            : duelo.a;
+
+
+    jogador(
+        vencedor
+    ).vitorias =
+
+        (
+            jogador(
+                vencedor
+            ).vitorias ||
+            0
+        ) + 1;
+
+
+    jogador(
+        perdedor
+    ).derrotas =
+
+        (
+            jogador(
+                perdedor
+            ).derrotas ||
+            0
+        ) + 1;
+
+
+    darXPPet(
+        vencedor,
+        100
+    );
+
+
+    darXPTreinador(
+        vencedor,
+        80
+    );
+
+
+    salvarBanco();
+
+
+    const pv =
+        dadosPet(
+            vencedor,
+            petDoJogador(
+                vencedor
+            )
+        );
+
+
+    await message.edit({
+
+        embeds: [
+
+            new EmbedBuilder()
+
+                .setColor(
+                    0xf1c40f
+                )
+
+                .setTitle(
+                    "🏆 FIM DO DUELO"
+                )
+
+                .setDescription(
+
+                    `${pv.emoji} **${pv.nome}** venceu o duelo!\n\n` +
+
+                    `🏆 Vencedor: <@${vencedor}>\n` +
+
+                    `💀 Derrotado: <@${perdedor}>\n\n` +
+
+                    `✨ Vencedor recebeu **+100 XP de Pet** e **+80 XP de Treinador**.`
+                )
+        ],
+
+        components: []
+    });
+
+
+    DUELOS.delete(
+        duelo.id
+    );
 }
 
+
 // ============================================================
-// 🎮 SISTEMA PRINCIPAL
+// 🚀 EXPORTAÇÃO
 // ============================================================
 
-module.exports = (client) => {
+module.exports = (
+    client
+) => {
+
+    console.log(
+        "🐉 ZUNO RPG — sistema de exploração e batalhas automáticas carregado."
+    );
+
 
     // ========================================================
-    // 💬 COMANDOS COM VÍRGULA
+    // 💬 COMANDOS
     // ========================================================
 
     client.on(
@@ -2972,24 +2790,32 @@ module.exports = (client) => {
             try {
 
                 if (
-                    message.author.bot
-                )
+                    message.author.bot ||
+                    !message.guild
+                ) {
                     return;
+                }
+
 
                 if (
                     !message.content.startsWith(
-                        PREFIX_RPG
+                        PREFIX
                     )
-                )
+                ) {
                     return;
+                }
+
 
                 const partes =
                     message.content
                         .slice(
-                            PREFIX_RPG.length
+                            PREFIX.length
                         )
                         .trim()
-                        .split(/\s+/);
+                        .split(
+                            /\s+/
+                        );
+
 
                 const comando =
                     (
@@ -2997,213 +2823,274 @@ module.exports = (client) => {
                         ""
                     ).toLowerCase();
 
+
                 const args =
                     partes;
+
 
                 if (!comando)
                     return;
 
-                const p =
+
+                // =================================================
+                // ,RPG
+                // =================================================
+
+                if (
+                    comando === "rpg" ||
+                    comando === "ajudarpg"
+                ) {
+
                     jogador(
                         message.author.id
                     );
 
-                // ====================================================
-                // ❓ RPG / AJUDA
-                // ====================================================
-
-                if (
-                    comando === "rpg" ||
-                    comando === "ajuda"
-                ) {
 
                     return message.reply({
 
                         embeds: [
-                            ajudaEmbed()
+
+                            new EmbedBuilder()
+
+                                .setColor(
+                                    0x6c5ce7
+                                )
+
+                                .setTitle(
+                                    "🐉 ZUNO — ARENA DAS CRIATURAS"
+                                )
+
+                                .setDescription(
+
+                                    `🗺️ **,explorar** — explorar seu mapa e encontrar criaturas.\n\n` +
+
+                                    `👤 **,perfil** ou **,perfilrpg** — ver seu perfil e imagem do Pet ativo.\n\n` +
+
+                                    `🐾 **,pets** — ver sua coleção.\n\n` +
+
+                                    `🔎 **,pet nome** — ver informações de uma criatura.\n\n` +
+
+                                    `⚔️ **,duelo @membro** — Pet contra Pet, automaticamente.\n\n` +
+
+                                    `🤝 **,juntar** — entrar na batalha de um amigo.\n\n` +
+
+                                    `🗺️ **,mapa** — ver mapas e requisitos.\n\n` +
+
+                                    `🏆 **,ranking** — ver os maiores treinadores.\n\n` +
+
+                                    `💡 **Nas batalhas de mapa você não escolhe ataques. Tudo acontece automaticamente por turnos.**`
+                                )
                         ]
                     });
                 }
 
-                // ====================================================
-                // 🌙 INVOCAR
-                // ====================================================
+
+                // =================================================
+                // ,PERFIL
+                // =================================================
 
                 if (
-                    comando === "invocar"
+                    comando === "perfil" ||
+                    comando === "perfilrpg"
                 ) {
 
-                    if (
-                        !p.invocacaoInicial
-                    ) {
+                    const alvo =
+                        message.mentions.users.first() ||
+                        message.author;
 
-                        adicionarPet(
-                            message.author.id,
-                            "lobo_lunar"
-                        );
 
-                        p.invocacaoInicial =
-                            true;
-
-                        salvarBanco();
-
-                        return message.reply({
-
-                            embeds: [
-
-                                new EmbedBuilder()
-
-                                    .setColor(
-                                        0x8e44ad
-                                    )
-
-                                    .setTitle(
-                                        "🌙 Sua primeira invocação"
-                                    )
-
-                                    .setDescription(
-                                        "A lua ilumina o caminho...\n\n" +
-                                        "🐺 **Lobo Lunar** apareceu para acompanhar sua jornada!\n\n" +
-                                        "Use `,explorar` para começar sua aventura."
-                                    )
-
-                                    .setImage(
-                                        PETS
-                                            .lobo_lunar
-                                            .imagem
-                                    )
-                            ]
-                        });
-                    }
-
-                    const id =
-                        petEquipado(
-                            message.author.id
-                        );
-
-                    return message.reply(
-                        `🐾 Seu pet ativo é **${PETS[id].nome}**.\n` +
-                        `Use \`,pets\` para ver suas criaturas.`
+                    jogador(
+                        alvo.id
                     );
+
+
+                    return message.reply({
+
+                        embeds: [
+
+                            petPerfilEmbed(
+                                alvo.id,
+                                alvo
+                            )
+                        ]
+                    });
                 }
 
-                // ====================================================
-                // 🐾 PETS
-                // ====================================================
+
+                // =================================================
+                // ,PETS
+                // =================================================
 
                 if (
                     comando === "pets"
                 ) {
 
-                    const ids =
-                        Object.keys(
-                            p.criaturas
-                        )
-                        .filter(
-                            id =>
-                                PETS[id]
-                        );
-
-                    if (
-                        !ids.length
-                    ) {
-
-                        return message.reply(
-                            "🐾 Você ainda não possui criaturas. Use `,invocar`."
-                        );
-                    }
-
-                    const texto =
-                        ids
-                            .map(
-                                id => {
-
-                                    const d =
-                                        dadosPet(
-                                            message.author.id,
-                                            id
-                                        );
-
-                                    return (
-                                        `${p.equipe.includes(id) ? "🔓" : "🔒"} ` +
-                                        `${raridadeEmoji(PETS[id].raridade)} ` +
-                                        `**${PETS[id].nome}** — ` +
-                                        `Nv. ${d.nivel}/${MAX_LEVEL}`
-                                    );
-                                }
-                            )
-                            .join("\n");
-
                     return message.reply({
 
                         embeds: [
 
-                            new EmbedBuilder()
-
-                                .setColor(
-                                    0x8e44ad
-                                )
-
-                                .setTitle(
-                                    "🐾 Suas criaturas"
-                                )
-
-                                .setDescription(
-                                    texto
-                                )
+                            colecaoEmbed(
+                                message.author.id
+                            )
                         ]
                     });
                 }
 
-                // ====================================================
-                // 🐾 PET
-                // ====================================================
+
+                // =================================================
+                // ,PET
+                // =================================================
 
                 if (
-                    comando === "pet" ||
-                    comando === "meupet"
+                    comando === "pet"
                 ) {
 
-                    const id =
-                        comando === "meupet"
+                    if (
+                        !args.length
+                    ) {
 
-                            ? petEquipado(
-                                message.author.id
+                        return message.reply(
+                            "🐾 Use: `,pet nome da criatura`"
+                        );
+                    }
+
+
+                    const busca =
+                        args
+                            .join(" ")
+                            .toLowerCase();
+
+
+                    const id =
+                        Object.keys(
+                            PETS
+                        ).find(
+
+                            k =>
+
+                                k ===
+                                busca.replace(
+                                    /\s+/g,
+                                    "_"
+                                ) ||
+
+                                PETS[k]
+                                    .nome
+                                    .toLowerCase() ===
+                                busca
+                        );
+
+
+                    if (!id) {
+
+                        return message.reply(
+                            "❌ Não encontrei essa criatura."
+                        );
+                    }
+
+
+                    const p =
+                        PETS[id];
+
+
+                    const owned =
+                        !!jogador(
+                            message.author.id
+                        ).criaturas[id];
+
+
+                    const embed =
+                        new EmbedBuilder()
+
+                            .setColor(
+                                p.cor ||
+                                0x8e44ad
                             )
 
-                            : (
-                                nomePorTexto(
-                                    args.join(" ")
-                                ) ||
-                                petEquipado(
-                                    message.author.id
+                            .setTitle(
+                                `${p.emoji} ${p.nome}`
+                            )
+
+                            .setDescription(
+
+                                `🌟 **${p.raridade}**\n` +
+
+                                `❤️ HP base: **${p.hp.toLocaleString()}**\n` +
+
+                                `⚔️ ATK base: **${p.ataque.toLocaleString()}**\n` +
+
+                                `🛡️ DEF base: **${p.defesa.toLocaleString()}**\n` +
+
+                                `💨 VEL base: **${p.velocidade.toLocaleString()}**\n\n` +
+
+                                `✨ **${p.habilidade}**\n` +
+
+                                `O efeito da habilidade é aplicado automaticamente durante a batalha.\n\n` +
+
+                                (
+                                    owned
+
+                                        ? "🔓 Você possui esta criatura."
+
+                                        : "🔒 Você ainda não possui esta criatura."
                                 )
                             );
 
-                    if (
-                        !id ||
-                        !PETS[id]
-                    ) {
 
-                        return message.reply(
-                            "🐾 Pet não encontrado."
+                    return message.reply({
+
+                        embeds: [
+                            embed
+                        ]
+                    });
+                }
+
+
+                // =================================================
+                // ,MAPA
+                // =================================================
+
+                if (
+                    comando === "mapa" ||
+                    comando === "mapas"
+                ) {
+
+                    const nivel =
+                        jogador(
+                            message.author.id
+                        ).nivel;
+
+
+                    const atual =
+                        mapaDoNivel(
+                            nivel
                         );
-                    }
 
-                    const d =
-                        dadosPet(
-                            message.author.id,
-                            id
-                        );
 
-                    const s =
-                        statsPet(
-                            message.author.id,
-                            id
-                        );
+                    const texto =
+                        MAPAS
 
-                    const pet =
-                        PETS[id];
+                            .map(
+
+                                m =>
+
+                                    `${
+                                        nivel >=
+                                        m.nivel
+                                            ? "🔓"
+                                            : "🔒"
+                                    } ${m.nome} — Nv. ${m.nivel}` +
+
+                                    (
+                                        m.id ===
+                                        atual.id
+                                            ? "  ← **ATUAL**"
+                                            : ""
+                                    )
+                            )
+
+                            .join("\n");
+
 
                     return message.reply({
 
@@ -3212,264 +3099,473 @@ module.exports = (client) => {
                             new EmbedBuilder()
 
                                 .setColor(
-                                    pet.cor ||
-                                    0x8e44ad
+                                    0x3498db
                                 )
 
                                 .setTitle(
-                                    `${pet.emoji} ${pet.nome}`
+                                    "🗺️ MAPA DO MUNDO"
                                 )
 
                                 .setDescription(
 
-                                    `${raridadeEmoji(
-                                        pet.raridade
-                                    )} **${pet.raridade}**\n\n` +
+                                    `🌟 Seu nível de treinador: **${nivel}**\n\n` +
 
-                                    `📈 Nível: **${d.nivel}/${MAX_LEVEL}**\n` +
+                                    `${texto}\n\n` +
 
-                                    `✨ XP: ${d.xp}/${xpPet(d.nivel)}\n` +
+                                    `🎯 **Mapa atual:** ${atual.nome}\n` +
 
-                                    `🏋️ Treino: ${d.treino}\n\n` +
-
-                                    `❤️ HP: **${s.hp}**\n` +
-
-                                    `⚔️ Ataque: **${s.ataque}**\n` +
-
-                                    `🛡️ Defesa: **${s.defesa}**\n` +
-
-                                    `💨 Velocidade: **${s.velocidade}**\n\n` +
-
-                                    `✨ **${pet.habilidade}**\n` +
-
-                                    `${pet.habilidadeDescricao}`
-                                )
-
-                                .setImage(
-                                    pet.imagem
+                                    `⚠️ Os Bosses aparecem raramente durante a exploração.`
                                 )
                         ]
                     });
                 }
 
-                // ====================================================
-                // 🐾 EQUIPAR
-                // ====================================================
 
-                if (
-                    comando === "equipar" ||
-                    comando === "equip" ||
-                    comando === "equipapet"
-                ) {
-
-                    const id =
-                        nomePorTexto(
-                            args.join(" ")
-                        );
-
-                    if (
-                        !id ||
-                        !p.criaturas[id]
-                    ) {
-
-                        return message.reply(
-                            "🔒 Você ainda não possui esse pet."
-                        );
-                    }
-
-                    // SOMENTE UM PET ATIVO
-                    p.equipe = [
-                        id
-                    ];
-
-                    salvarBanco();
-
-                    return message.reply(
-                        `🐾 Seu pet ativo agora é **${PETS[id].nome}**.`
-                    );
-                }
-
-                // ====================================================
-                // 🗺️ MAPAS
-                // ====================================================
-
-                if (
-                    comando === "mapas"
-                ) {
-
-                    return message.reply({
-
-                        embeds: [
-                            mapaEmbed(p)
-                        ]
-                    });
-                }
-
-                // ====================================================
-                // 🗺️ MEU MAPA
-                // ====================================================
-
-                if (
-                    comando === "meumapa"
-                ) {
-
-                    const id =
-                        mapaAtualSugerido(p);
-
-                    const m =
-                        MAPAS[id];
-
-                    return message.reply(
-
-                        `🗺️ Seu mapa atual é **${m.emoji} ${m.nome}**.\n` +
-
-                        `🔓 Desbloqueado no nível **${m.nivel}**.\n\n` +
-
-                        `${m.descricao}\n\n` +
-
-                        `Use **,explorar** para procurar uma criatura.`
-                    );
-                }
-
-                // ====================================================
-                // 🌲 EXPLORAR
-                // ====================================================
+                // =================================================
+                // ,EXPLORAR
+                // =================================================
 
                 if (
                     comando === "explorar"
                 ) {
 
-                    return iniciarExploracao(
-                        message
-                    );
-                }
+                    const id =
+                        message.author.id;
 
-                // ====================================================
-                // 🏋️ TREINAR
-                // ====================================================
 
-                if (
-                    comando === "treinar"
-                ) {
-
-                    const r =
-                        treinamento(
-                            message.author.id,
-                            Number(
-                                args[0]
-                            )
-                        );
-
-                    if (
-                        r.erro
-                    ) {
-
-                        return message.reply(
-                            `❌ ${r.erro}`
-                        );
-                    }
-
-                    return message.reply(
-
-                        `🏋️ **Treinamento concluído!**\n\n` +
-
-                        `🐾 ${PETS[r.petId].nome}\n` +
-
-                        `📈 Treino total: **${r.treino}**\n` +
-
-                        `💰 Custo: **${r.custo} moedas**` +
-
-                        (
-                            r.subiu
-                                ? `\n🎉 Seu pet subiu **${r.subiu} nível(is)!**`
-                                : ""
-                        )
-                    );
-                }
-
-                // ====================================================
-                // 💰 MOEDAS
-                // ====================================================
-
-                if (
-                    comando === "moedas"
-                ) {
-
-                    return message.reply(
-                        `💰 Você possui **${p.moedas} moedas**.`
-                    );
-                }
-
-                // ====================================================
-                // 🎁 DAILY
-                // ====================================================
-
-                if (
-                    comando === "daily"
-                ) {
-
-                    if (
-                        Date.now() -
-                        p.ultimaDaily <
-                        86400000
-                    ) {
-
-                        return message.reply(
-                            "⏳ Você já pegou sua recompensa diária. Volte depois de 24 horas."
-                        );
-                    }
-
-                    p.ultimaDaily =
+                    const agora =
                         Date.now();
 
-                    p.moedas +=
-                        20;
+
+                    const ultimo =
+                        cooldownExplorar.get(
+                            id
+                        ) || 0;
+
+
+                    if (
+                        agora -
+                        ultimo <
+                        7000
+                    ) {
+
+                        return message.reply(
+
+                            `⏳ Espere **${
+                                Math.ceil(
+                                    (
+                                        7000 -
+                                        (
+                                            agora -
+                                            ultimo
+                                        )
+                                    ) / 1000
+                                )
+                            }s** antes de explorar novamente.`
+                        );
+                    }
+
+
+                    cooldownExplorar.set(
+                        id,
+                        agora
+                    );
+
+
+                    const u =
+                        jogador(id);
+
+
+                    const mapa =
+                        mapaDoNivel(
+                            u.nivel
+                        );
+
+
+                    u.exploracoes++;
+
 
                     salvarBanco();
 
+
+                    const ehBoss =
+                        raro();
+
+
+                    const inimigo =
+                        ehBoss
+
+                            ? {
+                                ...mapa.boss
+                            }
+
+                            : {
+                                ...escolherMonstro(
+                                    mapa
+                                )
+                            };
+
+
+                    const batalhaId =
+                        criarBatalhaMapa(
+                            id,
+                            mapa,
+                            inimigo,
+                            ehBoss
+                        );
+
+
+                    const batalha =
+                        MAPA_BATALHAS.get(
+                            batalhaId
+                        );
+
+
+                    batalha.canalId =
+                        message.channel.id;
+
+
+                    const embed =
+                        new EmbedBuilder()
+
+                            .setColor(
+                                ehBoss
+                                    ? 0x8e44ad
+                                    : 0x2ecc71
+                            )
+
+                            .setTitle(
+                                `🗺️ ${mapa.nome}`
+                            )
+
+                            .setDescription(
+
+                                `╭─────────────── ✦ ───────────────╮\n` +
+
+                                `A exploração continua...\n` +
+
+                                `╰─────────────────────────────────╯\n\n` +
+
+                                (
+
+                                    ehBoss
+
+                                        ? `🌑 **UM ENCONTRO LENDÁRIO!**\n\n${inimigo.emoji} **${inimigo.nome}** surgiu diante de você!\n\n`
+
+                                        : `🌲 As sombras se movimentam...\n\n${inimigo.emoji} **${inimigo.nome} APARECEU!**\n\n`
+                                ) +
+
+                                `❤️ ${inimigo.hp.toLocaleString()} HP\n` +
+
+                                `⚔️ ${inimigo.ataque.toLocaleString()} ATK\n` +
+
+                                `🛡️ ${inimigo.defesa.toLocaleString()} DEF\n\n` +
+
+                                `⚠️ **O que você encontrou não é um Pet.**\n` +
+
+                                `🐾 Seu Pet será o único Pet usado por você nesta batalha.`
+                            );
+
+
+                    const sent =
+                        await message.reply({
+
+                            embeds: [
+
+                                embed,
+
+                                conviteEmbed(
+                                    batalha
+                                )
+                            ],
+
+                            components: [
+
+                                botoesInicio(
+                                    batalhaId
+                                )
+                            ]
+                        });
+
+
+                    batalha.mensagemId =
+                        sent.id;
+
+
+                    return;
+                }
+
+
+                // =================================================
+                // ,JUNTAR
+                // =================================================
+
+                if (
+                    comando === "juntar"
+                ) {
+
+                    const abertas =
+                        [
+                            ...MAPA_BATALHAS.values()
+                        ]
+
+                            .filter(
+
+                                b =>
+
+                                    !b.iniciado &&
+
+                                    b.participantes
+                                        .length < 5 &&
+
+                                    b.criadorId !==
+                                    message.author.id
+                            );
+
+
+                    const batalha =
+                        abertas.sort(
+                            (a, b) =>
+                                b.id.localeCompare(
+                                    a.id
+                                )
+                        )[0];
+
+
+                    if (!batalha) {
+
+                        return message.reply(
+                            "🤝 Não encontrei nenhuma batalha aberta aceitando aliados."
+                        );
+                    }
+
+
+                    if (
+                        batalha.participantes
+                            .includes(
+                                message.author.id
+                            )
+                    ) {
+
+                        return message.reply(
+                            "✅ Você já está nessa batalha."
+                        );
+                    }
+
+
+                    const nivel =
+                        jogador(
+                            message.author.id
+                        ).nivel;
+
+
+                    const mapa =
+                        MAPAS.find(
+                            m =>
+                                m.id ===
+                                batalha.mapaId
+                        );
+
+
+                    if (
+                        nivel <
+                        mapa.nivel
+                    ) {
+
+                        return message.reply(
+
+                            `🔒 Seu treinador precisa estar no **Nv. ${mapa.nivel}** para ajudar nessa área.`
+                        );
+                    }
+
+
+                    batalha.participantes.push(
+                        message.author.id
+                    );
+
+
                     return message.reply(
-                        "🎁 **Recompensa diária!**\n\n" +
-                        "💰 Você recebeu **20 moedas**."
+
+                        `🤝 Você entrou na batalha de <@${batalha.criadorId}> com **${PETS[petDoJogador(message.author.id)].nome}**!`
                     );
                 }
 
-                // ====================================================
-                // 📜 PERFIL
-                // ====================================================
+
+                // =================================================
+                // ,DUELO
+                // =================================================
 
                 if (
-                    comando === "perfilrpg"
+                    comando === "duelo"
                 ) {
+
+                    const alvo =
+                        message.mentions.users.first();
+
+
+                    if (
+                        !alvo ||
+                        alvo.bot ||
+                        alvo.id ===
+                        message.author.id
+                    ) {
+
+                        return message.reply(
+                            "⚔️ Use: `,duelo @membro`"
+                        );
+                    }
+
+
+                    jogador(
+                        message.author.id
+                    );
+
+                    jogador(
+                        alvo.id
+                    );
+
+
+                    const pid =
+                        petDoJogador(
+                            message.author.id
+                        );
+
+
+                    const aid =
+                        petDoJogador(
+                            alvo.id
+                        );
+
+
+                    const id =
+                        `duelo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+
+                    DUELOS.set(
+                        id,
+                        {
+
+                            id,
+
+                            a:
+                                message.author.id,
+
+                            b:
+                                alvo.id,
+
+                            iniciado:
+                                false,
+
+                            turno:
+                                0,
+
+                            hpA:
+                                0,
+
+                            hpB:
+                                0
+                        }
+                    );
+
+
+                    const pa =
+                        PETS[pid];
+
+                    const pb =
+                        PETS[aid];
+
+
+                    const row =
+                        new ActionRowBuilder()
+
+                            .addComponents(
+
+                                new ButtonBuilder()
+
+                                    .setCustomId(
+                                        `rpg_duelo_aceitar_${id}`
+                                    )
+
+                                    .setLabel(
+                                        "⚔️ Aceitar duelo"
+                                    )
+
+                                    .setStyle(
+                                        ButtonStyle.Success
+                                    ),
+
+                                new ButtonBuilder()
+
+                                    .setCustomId(
+                                        `rpg_duelo_recusar_${id}`
+                                    )
+
+                                    .setLabel(
+                                        "❌ Recusar"
+                                    )
+
+                                    .setStyle(
+                                        ButtonStyle.Danger
+                                    )
+                            );
+
 
                     return message.reply({
 
+                        content:
+                            `<@${alvo.id}>`,
+
                         embeds: [
-                            perfilEmbed(
-                                message.author.id,
-                                message.author
-                            )
+
+                            new EmbedBuilder()
+
+                                .setColor(
+                                    0xe74c3c
+                                )
+
+                                .setTitle(
+                                    "⚔️ DESAFIO DE PETS"
+                                )
+
+                                .setDescription(
+
+                                    `**${message.author.username}** desafiou **${alvo.username}**!\n\n` +
+
+                                    `🐾 ${pa.emoji} **${pa.nome}** vs ${pb.emoji} **${pb.nome}**\n\n` +
+
+                                    `👤 Os treinadores não lutam. Os Pets lutam automaticamente.`
+                                )
+                        ],
+
+                        components: [
+                            row
                         ]
                     });
                 }
 
-                // ====================================================
-                // 🏆 RANKING
-                // ====================================================
+
+                // =================================================
+                // ,RANKING
+                // =================================================
 
                 if (
                     comando === "ranking"
                 ) {
 
                     const ranking =
-                        Object.entries(db)
+                        Object.entries(
+                            db
+                        )
 
                             .sort(
+
                                 (a, b) =>
 
                                     (
                                         b[1].nivel ||
                                         1
                                     ) -
+
                                     (
                                         a[1].nivel ||
                                         1
@@ -3481,6 +3577,7 @@ module.exports = (client) => {
                                         b[1].vitorias ||
                                         0
                                     ) -
+
                                     (
                                         a[1].vitorias ||
                                         0
@@ -3492,19 +3589,25 @@ module.exports = (client) => {
                                 10
                             );
 
-                    const linhas =
-                        ranking
 
-                            .map(
-                                (
-                                    [id, x],
-                                    i
-                                ) =>
+                    const texto =
+                        ranking.length
 
-                                    `${i + 1}. <@${id}> — ` +
-                                    `Nv. **${x.nivel || 1}** • ` +
-                                    `🏆 ${x.vitorias || 0}`
-                            );
+                            ? ranking
+
+                                .map(
+
+                                    (x, i) =>
+
+                                        `${i + 1}. <@${x[0]}> — 🌟 Nv. ${x[1].nivel || 1} — 🏆 ${x[1].vitorias || 0} vitórias`
+                                )
+
+                                .join(
+                                    "\n"
+                                )
+
+                            : "Nenhum treinador registrado.";
+
 
                     return message.reply({
 
@@ -3513,324 +3616,35 @@ module.exports = (client) => {
                             new EmbedBuilder()
 
                                 .setColor(
-                                    0xe67e22
+                                    0xf1c40f
                                 )
 
                                 .setTitle(
-                                    "🏆 Ranking dos Treinadores"
+                                    "🏆 RANKING DOS TREINADORES"
                                 )
 
                                 .setDescription(
-                                    linhas.join("\n") ||
-                                    "Nenhum treinador ainda."
+                                    texto
                                 )
                         ]
                     });
                 }
 
-                // ====================================================
-                // ⚔️ DUELO
-                // ====================================================
-
-                if (
-                    comando === "duelo"
-                ) {
-
-                    const alvo =
-                        message.mentions.users.first();
-
-                    return iniciarDuelo(
-                        message,
-                        alvo
-                    );
-                }
-
-                // ====================================================
-                // 🛠️ COMANDOS ADMIN
-                // ====================================================
-
-                if (
-                    [
-                        "admpets",
-                        "addmoedas",
-                        "remmoedas",
-                        "setmoedas",
-                        "darpet",
-                        "removerpet",
-                        "setlevelpet",
-                        "addxp",
-                        "settreino"
-                    ].includes(
-                        comando
-                    )
-                ) {
-
-                    if (
-                        message.author.id !==
-                        ADM_ID
-                    ) {
-
-                        return message.reply(
-                            "🔒 Você não possui permissão para usar esse comando."
-                        );
-                    }
-
-                    if (
-                        comando ===
-                        "admpets"
-                    ) {
-
-                        return message.reply(
-
-                            "🛠️ **Admin RPG**\n" +
-
-                            "`,addmoedas @membro 100`\n" +
-
-                            "`,remmoedas @membro 50`\n" +
-
-                            "`,setmoedas @membro 500`\n" +
-
-                            "`,darpet @membro Fenrir`\n" +
-
-                            "`,removerpet @membro Fenrir`\n" +
-
-                            "`,setlevelpet @membro Fenrir 20`\n" +
-
-                            "`,addxp @membro Fenrir 500`\n" +
-
-                            "`,settreino @membro Fenrir 100`"
-                        );
-                    }
-
-                    const alvo =
-                        message.mentions.users.first();
-
-                    if (!alvo) {
-
-                        return message.reply(
-                            "❌ Mencione o membro."
-                        );
-                    }
-
-                    const valor =
-                        Number(
-                            args[
-                                args.length - 1
-                            ]
-                        );
-
-                    // ------------------------------------------------
-                    // 💰 ADMIN MOEDAS
-                    // ------------------------------------------------
-
-                    if (
-                        [
-                            "addmoedas",
-                            "remmoedas",
-                            "setmoedas"
-                        ].includes(
-                            comando
-                        )
-                    ) {
-
-                        if (
-                            !Number.isFinite(
-                                valor
-                            )
-                        ) {
-
-                            return message.reply(
-                                "❌ Informe um valor válido."
-                            );
-                        }
-
-                        const alvoP =
-                            jogador(
-                                alvo.id
-                            );
-
-                        if (
-                            comando ===
-                            "addmoedas"
-                        ) {
-
-                            alvoP.moedas +=
-                                valor;
-                        }
-
-                        if (
-                            comando ===
-                            "remmoedas"
-                        ) {
-
-                            alvoP.moedas =
-                                Math.max(
-                                    0,
-                                    alvoP.moedas -
-                                    valor
-                                );
-                        }
-
-                        if (
-                            comando ===
-                            "setmoedas"
-                        ) {
-
-                            alvoP.moedas =
-                                Math.max(
-                                    0,
-                                    valor
-                                );
-                        }
-
-                        salvarBanco();
-
-                        return message.reply(
-                            `💰 Saldo de <@${alvo.id}>: **${alvoP.moedas} moedas**.`
-                        );
-                    }
-
-                    // ------------------------------------------------
-                    // 🐾 ADMIN PET
-                    // ------------------------------------------------
-
-                    const petNome =
-                        args
-                            .slice(
-                                1,
-                                -1
-                            )
-                            .join(" ");
-
-                    const petId =
-                        nomePorTexto(
-                            petNome
-                        );
-
-                    if (!petId) {
-
-                        return message.reply(
-                            "❌ Pet não encontrado."
-                        );
-                    }
-
-                    if (
-                        comando ===
-                        "darpet"
-                    ) {
-
-                        adicionarPet(
-                            alvo.id,
-                            petId
-                        );
-
-                        return message.reply(
-                            `🐾 **${PETS[petId].nome}** entregue a <@${alvo.id}>.`
-                        );
-                    }
-
-                    if (
-                        comando ===
-                        "removerpet"
-                    ) {
-
-                        delete jogador(
-                            alvo.id
-                        ).criaturas[
-                            petId
-                        ];
-
-                        jogador(
-                            alvo.id
-                        ).equipe =
-                            jogador(
-                                alvo.id
-                            ).equipe.filter(
-                                x =>
-                                    x !==
-                                    petId
-                            );
-
-                        salvarBanco();
-
-                        return message.reply(
-                            `🗑️ **${PETS[petId].nome}** removido de <@${alvo.id}>.`
-                        );
-                    }
-
-                    const d =
-                        dadosPet(
-                            alvo.id,
-                            petId
-                        );
-
-                    if (
-                        comando ===
-                        "setlevelpet"
-                    ) {
-
-                        d.nivel =
-                            Math.max(
-                                1,
-                                Math.min(
-                                    MAX_LEVEL,
-                                    valor
-                                )
-                            );
-
-                        d.xp = 0;
-                    }
-
-                    if (
-                        comando ===
-                        "addxp"
-                    ) {
-
-                        ganharXpPet(
-                            alvo.id,
-                            petId,
-                            Math.max(
-                                0,
-                                valor
-                            )
-                        );
-                    }
-
-                    if (
-                        comando ===
-                        "settreino"
-                    ) {
-
-                        d.treino =
-                            Math.max(
-                                0,
-                                valor
-                            );
-                    }
-
-                    salvarBanco();
-
-                    return message.reply(
-                        `✅ Pet **${PETS[petId].nome}** atualizado para <@${alvo.id}>.`
-                    );
-                }
-
-            } catch (erro) {
+            } catch (e) {
 
                 console.error(
-                    "❌ Erro no RPG:",
-                    erro
+                    "Erro no RPG messageCreate:",
+                    e
                 );
 
+
                 if (
-                    !message.replied &&
-                    !message.deferred
+                    !message.replied
                 ) {
 
                     message.reply(
                         "❌ Ocorreu um erro no sistema RPG."
-                    )
-                    .catch(
+                    ).catch(
                         () => {}
                     );
                 }
@@ -3838,9 +3652,10 @@ module.exports = (client) => {
         }
     );
 
-    // ========================================================
-    // 🔘 BOTÕES
-    // ========================================================
+
+    // ============================================================
+    // 🔘 INTERAÇÕES DOS BOTÕES
+    // ============================================================
 
     client.on(
         "interactionCreate",
@@ -3850,194 +3665,367 @@ module.exports = (client) => {
 
                 if (
                     !interaction.isButton()
-                )
+                ) {
                     return;
+                }
+
 
                 const id =
                     interaction.customId;
 
-                // ====================================================
-                // ⚔️ BATALHA DE EXPLORAÇÃO
-                // ====================================================
+
+                // =================================================
+                // ⚔️ INICIAR BATALHA
+                // =================================================
 
                 if (
                     id.startsWith(
-                        "rpg_batalha_"
+                        "rpg_iniciar_"
                     )
                 ) {
 
-                    const partes =
-                        id.split("_");
-
-                    const acao =
-                        partes[2];
-
                     const batalhaId =
-                        partes
-                            .slice(3)
-                            .join("_");
+                        id.replace(
+                            "rpg_iniciar_",
+                            ""
+                        );
 
-                    const b =
-                        batalhas.get(
+
+                    const batalha =
+                        MAPA_BATALHAS.get(
                             batalhaId
                         );
 
-                    if (
-                        !b ||
-                        b.tipo ===
-                        "duelo"
-                    ) {
+
+                    if (!batalha) {
 
                         return interaction.reply({
 
                             content:
-                                "⚔️ Essa batalha já terminou.",
+                                "❌ Essa batalha não existe mais.",
 
                             ephemeral:
                                 true
                         });
                     }
 
+
                     if (
-                        b.userId !==
-                        interaction.user.id
+                        batalha.iniciado
                     ) {
 
                         return interaction.reply({
 
                             content:
-                                "🔒 Essa batalha pertence a outro treinador.",
+                                "⚔️ A batalha já começou.",
 
                             ephemeral:
                                 true
                         });
                     }
+
+
+                    if (
+                        interaction.user.id !==
+                        batalha.criadorId
+                    ) {
+
+                        return interaction.reply({
+
+                            content:
+                                "❌ Somente quem encontrou o inimigo pode iniciar a batalha.",
+
+                            ephemeral:
+                                true
+                        });
+                    }
+
 
                     await interaction.deferUpdate();
 
-                    return executarTurno(
 
-                        {
-                            update:
-                                async data =>
-                                    interaction.editReply(
-                                        data
-                                    )
-                        },
-
-                        b,
-
-                        acao
+                    return executarBatalhaMapa(
+                        interaction.message,
+                        batalha
                     );
                 }
 
-                // ====================================================
-                // ⚔️ DUELO
-                // ====================================================
+
+                // =================================================
+                // 👥 CHAMAR ALIADOS
+                // =================================================
 
                 if (
                     id.startsWith(
-                        "rpg_duelo_"
+                        "rpg_chamar_"
                     )
                 ) {
 
-                    const partes =
-                        id.split("_");
+                    const batalhaId =
+                        id.replace(
+                            "rpg_chamar_",
+                            ""
+                        );
 
-                    const acao =
-                        partes[2];
+
+                    const batalha =
+                        MAPA_BATALHAS.get(
+                            batalhaId
+                        );
+
+
+                    if (!batalha) {
+
+                        return interaction.reply({
+
+                            content:
+                                "❌ Essa batalha não existe mais.",
+
+                            ephemeral:
+                                true
+                        });
+                    }
+
+
+                    if (
+                        batalha.iniciado
+                    ) {
+
+                        return interaction.reply({
+
+                            content:
+                                "⚔️ A batalha já começou.",
+
+                            ephemeral:
+                                true
+                        });
+                    }
+
+
+                    CONVITES.set(
+                        interaction.channel.id,
+                        batalhaId
+                    );
+
+
+                    return interaction.reply({
+
+                        content:
+
+                            `🚨 **PEDIDO DE AJUDA!**\n\n` +
+
+                            `<@${batalha.criadorId}> encontrou **${batalha.inimigo.nome}**!\n\n` +
+
+                            `👥 Quem quiser ajudar pode usar **,juntar**.\n` +
+
+                            `🐾 Cada aliado entra com apenas 1 Pet.`
+                    });
+                }
+
+
+                // =================================================
+                // ⚔️ ACEITAR DUELO
+                // =================================================
+
+                if (
+                    id.startsWith(
+                        "rpg_duelo_aceitar_"
+                    )
+                ) {
 
                     const dueloId =
-                        partes
-                            .slice(3)
-                            .join("_");
+                        id.replace(
+                            "rpg_duelo_aceitar_",
+                            ""
+                        );
 
-                    const d =
-                        batalhas.get(
+
+                    const duelo =
+                        DUELOS.get(
                             dueloId
                         );
 
-                    if (
-                        !d ||
-                        d.tipo !==
-                        "duelo"
-                    ) {
+
+                    if (!duelo) {
 
                         return interaction.reply({
 
                             content:
-                                "⚔️ Esse duelo já terminou.",
+                                "❌ Esse desafio expirou.",
 
                             ephemeral:
                                 true
                         });
                     }
 
+
                     if (
-                        d.turno !==
-                        interaction.user.id
+                        interaction.user.id !==
+                        duelo.b
                     ) {
 
                         return interaction.reply({
 
                             content:
-                                "⏳ Ainda não é seu turno.",
+                                "❌ Esse desafio não é seu.",
 
                             ephemeral:
                                 true
                         });
                     }
 
-                    await interaction.deferUpdate();
 
-                    return turnoDuelo(
+                    if (
+                        duelo.iniciado
+                    ) {
 
-                        {
-                            update:
-                                async data =>
-                                    interaction.editReply(
-                                        data
-                                    ),
+                        return interaction.reply({
 
-                            client:
-                                interaction.client
-                        },
+                            content:
+                                "⚔️ O duelo já começou.",
 
-                        d,
+                            ephemeral:
+                                true
+                        });
+                    }
 
-                        acao
+
+                    duelo.iniciado =
+                        true;
+
+
+                    await interaction.update({
+
+                        embeds: [
+
+                            dueloEmbedAuto(
+
+                                duelo,
+
+                                "⚔️ Desafio aceito! Os Pets estão entrando na arena..."
+                            )
+                        ],
+
+                        components: []
+                    });
+
+
+                    return executarDuelo(
+                        interaction.message,
+                        duelo
                     );
                 }
 
-            } catch (erro) {
 
-                console.error(
-                    "❌ Erro no botão RPG:",
-                    erro
-                );
+                // =================================================
+                // ❌ RECUSAR DUELO
+                // =================================================
 
                 if (
-                    !interaction.replied &&
-                    !interaction.deferred
+                    id.startsWith(
+                        "rpg_duelo_recusar_"
+                    )
                 ) {
 
-                    interaction.reply({
+                    const dueloId =
+                        id.replace(
+                            "rpg_duelo_recusar_",
+                            ""
+                        );
 
-                        content:
-                            "❌ Erro ao processar a batalha.",
 
-                        ephemeral:
-                            true
-                    })
-                    .catch(
-                        () => {}
+                    const duelo =
+                        DUELOS.get(
+                            dueloId
+                        );
+
+
+                    if (!duelo) {
+
+                        return interaction.reply({
+
+                            content:
+                                "❌ Esse desafio expirou.",
+
+                            ephemeral:
+                                true
+                        });
+                    }
+
+
+                    if (
+                        interaction.user.id !==
+                        duelo.b
+                    ) {
+
+                        return interaction.reply({
+
+                            content:
+                                "❌ Esse desafio não é seu.",
+
+                            ephemeral:
+                                true
+                        });
+                    }
+
+
+                    DUELOS.delete(
+                        dueloId
                     );
+
+
+                    return interaction.update({
+
+                        embeds: [
+
+                            new EmbedBuilder()
+
+                                .setColor(
+                                    0x95a5a6
+                                )
+
+                                .setTitle(
+                                    "❌ DUELO RECUSADO"
+                                )
+
+                                .setDescription(
+
+                                    `**${interaction.user.username}** recusou o desafio.`
+                                )
+                        ],
+
+                        components: []
+                    });
                 }
+
+            } catch (e) {
+
+                console.error(
+                    "Erro no RPG interactionCreate:",
+                    e
+                );
+
+
+                if (
+                    interaction.deferred ||
+                    interaction.replied
+                ) {
+                    return;
+                }
+
+
+                interaction.reply({
+
+                    content:
+                        "❌ Erro ao processar essa ação.",
+
+                    ephemeral:
+                        true
+
+                }).catch(
+                    () => {}
+                );
             }
         }
-    );
-
-    console.log(
-        "🐉 ZUNO RPG carregado: mapas, exploração e batalhas por turnos."
     );
 };
