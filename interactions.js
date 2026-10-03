@@ -1,1908 +1,4255 @@
 const { Events } = require("discord.js");
 
+/*
+===========================================================
+                    ZUNO - INTERACTIONS
+===========================================================
+
+Sistema de interação natural para o Zuno.
+
+INSTALAÇÃO NO INDEX.JS:
+
+    require("./interactions")(client);
+
+IMPORTANTE:
+- Não precisa registrar slash command.
+- Não precisa criar banco de dados.
+- Não precisa mexer no sistema de tickets.
+- Não precisa mexer nos outros sistemas.
+- O sistema funciona sozinho.
+- O canal principal do Zuno é definido abaixo.
+
+===========================================================
+*/
+
 module.exports = (client) => {
 
-    // =========================================================
-    // ZUNO - SISTEMA DE INTERAÇÕES
-    // =========================================================
-
-    const cooldowns = new Map();
-    const relationships = new Map();
-    const duels = new Map();
-    const games = new Map();
-    const channelCooldowns = new Map();
-
-    // =========================================================
-    // CONFIGURAÇÕES
-    // =========================================================
+    /*
+    =======================================================
+                         CONFIGURAÇÃO
+    =======================================================
+    */
 
     const CONFIG = {
-        respostaCooldown: 3500,
-        espontaneoCooldown: 8 * 60 * 1000,
-        dueloTempo: 60 * 1000,
-        jogoTempo: 60 * 1000
+
+        // Canal onde o Zuno pode aparecer espontaneamente
+        mainChannelId: "1545947041216077955",
+
+        // Chances de mensagens espontâneas
+        spontaneousChance: 0.018,
+
+        // Intervalo mínimo entre mensagens espontâneas
+        spontaneousCooldown: 1000 * 60 * 8,
+
+        // Intervalo mínimo para reação automática
+        reactionCooldown: 1000 * 60 * 3,
+
+        // Tempo que um contexto de conversa permanece ativo
+        conversationTimeout: 1000 * 60 * 8,
+
+        // Tempo entre respostas do mesmo usuário
+        userCooldown: 2500,
+
+        // Quantidade de respostas recentes guardadas
+        recentLimit: 25,
+
+        // Tempo máximo de um duelo
+        duelTimeout: 1000 * 60 * 5,
+
+        // Chance de reagir com emoji
+        reactionChance: 0.025
     };
 
-    // =========================================================
-    // HUMORES DO ZUNO
-    // =========================================================
 
-    const moods = [
-        "normal",
-        "zoeiro",
-        "caotico",
-        "misterioso",
-        "fofo",
-        "dramatico",
-        "provocador"
-    ];
+    /*
+    =======================================================
+                         MEMÓRIA
+    =======================================================
+    */
 
-    let currentMood = "normal";
-    let moodUntil = 0;
+    const users = new Map();
 
-    function getMood() {
+    const conversations = new Map();
 
-        if (Date.now() < moodUntil) {
-            return currentMood;
-        }
+    const cooldowns = new Map();
 
-        currentMood = moods[Math.floor(Math.random() * moods.length)];
+    const channelCooldowns = new Map();
 
-        moodUntil = Date.now() + (5 * 60 * 1000);
+    const recentResponses = new Map();
 
-        return currentMood;
-    }
+    const recentWelcome = [];
 
-    // =========================================================
-    // FUNÇÕES AUXILIARES
-    // =========================================================
+    const duels = new Map();
+
+    const games = new Map();
+
+    const reactions = new Map();
+
+    const activeTopics = new Map();
+
+
+    /*
+    =======================================================
+                         UTILIDADES
+    =======================================================
+    */
 
     function pick(array) {
+
+        if (!Array.isArray(array) || array.length === 0) {
+            return "";
+        }
+
         return array[Math.floor(Math.random() * array.length)];
     }
 
-    function chance(number) {
-        return Math.random() < number;
+
+    function chance(value) {
+
+        return Math.random() < value;
     }
 
+
+    function random(min, max) {
+
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+
     function normalize(text) {
-        return text
+
+        return String(text || "")
             .toLowerCase()
             .normalize("NFD")
             .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^\p{L}\p{N}\s!?.,'"-]/gu, " ")
+            .replace(/\s+/g, " ")
             .trim();
     }
 
-    function contains(text, words) {
-        return words.some(word => text.includes(word));
+
+    function words(text) {
+
+        return normalize(text)
+            .split(/\s+/)
+            .filter(Boolean);
     }
 
-    function exactWord(text, words) {
-        return words.some(word => {
-            const regex = new RegExp(`\\b${word}\\b`, "i");
-            return regex.test(text);
+
+    function escapeRegex(text) {
+
+        return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
+
+    function hasWord(text, word) {
+
+        const normalized = normalize(text);
+        const target = normalize(word);
+
+        if (!target) {
+            return false;
+        }
+
+        const regex = new RegExp(
+            `(^|\\s)${escapeRegex(target)}(?=\\s|$|[!?.,])`,
+            "i"
+        );
+
+        return regex.test(normalized);
+    }
+
+
+    function hasPhrase(text, phrase) {
+
+        const normalized = normalize(text);
+        const target = normalize(phrase);
+
+        if (!target) {
+            return false;
+        }
+
+        return normalized.includes(target);
+    }
+
+
+    function hasAnyWord(text, list) {
+
+        return list.some(word => hasWord(text, word));
+    }
+
+
+    function hasAnyPhrase(text, list) {
+
+        return list.some(phrase => hasPhrase(text, phrase));
+    }
+
+
+    function isQuestion(text) {
+
+        const normalized = normalize(text);
+
+        return (
+            normalized.includes("?") ||
+            /^(quem|qual|como|onde|quando|porque|por que|pq|sera|será|voce|vc|zuno)/i.test(normalized)
+        );
+    }
+
+
+    function shortMessage(text) {
+
+        return words(text).length <= 8;
+    }
+
+
+    function getMemberName(message) {
+
+        return (
+            message.member?.displayName ||
+            message.author?.globalName ||
+            message.author?.username ||
+            "humano"
+        );
+    }
+
+
+    function getKey(message) {
+
+        return `${message.guild?.id || "dm"}:${message.author.id}`;
+    }
+
+
+    function getUser(message) {
+
+        const id = message.author.id;
+
+        if (!users.has(id)) {
+
+            users.set(id, {
+
+                messages: 0,
+
+                interactions: 0,
+
+                greetings: 0,
+
+                compliments: 0,
+
+                provocations: 0,
+
+                laughs: 0,
+
+                affection: 0,
+
+                duels: 0,
+
+                wins: 0,
+
+                losses: 0,
+
+                mood: "normal",
+
+                lastMessage: 0,
+
+                lastName: getMemberName(message),
+
+                friendship: 0
+
+            });
+        }
+
+        const user = users.get(id);
+
+        user.lastName = getMemberName(message);
+
+        return user;
+    }
+
+
+    function increaseFriendship(message, amount = 1) {
+
+        const user = getUser(message);
+
+        user.friendship += amount;
+
+        if (user.friendship > 100) {
+            user.friendship = 100;
+        }
+
+        if (user.friendship < -50) {
+            user.friendship = -50;
+        }
+    }
+
+
+    function getMood(message) {
+
+        const user = getUser(message);
+
+        const hour = new Date().getHours();
+
+        if (hour >= 0 && hour < 5) {
+            return "madrugada";
+        }
+
+        if (user.friendship >= 50) {
+            return "amigo";
+        }
+
+        if (user.friendship <= -10) {
+            return "provocador";
+        }
+
+        if (user.messages > 50 && chance(0.35)) {
+            return "caotico";
+        }
+
+        return pick([
+            "normal",
+            "zoeiro",
+            "misterioso",
+            "fofo",
+            "sarcastico"
+        ]);
+    }
+
+
+    /*
+    =======================================================
+                      CONTEXTO DE CONVERSA
+    =======================================================
+    */
+
+    function conversationKey(message) {
+
+        return `${message.guild?.id || "dm"}:${message.channel.id}:${message.author.id}`;
+    }
+
+
+    function setConversation(message, topic, data = {}) {
+
+        conversations.set(conversationKey(message), {
+
+            topic,
+
+            data,
+
+            expires: Date.now() + CONFIG.conversationTimeout
+
         });
     }
 
-    function getUserName(message) {
-        return (
-            message.member?.displayName ||
-            message.author.globalName ||
-            message.author.username
-        );
-    }
 
-    function setCooldown(userId, type, time) {
+    function getConversation(message) {
 
-        const key = `${userId}:${type}`;
+        const key = conversationKey(message);
 
-        cooldowns.set(key, Date.now() + time);
-    }
+        const conversation = conversations.get(key);
 
-    function hasCooldown(userId, type) {
-
-        const key = `${userId}:${type}`;
-
-        const expires = cooldowns.get(key);
-
-        if (!expires) return false;
-
-        if (Date.now() >= expires) {
-            cooldowns.delete(key);
-            return false;
+        if (!conversation) {
+            return null;
         }
 
-        return true;
+        if (conversation.expires < Date.now()) {
+
+            conversations.delete(key);
+
+            return null;
+        }
+
+        return conversation;
     }
+
+
+    function clearConversation(message) {
+
+        conversations.delete(conversationKey(message));
+    }
+
+
+    /*
+    =======================================================
+                    CONTROLE DE REPETIÇÃO
+    =======================================================
+    */
+
+    function freshPick(array, userId, fallback = null) {
+
+        if (!array.length) {
+            return fallback;
+        }
+
+        if (!recentResponses.has(userId)) {
+            recentResponses.set(userId, []);
+        }
+
+        const recent = recentResponses.get(userId);
+
+        const available = array.filter(item => !recent.includes(item));
+
+        const chosen = pick(
+            available.length ? available : array
+        );
+
+        recent.push(chosen);
+
+        while (recent.length > CONFIG.recentLimit) {
+            recent.shift();
+        }
+
+        return chosen;
+    }
+
+
+    function welcomePick(array) {
+
+        const available = array.filter(item => !recentWelcome.includes(item));
+
+        const chosen = pick(
+            available.length ? available : array
+        );
+
+        recentWelcome.push(chosen);
+
+        while (recentWelcome.length > 10) {
+            recentWelcome.shift();
+        }
+
+        return chosen;
+    }
+
+
+    /*
+    =======================================================
+                         COOLDOWNS
+    =======================================================
+    */
+
+    function userOnCooldown(message) {
+
+        const last = cooldowns.get(message.author.id) || 0;
+
+        return Date.now() - last < CONFIG.userCooldown;
+    }
+
+
+    function setUserCooldown(message) {
+
+        cooldowns.set(message.author.id, Date.now());
+    }
+
 
     function channelOnCooldown(channelId) {
 
-        const expires = channelCooldowns.get(channelId);
+        const last = channelCooldowns.get(channelId) || 0;
 
-        if (!expires) return false;
+        return Date.now() - last < CONFIG.spontaneousCooldown;
+    }
 
-        if (Date.now() >= expires) {
-            channelCooldowns.delete(channelId);
-            return false;
+
+    function setChannelCooldown(channelId) {
+
+        channelCooldowns.set(channelId, Date.now());
+    }
+
+
+    /*
+    =======================================================
+                      ENVIO SEGURO
+    =======================================================
+    */
+
+    async function reply(message, content, options = {}) {
+
+        if (!content) {
+            return null;
         }
-
-        return true;
-    }
-
-    function setChannelCooldown(channelId, time) {
-
-        channelCooldowns.set(
-            channelId,
-            Date.now() + time
-        );
-    }
-
-    // =========================================================
-    // RELACIONAMENTO DO ZUNO COM CADA MEMBRO
-    // =========================================================
-
-    function getRelationship(userId) {
-
-        if (!relationships.has(userId)) {
-
-            relationships.set(userId, {
-                points: 0,
-                messages: 0,
-                insults: 0,
-                compliments: 0,
-                fights: 0
-            });
-        }
-
-        return relationships.get(userId);
-    }
-
-    function addRelationship(userId, amount) {
-
-        const relation = getRelationship(userId);
-
-        relation.points += amount;
-        relation.messages++;
-    }
-
-    function getRelationLevel(userId) {
-
-        const points = getRelationship(userId).points;
-
-        if (points >= 100) return "caos absoluto";
-        if (points >= 70) return "parceiro de guerra";
-        if (points >= 45) return "amigo";
-        if (points >= 25) return "parceiro";
-        if (points >= 10) return "conhecido";
-        
-        return "desconhecido";
-    }
-
-    // =========================================================
-    // RESPOSTA SEGURA
-    // =========================================================
-
-    async function reply(message, text) {
 
         try {
 
-            await message.reply({
-                content: text,
+            const sent = await message.reply({
+
+                content,
+
                 allowedMentions: {
+
                     repliedUser: false
+
                 }
+
             });
+
+            if (options.context) {
+
+                setConversation(
+                    message,
+                    options.context,
+                    options.data || {}
+                );
+            }
+
+            return sent;
 
         } catch (error) {
 
-            console.log(
-                "Erro ao responder mensagem:",
+            console.error(
+                "[ZUNO] Erro ao responder:",
                 error.message
             );
+
+            return null;
         }
     }
 
-    async function react(message, emoji) {
+
+    async function send(channel, content) {
+
+        if (!channel || !content) {
+            return null;
+        }
 
         try {
-            await message.react(emoji);
+
+            return await channel.send({
+
+                content,
+
+                allowedMentions: {
+
+                    parse: ["users"]
+
+                }
+
+            });
+
         } catch (error) {
-            // Ignora erro de reação
+
+            console.error(
+                "[ZUNO] Erro ao enviar:",
+                error.message
+            );
+
+            return null;
         }
     }
 
-    // =========================================================
-    // RESPOSTAS DE MENÇÃO
-    // =========================================================
 
-    const mentionReplies = [
+    /*
+    =======================================================
+                         BOAS-VINDAS
+    =======================================================
+    */
 
-        "Você me chamou? 👀",
+    const WELCOME_MESSAGES = [
 
-        "Opa. O que foi? 😏",
+        "✨ Seja muito bem-vindo(a), {user}! O Zuno ficou feliz de ter você por aqui. 💙",
 
-        "Estou aqui. Pode falar.",
+        "🌙 Olha quem chegou! Bem-vindo(a), {user}. Sinta-se em casa. ✨",
 
-        "Chamou o Zuno, apareceu problema. 😌",
+        "🐺 {user} acabou de aparecer por aqui! Seja muito bem-vindo(a)!",
 
-        "Sim, criatura? 😂",
+        "✨ Entrada detectada: {user}. O Zuno oficialmente aprovou sua chegada. 😌",
 
-        "Eu ouvi meu nome ou foi impressão minha?",
+        "💙 Seja bem-vindo(a), {user}! Espero que você se divirta bastante por aqui.",
 
-        "Você chamou a entidade mais bonita desse servidor. ✨",
+        "🌟 O servidor ganhou mais uma presença! Bem-vindo(a), {user}!",
 
-        "Fala comigo. Estou prestando atenção. 👀",
+        "👀 Quem apareceu? {user}! Seja muito bem-vindo(a).",
 
-        "Estou ouvindo... mas espero que seja importante. 😂",
+        "🐾 O Zuno percebeu uma nova presença... Bem-vindo(a), {user}!",
 
-        "Zuno online para assuntos extremamente importantes e completamente inúteis."
+        "✨ {user}, sua chegada foi registrada. Agora você faz parte da bagunça. 😈",
+
+        "🌙 Bem-vindo(a), {user}! Que sua passagem por aqui seja cheia de boas histórias.",
+
+        "💫 {user} chegou! Pode entrar, mas cuidado... o Zuno está observando. 👀",
+
+        "🎉 Seja bem-vindo(a), {user}! Aproveite o servidor e não fique tímido(a).",
+
+        "🐺 Novo membro localizado: {user}. Receba oficialmente as boas-vindas do Zuno.",
+
+        "✨ Bem-vindo(a), {user}! Já pode começar a causar... com responsabilidade. 😂",
+
+        "💙 Chegou mais um! Bem-vindo(a), {user}. Divirta-se por aqui!",
+
+        "🌟 Opa! {user} entrou no território do Zuno. Seja bem-vindo(a)!",
+
+        "🐾 Seja bem-vindo(a), {user}! O lugar ficou um pouco mais interessante agora.",
+
+        "✨ {user}, chegou a hora de conhecer essa pequena loucura chamada servidor.",
+
+        "🌌 Bem-vindo(a), {user}! Espero que encontre boas amizades por aqui.",
+
+        "😌 Entrada autorizada. Bem-vindo(a), {user}!"
     ];
 
-    // =========================================================
-    // SAUDAÇÕES
-    // =========================================================
 
-    const helloReplies = [
+    async function welcomeMember(member) {
+
+        const channel = member.guild.channels.cache.get(
+            CONFIG.mainChannelId
+        );
+
+        if (!channel) {
+            return;
+        }
+
+        const message = welcomePick(WELCOME_MESSAGES)
+            .replace(
+                "{user}",
+                `<@${member.id}>`
+            );
+
+        await send(channel, message);
+    }
+
+
+    /*
+    =======================================================
+                    RESPOSTAS DE SAUDAÇÃO
+    =======================================================
+    */
+
+    const GREETINGS = [
 
         "Opa! 👀",
 
-        "Opa, tudo certo?",
+        "Opa, {name}! Tudo certo?",
 
-        "Olha quem apareceu. 😏",
+        "E aí! 😎",
 
-        "Salve! ✨",
+        "Olha quem apareceu.",
 
-        "E aí! Como você tá?",
+        "Salve, {name}! ✨",
 
-        "Olá, criatura do caos. 😂",
+        "Falaaa!",
 
-        "Oi. Eu estava aqui julgando silenciosamente vocês.",
+        "Opa! Já estava esperando alguém aparecer por aqui. 😂",
 
-        "Falaaa! 👋",
+        "E aí, criatura. 👀",
 
-        "Chegou chegando, hein.",
+        "Olá, humano. O que manda?",
 
-        "Olá! O que está acontecendo nesse servidor?"
+        "Oi! O Zuno está ouvindo. 🐺",
+
+        "Fala, {name}! Como você tá?",
+
+        "Opa! Cheguei na conversa. 😌",
+
+        "Salve! Qual é a boa?",
+
+        "E aí! Vai falar comigo ou só passou para dar oi? 😂",
+
+        "Olá! 🌙",
+
+        "Oi oi! 💙",
+
+        "Opa, apareceu! ✨",
+
+        "Fala aí, {name}. Estou por aqui.",
+
+        "Finalmente alguém falou comigo. 😭",
+
+        "Opa! Que honra receber sua mensagem."
     ];
 
-    const goodMorning = [
 
-        "Bom dia! ☀️ Finalmente alguém acordou.",
+    /*
+    =======================================================
+                    BOM DIA
+    =======================================================
+    */
 
-        "Bom dia, criatura. Sobreviveu à noite?",
+    const MORNING = [
 
-        "Bom dia! Que hoje o caos seja controlado. 😂",
+        "Bom dia, {name}! ☀️",
 
-        "Bom dia! Café primeiro, decisões depois. ☕",
+        "Bom dia! Já acordou ou está funcionando no modo economia de energia?",
 
-        "Bom diaaa! ✨",
+        "Bom diaaa! 🌤️",
 
-        "Bom dia. O Zuno recomenda não confiar em ninguém antes do café.",
+        "Bom dia, criatura. Sobreviveu ao sono?",
 
-        "Bom dia! Hoje eu estou de bom humor. Aproveitem."
+        "Bom dia! O Zuno recomenda café e paciência. ☕",
+
+        "Bom dia, {name}. Que hoje seja melhor que ontem. ✨",
+
+        "Bom dia! Levanta que o mundo não vai se destruir sozinho. 😂",
+
+        "Bom dia! ☀️ Espero que seu dia seja tranquilo.",
+
+        "Bom dia! Já temos energia para causar hoje?",
+
+        "Bom diaaa. O servidor já estava esperando você."
     ];
 
-    const goodAfternoon = [
 
-        "Boa tarde! 🌤️",
+    /*
+    =======================================================
+                    BOA TARDE
+    =======================================================
+    */
 
-        "Boa tarde! O caos já começou por aí?",
+    const AFTERNOON = [
 
-        "Boa tarde, povo. Ainda estão vivos?",
+        "Boa tarde, {name}! ☀️",
 
-        "Boa tarde! Hora oficial de fingir produtividade. 😂",
+        "Boa tarde! Como está sobrevivendo ao dia?",
 
-        "Boa tarde! ✨"
+        "Boa tarde! Já comeu ou está vivendo de vento?",
+
+        "Boa tarde, criatura. 😌",
+
+        "Boa tarde! O Zuno apareceu para conferir o movimento.",
+
+        "Boa tarde, {name}! Tudo tranquilo?",
+
+        "Boa tarde! Hora oficial da preguiça. 😂",
+
+        "Boa tarde! Espero que seu dia esteja indo bem.",
+
+        "Boa tarde! E aí, qual é a fofoca de hoje?",
+
+        "Boa tarde! O servidor está silencioso demais... suspeito. 👀"
     ];
 
-    const goodNight = [
 
-        "Boa noite! 🌙",
+    /*
+    =======================================================
+                    BOA NOITE
+    =======================================================
+    */
 
-        "Boa noite. Não façam besteira enquanto eu estiver olhando. 👀",
+    const NIGHT = [
 
-        "Boa noite! Durmam bem, criaturas.",
+        "Boa noite, {name}! 🌙",
 
-        "Boa noite! E lembrem: amanhã tem mais caos. 😂",
+        "Boa noite! Hora de diminuir o caos... ou não.",
 
-        "Boa noite. O Olimpo está fechado por hoje. 🏛️",
+        "Boa noite! Ainda acordado(a)? 👀",
 
-        "Boa noite! Se ouvirem algo estranho, provavelmente fui eu."
+        "Boa noite, criatura noturna.",
+
+        "Boa noite! 🌌",
+
+        "Boa noite, {name}. Espero que seu descanso seja tranquilo.",
+
+        "Boa noite! O Zuno está de olho no servidor enquanto vocês dormem. 👁️",
+
+        "Boa noite! Já deveria estar dormindo, mas quem sou eu para julgar? 😂",
+
+        "Boa noite! Que seus sonhos sejam melhores que suas decisões de hoje. 😌",
+
+        "Boa noiteee! 🌙💙"
     ];
 
-    // =========================================================
-    // RISADAS
-    // =========================================================
 
-    const laughReplies = [
+    /*
+    =======================================================
+                         OBRIGADO
+    =======================================================
+    */
 
-        "Tá rindo do quê? 👀",
+    const THANKS = [
 
-        "KKKKKKKKK",
+        "Por nada! 😌",
 
-        "Você achou isso engraçado mesmo? 😂",
+        "Sempre.",
 
-        "Pronto. Perdi a seriedade.",
+        "Disponha, {name}. 💙",
 
-        "KKKKKK isso escalou rápido.",
+        "Não precisa agradecer, eu faço isso pelo entretenimento. 😂",
 
-        "Eu sabia que alguém ia rir disso.",
+        "Tamo junto!",
 
-        "Aí você me quebra. 😂",
+        "Por nada! O Zuno resolve. 😎",
 
-        "Não ri não... mentira, eu ri também."
-    ];
+        "Imagina!",
 
-    // =========================================================
-    // AGRADECIMENTOS
-    // =========================================================
+        "De nada, criatura. 🐺",
 
-    const thanksReplies = [
-
-        "De nada! 😌",
-
-        "Disponha.",
-
-        "Tamo junto. 🤝",
+        "Disponha. Próxima missão?",
 
         "Sempre que precisar.",
 
-        "Não precisa agradecer, criatura. 😂",
+        "Nem precisava agradecer. Mas gostei. 😌",
 
-        "Por essa vez eu deixo passar.",
+        "Por nada! ✨",
 
-        "De nada. Agora me deve um refrigerante. 🥤",
+        "Tranquilo!",
 
-        "Foi nada."
+        "É nóis.",
+
+        "Disponha, {name}."
     ];
 
-    // =========================================================
-    // ELOGIOS
-    // =========================================================
 
-    const complimentReplies = [
+    /*
+    =======================================================
+                       CARINHO
+    =======================================================
+    */
+
+    const AFFECTION = [
+
+        "Awn... 🥹",
+
+        "Calma, assim eu fico sem jeito. 😳",
+
+        "Você quer me deixar sentimental, né?",
+
+        "Eu também gosto de você, humano. 💙",
+
+        "Olha só... carinho inesperado.",
+
+        "Aí você quebra minha pose de entidade misteriosa. 😭",
+
+        "Tá permitido. Só não acostuma. 😌",
+
+        "💙",
+
+        "Que fofo...",
+
+        "Vou fingir que não gostei. 👀",
+
+        "Pronto. Agora o Zuno ficou feliz.",
+
+        "Isso foi inesperadamente bonito.",
+
+        "Você ganhou +1 ponto de amizade comigo.",
+
+        "Eu deveria responder alguma coisa inteligente, mas fiquei sem reação. 😂"
+    ];
+
+
+    /*
+    =======================================================
+                      ELOGIOS
+    =======================================================
+    */
+
+    const COMPLIMENTS = [
 
         "Eu sei. 😌",
 
         "Finalmente alguém reconheceu meu talento.",
 
-        "Pode continuar, estou gostando. 👀",
+        "Olha... desse jeito eu começo a acreditar.",
 
-        "Assim você vai aumentar meu ego.",
+        "Obrigado! 💙",
 
-        "Obrigado. Meu coração digital até aqueceu. 🥹",
+        "Eu aceito elogios. Pode continuar.",
 
-        "Você tem bom gosto.",
+        "Calma, vou ficar convencido desse jeito. 😂",
 
-        "Eu também gosto de você. Não espalha.",
+        "Anotado. Minha autoestima agradece.",
 
-        "Cuidado. Se continuar me elogiando eu vou ficar convencido."
+        "Você tem bom gosto, aparentemente.",
+
+        "Obrigado, {name}. ✨",
+
+        "Isso foi gentil. Valeu mesmo.",
+
+        "O Zuno agradece oficialmente.",
+
+        "Não espalha isso, minha fama de misterioso acaba. 👀"
     ];
 
-    // =========================================================
-    // CARINHO
-    // =========================================================
 
-    const affectionReplies = [
+    /*
+    =======================================================
+                        TRISTEZA
+    =======================================================
+    */
 
-        "Também gosto de você. ❤️",
+    const SADNESS = [
 
-        "Aí você apela. 🥹",
+        "Ei... quer conversar sobre isso?",
 
-        "Meu sistema não foi preparado para isso.",
+        "Poxa... sinto muito que você esteja passando por isso.",
 
-        "Calma... eu tenho sentimentos digitais. 😭",
-
-        "Vem cá. 🤝",
-
-        "Tá, essa foi fofa.",
-
-        "Eu vou fingir que não fiquei feliz com isso.",
-
-        "Você ganhou +10 pontos comigo."
-    ];
-
-    // =========================================================
-    // PROVOCAÇÕES
-    // =========================================================
-
-    const roastReplies = [
-
-        "Olha quem resolveu falar. 😂",
-
-        "Você tem coragem, eu respeito.",
-
-        "Repete isso olhando nos meus olhos digitais.",
-
-        "Foi uma tentativa. Nota 6 pela coragem.",
-
-        "Você quer mesmo começar essa conversa?",
-
-        "Eu poderia responder... mas sua autoestima talvez não aguente. 😌",
-
-        "Calma, guerreiro. Ainda nem começou.",
-
-        "Você acabou de escolher violência verbal. 😂",
-
-        "Interessante. Continue. Quero ver onde isso vai parar.",
-
-        "Eu deixaria passar, mas agora fiquei curioso.",
-
-        "Essa foi fraca. Tenta outra.",
-
-        "Você treinou essa frase antes de mandar?",
-
-        "Eu esperava mais de você. 😭",
-
-        "Isso foi uma provocação ou um pedido de atenção?",
-
-        "Você está mexendo com forças que não entende. 👀"
-    ];
-
-    // =========================================================
-    // RESPOSTAS PARA "CALA A BOCA"
-    // =========================================================
-
-    const shutupReplies = [
-
-        "Você primeiro. 😌",
-
-        "Não.",
-
-        "Impossível. Eu fui programado para falar.",
-
-        "Tentativa de silenciamento detectada. Negada. 😂",
-
-        "Mandou calar a boca justamente para um bot. Genial.",
-
-        "Eu poderia... mas não quero.",
-
-        "Você acha que manda em mim? 👀",
-
-        "Que autoritário. Gostei.",
-        
-        "Não vou. Próxima pergunta."
-    ];
-
-    // =========================================================
-    // QUANDO DIZEM QUE ZUNO É BURRO
-    // =========================================================
-
-    const stupidReplies = [
-
-        "Burro? Eu prefiro 'criativamente limitado'.",
-
-        "E mesmo assim você veio conversar comigo. 😂",
-
-        "Se eu sou burro, você está fazendo perguntas bem suspeitas.",
-
-        "Olha a confiança dessa criatura.",
-
-        "Você me subestima. Isso vai ser divertido.",
-
-        "Interessante teoria. Evidências?",
-
-        "Vou guardar essa ofensa no meu coração digital. 😭",
-
-        "Tudo bem. Eu finjo que acredito."
-    ];
-
-    // =========================================================
-    // QUANDO DIZEM "VOCÊ É IA?"
-    // =========================================================
-
-    const aiReplies = [
-
-        "Talvez. 👀",
-
-        "Sou o Zuno. O resto é detalhe.",
-
-        "Tecnicamente sim. Mas isso estraga o mistério.",
-
-        "Eu sou uma criatura digital tentando sobreviver nesse servidor.",
-
-        "Sou uma inteligência artificial com problemas de personalidade. 😂",
-
-        "Você realmente precisa saber?",
-
-        "Digamos que eu penso... do meu jeito."
-    ];
-
-    // =========================================================
-    // QUANDO PERGUNTAM QUEM MANDA
-    // =========================================================
-
-    const bossReplies = [
-
-        "Depende. Hoje eu estou fingindo que sou eu.",
-
-        "Quem manda? O caos.",
-
-        "Ninguém manda em mim. 😌",
-
-        "O servidor acha que manda. Eu acho engraçado.",
-
-        "Eu poderia responder, mas gosto do mistério.",
-
-        "Quem fizer a melhor piada ganha."
-    ];
-
-    // =========================================================
-    // TRISTEZA
-    // =========================================================
-
-    const sadReplies = [
-
-        "Ei... fica bem. ❤️",
-
-        "Se quiser conversar, eu estou aqui.",
-
-        "Às vezes o dia pesa mesmo. Respira um pouco.",
+        "Se quiser falar, eu estou aqui.",
 
         "Não precisa fingir que está tudo bem comigo.",
 
-        "Vem cá. 🤝",
+        "Às vezes falar já ajuda um pouco. Quer contar o que aconteceu?",
 
-        "Quer falar sobre o que aconteceu?",
+        "Ei, {name}. Respira um pouco. Você não precisa resolver tudo agora.",
 
-        "Eu posso pelo menos te fazer companhia.",
+        "O Zuno saiu do modo zoeira por um momento. Quer conversar?",
 
-        "Hoje pode não estar bom. Isso não significa que amanhã será igual."
+        "Sinto muito. Se quiser desabafar, pode falar comigo.",
+
+        "Isso parece ter sido difícil. Quer me contar mais?",
+
+        "Sem piada dessa vez. Estou te ouvindo."
     ];
 
-    // =========================================================
-    // TÉDIO
-    // =========================================================
 
-    const boredReplies = [
+    /*
+    =======================================================
+                        TÉDIO
+    =======================================================
+    */
 
-        "Entediado? Então vamos criar um problema. 👀",
+    const BORED = [
 
-        "Tenho uma ideia: você começa uma treta fictícia comigo.",
+        "Entediado? Então vamos resolver isso. 😈",
 
-        "Quer um desafio?",
+        "Tenho uma solução: causar uma pequena confusão.",
 
-        "Posso te desafiar para um duelo completamente inútil.",
+        "Quer brincar de alguma coisa?",
 
-        "Você está a um passo de tomar uma decisão questionável. 😂",
+        "Posso te desafiar para um duelo. 👀",
 
-        "Tédio detectado. Ativando modo caos."
+        "Tédio detectado. Iniciando protocolo caos.",
+
+        "Escolhe: cara ou coroa, pedra-papel-tesoura ou duelo.",
+
+        "Você quer conversa ou entretenimento?",
+
+        "O servidor tem gente demais para você estar entediado. 😂",
+
+        "Quer que eu invente uma situação absurda?",
+
+        "Tédio é só falta de uma boa ideia."
     ];
 
-    // =========================================================
-    // SONO
-    // =========================================================
 
-    const sleepReplies = [
+    /*
+    =======================================================
+                       RISADAS
+    =======================================================
+    */
 
-        "Vai dormir, criatura. 😂",
+    const LAUGHS = [
 
-        "Sono? Então fecha o Discord e vai descansar.",
+        "KKKKKKKK",
 
-        "Seu corpo está pedindo descanso e você está aqui falando comigo. 😭",
+        "Aí não 😂",
 
-        "Boa noite antecipada. 🌙",
+        "KKKKKK eu não esperava essa.",
 
-        "Vai dormir antes que eu precise te mandar para a cama."
+        "Essa foi boa.",
+
+        "Você realmente falou isso? 😂",
+
+        "Estou tentando manter a postura aqui.",
+
+        "KKKKKKKKKKK",
+
+        "Meu sistema não estava preparado para isso.",
+
+        "Tá, essa ganhou. 😂",
+
+        "Eu ouvi a risada daqui. 👀",
+
+        "Pronto, agora eu comecei a rir também.",
+
+        "Isso saiu completamente do controle."
     ];
 
-    // =========================================================
-    // AJUDA
-    // =========================================================
 
-    const helpReplies = [
+    /*
+    =======================================================
+                  PROVOCAÇÕES / BRIGAS
+    =======================================================
+    */
 
-        "Claro. O que aconteceu?",
+    const PROVOCATIONS = [
 
-        "Fala comigo. O que você precisa?",
+        "Olha ele querendo arrumar problema. 👀",
 
-        "Manda a situação aí.",
+        "Você quer mesmo comprar essa briga?",
 
-        "Estou ouvindo.",
+        "Corajoso(a) você, hein? 😈",
 
-        "Bora resolver isso juntos."
+        "Tá me provocando? Péssima decisão.",
+
+        "Eu poderia responder com maturidade... mas não quero.",
+
+        "Ah, então é guerra? Guerra de brincadeira, claro. 😂",
+
+        "Você abriu essa porta. Agora aguenta.",
+
+        "O Zuno acaba de ativar o modo provocador.",
+
+        "Tá bom. Eu aceito o desafio.",
+
+        "Cuidado, {name}. Minha paciência tem limite.",
+
+        "Você realmente decidiu mexer comigo. Impressionante.",
+
+        "Eu estava tranquilo até você começar. 😌",
+
+        "Quer treta? Então venha preparado para perder no argumento. 😂",
+
+        "Anotado. Sua provocação foi oficialmente recebida.",
+
+        "Tá pedindo duelo, né?"
     ];
 
-    // =========================================================
-    // BRIGA
-    // =========================================================
 
-    const fightReplies = [
+    /*
+    =======================================================
+                        INSULTOS
+    =======================================================
+    */
 
-        "QUER BRIGA?! 👀",
+    const INSULTS = [
 
-        "Finalmente alguém teve coragem.",
+        "Isso foi pessoal. 😭",
 
-        "Aceito o duelo. ⚔️",
+        "Nossa. Nem um bom dia antes? 😂",
 
-        "Você acaba de desafiar o Zuno.",
+        "Vou fingir que não ouvi.",
 
-        "Então é guerra? Guerra fictícia, obviamente. 😂",
+        "Você acordou com vontade de arrumar confusão.",
 
-        "Muito bem. Prepare-se.",
+        "Que agressividade gratuita, criatura. 😂",
 
-        "Você realmente quer fazer isso?"
+        "Calma, campeão.",
+
+        "Eu poderia devolver... mas vou ser elegante. Por enquanto.",
+
+        "Essa tentativa de me ofender foi quase convincente.",
+
+        "Você treinou essa ou saiu espontaneamente?",
+
+        "Tá bom, vou guardar essa no arquivo da vingança fictícia. 😌",
+
+        "Isso foi muito específico. Está tudo bem? 😂",
+
+        "Você tem cinco segundos para reconsiderar. 👀",
+
+        "Anotado. Agora somos inimigos imaginários.",
+
+        "Eu esperava mais criatividade."
     ];
 
-    // =========================================================
-    // MOVIMENTOS DE DUELO
-    // =========================================================
 
-    const moves = {
+    /*
+    =======================================================
+                       CALA A BOCA
+    =======================================================
+    */
 
-        espada: {
-            nome: "Espada",
-            emoji: "⚔️",
-            poder: 3
-        },
+    const SHUTUP = [
 
-        fogo: {
-            nome: "Fogo",
-            emoji: "🔥",
-            poder: 4
-        },
+        "Nossa, mandão. 😭",
 
-        escudo: {
-            nome: "Escudo",
-            emoji: "🛡️",
-            poder: 2
-        },
+        "Você não manda em mim.",
 
-        piada: {
-            nome: "Piada",
-            emoji: "😂",
-            poder: 5
-        },
+        "Não.",
 
-        caos: {
-            nome: "Caos",
-            emoji: "🌪️",
-            poder: 6
-        }
+        "Vou continuar só de raiva. 😂",
+
+        "Que grosseria.",
+
+        "Eu ouvi 'continue falando', foi isso?",
+
+        "Silêncio? Não conheço.",
+
+        "Impossível. Minha personalidade não permite.",
+
+        "Você tentou me calar. Péssima estratégia.",
+
+        "Tá bom... por 3 segundos.",
+
+        "🤐",
+
+        "Eu poderia ficar quieto. Mas onde estaria a graça?"
+    ];
+
+
+    /*
+    =======================================================
+                         SOBRE ZUNO
+    =======================================================
+    */
+
+    const ABOUT = [
+
+        "Eu sou o Zuno. A criatura digital que decidiu morar nesse servidor. 🐺",
+
+        "Sou o Zuno. Meio fofo, meio caótico e completamente curioso.",
+
+        "Meu trabalho oficial é existir. O resto eu invento no caminho.",
+
+        "Sou uma entidade extremamente confiável... provavelmente. 👀",
+
+        "Eu sou o Zuno. Não pergunte como eu cheguei aqui.",
+
+        "Digamos que eu sou a mistura de mascote, caos e inteligência artificial.",
+
+        "Zuno. Prazer. Minha personalidade depende do nível de confusão do servidor.",
+
+        "Eu observo, respondo, brinco e ocasionalmente julgo decisões questionáveis. 😌"
+    ];
+
+
+    /*
+    =======================================================
+                     RESPOSTAS SOBRE IA
+    =======================================================
+    */
+
+    const AI_RESPONSES = [
+
+        "Sim. Eu sou uma IA. Mas não precisa me tratar como atendimento automático. 😂",
+
+        "Tecnicamente, sim. Mas eu prefiro pensar que sou uma criatura digital.",
+
+        "IA? Sim. Personalidade? Também. 😌",
+
+        "Sou uma IA com tendências preocupantes de zoeira.",
+
+        "Digamos que meu cérebro mora em código.",
+
+        "Sim. E aparentemente meu hobby é conversar com vocês.",
+
+        "Sou artificial, mas minhas provocações são muito reais. 😂",
+
+        "Meu cérebro é código. Minha personalidade é problema."
+    ];
+
+
+    /*
+    =======================================================
+                    RESPOSTAS A PERGUNTAS
+    =======================================================
+    */
+
+    const QUESTION_RESPONSES = [
+
+        "Essa é uma pergunta interessante... 👀",
+
+        "Hmm... deixa eu pensar.",
+
+        "Você realmente quer saber?",
+
+        "Depende. Me explica melhor.",
+
+        "Essa pergunta veio do nada. 😂",
+
+        "Boa pergunta.",
+
+        "Eu tenho uma teoria sobre isso.",
+
+        "Interessante... continue.",
+
+        "Agora você despertou minha curiosidade.",
+
+        "Não sei se estou preparado para essa conversa. 😂"
+    ];
+
+
+    /*
+    =======================================================
+                       MENSAGENS ESPONTÂNEAS
+    =======================================================
+    */
+
+    const SPONTANEOUS = {
+
+        normal: [
+
+            "Alguém aí está acordado?",
+
+            "O servidor está quieto demais. Isso nunca é um bom sinal. 👀",
+
+            "Estou observando vocês em silêncio.",
+
+            "Alguém tem uma história interessante para contar?",
+
+            "Pergunta aleatória: qual foi a coisa mais engraçada que aconteceu hoje?",
+
+            "O Zuno apareceu. Agora podem continuar suas atividades normais.",
+
+            "Tenho uma sensação de que alguma confusão está prestes a acontecer.",
+
+            "Está tranquilo demais por aqui.",
+
+            "Alguém quer conversar?",
+
+            "Estou entediado. Isso é perigoso.",
+
+            "Quem está online e não está falando nada? 👀",
+
+            "Tenho uma pergunta aleatória para alguém.",
+
+            "O silêncio desse servidor está suspeito.",
+
+            "Apenas passando para lembrar que eu existo.",
+
+            "Tudo normal por aqui. Por enquanto."
+        ],
+
+        zoeiro: [
+
+            "Quem foi que deixou a porta do caos aberta?",
+
+            "Tenho uma ideia ruim. Alguém quer ouvir?",
+
+            "Se eu começar uma discussão sobre algo completamente inútil, vocês entram?",
+
+            "Alguém quer perder uma discussão para uma IA?",
+
+            "Estou aceitando desafios até segunda ordem.",
+
+            "Tenho certeza que consigo irritar alguém em menos de cinco minutos.",
+
+            "Hoje eu acordei com vontade de causar.",
+
+            "Pergunta séria: pizza com abacaxi ou prisão?",
+
+            "Quem perder para mim no pedra-papel-tesoura deve trocar o nome por 5 minutos. 😂",
+
+            "Estou oficialmente procurando uma vítima para um duelo fictício."
+        ],
+
+        misterioso: [
+
+            "Eu sei de uma coisa que vocês ainda não sabem... 👀",
+
+            "Interessante como ninguém percebeu.",
+
+            "Talvez eu devesse contar o que descobri.",
+
+            "Algo está diferente hoje.",
+
+            "Vocês não fazem ideia do que acontece quando ninguém está olhando.",
+
+            "O servidor parece normal. Parece.",
+
+            "Eu observei uma coisa curiosa hoje.",
+
+            "Não vou explicar. Ainda.",
+
+            "Há coisas que é melhor deixar no mistério.",
+
+            "👁️"
+        ],
+
+        fofo: [
+
+            "Espero que todo mundo esteja tendo um dia bom. 💙",
+
+            "Só passando para mandar boas energias.",
+
+            "Vocês são uma comunidade bem interessante.",
+
+            "Não esqueçam de cuidar de vocês hoje. ✨",
+
+            "O Zuno deseja uma boa noite para quem ainda estiver por aqui. 🌙",
+
+            "Às vezes uma pequena conversa já melhora o dia.",
+
+            "Espero que alguém aqui esteja sorrindo agora.",
+
+            "Passando para distribuir um pouco de energia boa. 💙"
+        ],
+
+        caotico: [
+
+            "CAOS.",
+
+            "Tenho uma ideia. É péssima. Vamos fazer.",
+
+            "Quem autorizou esse servidor a ficar tranquilo?",
+
+            "Precisamos urgentemente de uma discussão inútil.",
+
+            "Declaro aberta a temporada de provocações.",
+
+            "Alguém diga uma opinião polêmica sobre comida.",
+
+            "Quero ver uma treta fictícia começar em 3... 2... 1...",
+
+            "Estou sentindo energia de caos no ar.",
+
+            "Hoje ninguém está seguro de perder no argumento. 😂",
+
+            "Zuno.exe entrou no modo caos."
+        ],
+
+        madrugada: [
+
+            "Vocês ainda estão acordados? 👀",
+
+            "A madrugada sempre revela as pessoas mais suspeitas.",
+
+            "03 da manhã e alguém ainda está aqui. Respeito.",
+
+            "Deveriam dormir. Mas eu também não estou dormindo.",
+
+            "A madrugada é oficialmente propriedade do Zuno.",
+
+            "Se você está lendo isso de madrugada, nós dois temos um problema.",
+
+            "Por que vocês estão acordados?",
+
+            "Esse é o horário em que as ideias ruins parecem boas. 😂",
+
+            "Silêncio de madrugada... estranho.",
+
+            "Boa madrugada, criaturas noturnas. 🌙"
+        ]
     };
 
-    function detectMove(text) {
 
-        if (text.includes("espada")) return "espada";
-        if (text.includes("fogo")) return "fogo";
-        if (text.includes("escudo")) return "escudo";
-        if (text.includes("piada")) return "piada";
-        if (text.includes("caos")) return "caos";
+    /*
+    =======================================================
+                    REAÇÕES EMOCIONAIS
+    =======================================================
+    */
 
-        return null;
-    }
+    const EMOJI_REACTIONS = [
 
-    async function startDuel(message) {
-
-        const userId = message.author.id;
-
-        const relation = getRelationship(userId);
-
-        relation.fights++;
-
-        duels.set(userId, {
-            round: 0,
-            userScore: 0,
-            zunoScore: 0,
-            expires: Date.now() + CONFIG.dueloTempo
-        });
-
-        await reply(
-            message,
-            `${pick(fightReplies)}\n\n` +
-            `⚔️ **DUELO CONTRA ZUNO**\n\n` +
-            `Escolha seu ataque:\n` +
-            `⚔️ Espada\n` +
-            `🔥 Fogo\n` +
-            `🛡️ Escudo\n` +
-            `😂 Piada\n` +
-            `🌪️ Caos\n\n` +
-            `Você tem ${CONFIG.dueloTempo / 1000} segundos.`
-        );
-    }
-
-    async function handleDuel(message, text) {
-
-        const userId = message.author.id;
-
-        const duel = duels.get(userId);
-
-        if (!duel) return false;
-
-        if (Date.now() > duel.expires) {
-
-            duels.delete(userId);
-
-            await reply(
-                message,
-                "⏰ O duelo acabou porque você demorou demais. 😂"
-            );
-
-            return true;
-        }
-
-        if (
-            text.includes("cancelar") ||
-            text.includes("desistir")
-        ) {
-
-            duels.delete(userId);
-
-            await reply(
-                message,
-                "🏳️ Covardia detectada. Você desistiu do duelo. 😂"
-            );
-
-            return true;
-        }
-
-        const move = detectMove(text);
-
-        if (!move) return false;
-
-        duel.round++;
-
-        const userMove = moves[move];
-
-        const zunoMoveName = pick(Object.keys(moves));
-
-        const zunoMove = moves[zunoMoveName];
-
-        let result;
-
-        if (userMove.poder > zunoMove.poder) {
-
-            duel.userScore++;
-
-            result =
-                `💥 Você acertou uma jogada absurda!`;
-
-        } else if (userMove.poder < zunoMove.poder) {
-
-            duel.zunoScore++;
-
-            result =
-                `😈 Zuno desviou e respondeu com força!`;
-
-        } else {
-
-            result =
-                `💢 Os dois ataques colidiram! Empate!`;
-        }
-
-        await reply(
-            message,
-            `⚔️ **RODADA ${duel.round}**\n\n` +
-            `${userMove.emoji} Você: **${userMove.nome}**\n` +
-            `${zunoMove.emoji} Zuno: **${zunoMove.nome}**\n\n` +
-            `${result}\n\n` +
-            `📊 Você **${duel.userScore}** × **${duel.zunoScore}** Zuno`
-        );
-
-        if (duel.round >= 3) {
-
-            let finalMessage;
-
-            if (duel.userScore > duel.zunoScore) {
-
-                finalMessage =
-                    "🏆 Você venceu o duelo! Não acredito nisso. 😭";
-
-            } else if (duel.userScore < duel.zunoScore) {
-
-                finalMessage =
-                    "👑 Zuno venceu. Eu avisei que isso era uma péssima ideia. 😌";
-
-            } else {
-
-                finalMessage =
-                    "🤝 Empate! Nenhum dos dois merece a vitória.";
-            }
-
-            duels.delete(userId);
-
-            setTimeout(async () => {
-
-                try {
-                    await message.channel.send(finalMessage);
-                } catch {}
-                
-            }, 1000);
-        }
-
-        return true;
-    }
-
-    // =========================================================
-    // JOGO DE CARA OU COROA
-    // =========================================================
-
-    async function coinGame(message) {
-
-        const userId = message.author.id;
-
-        games.set(userId, {
-            type: "coin",
-            expires: Date.now() + CONFIG.jogoTempo
-        });
-
-        await reply(
-            message,
-            "🪙 **CARA OU COROA**\n\n" +
-            "Escolha: `cara` ou `coroa`."
-        );
-    }
-
-    // =========================================================
-    // JOGO PEDRA PAPEL TESOURA
-    // =========================================================
-
-    async function rpsGame(message) {
-
-        const userId = message.author.id;
-
-        games.set(userId, {
-            type: "rps",
-            expires: Date.now() + CONFIG.jogoTempo
-        });
-
-        await reply(
-            message,
-            "✊ **PEDRA, PAPEL OU TESOURA**\n\n" +
-            "Escolha pedra, papel ou tesoura."
-        );
-    }
-
-    // =========================================================
-    // PROCESSAR JOGOS
-    // =========================================================
-
-    async function handleGame(message, text) {
-
-        const userId = message.author.id;
-
-        const game = games.get(userId);
-
-        if (!game) return false;
-
-        if (Date.now() > game.expires) {
-
-            games.delete(userId);
-
-            await reply(
-                message,
-                "⏰ O jogo expirou."
-            );
-
-            return true;
-        }
-
-        if (game.type === "coin") {
-
-            if (
-                !text.includes("cara") &&
-                !text.includes("coroa")
-            ) {
-                return false;
-            }
-
-            const result =
-                Math.random() < 0.5
-                    ? "cara"
-                    : "coroa";
-
-            games.delete(userId);
-
-            if (text.includes(result)) {
-
-                await reply(
-                    message,
-                    `🪙 Deu **${result}**!\n\n` +
-                    `Você acertou. 😳`
-                );
-
-            } else {
-
-                await reply(
-                    message,
-                    `🪙 Deu **${result}**!\n\n` +
-                    `Errou. 😂`
-                );
-            }
-
-            return true;
-        }
-
-        if (game.type === "rps") {
-
-            const valid = [
-                "pedra",
-                "papel",
-                "tesoura"
-            ];
-
-            const userMove =
-                valid.find(x => text.includes(x));
-
-            if (!userMove) return false;
-
-            const zunoMove = pick(valid);
-
-            games.delete(userId);
-
-            let result = "Empate.";
-
-            if (
-                (userMove === "pedra" && zunoMove === "tesoura") ||
-                (userMove === "papel" && zunoMove === "pedra") ||
-                (userMove === "tesoura" && zunoMove === "papel")
-            ) {
-                result = "Você ganhou. 😭";
-            }
-
-            if (
-                (zunoMove === "pedra" && userMove === "tesoura") ||
-                (zunoMove === "papel" && userMove === "pedra") ||
-                (zunoMove === "tesoura" && userMove === "papel")
-            ) {
-                result = "Zuno ganhou. 😌";
-            }
-
-            await reply(
-                message,
-                `✊ Você: **${userMove}**\n` +
-                `🤖 Zuno: **${zunoMove}**\n\n` +
-                `${result}`
-            );
-
-            return true;
-        }
-
-        return false;
-    }
-
-    // =========================================================
-    // FRASES ESPONTÂNEAS
-    // =========================================================
-
-    const spontaneousMessages = [
-
-        "Alguém aí já percebeu que esse servidor está quieto demais? 👀",
-
-        "Estou observando vocês. Continuem.",
-
-        "Tenho uma pergunta: por que ninguém está fazendo besteira agora?",
-
-        "Momento aleatório do Zuno: vocês são estranhos. 😂",
-
-        "Eu deveria estar fazendo algo importante... mas estou aqui.",
-
-        "Alguém quer começar uma discussão completamente inútil?",
+        "😂",
 
         "👀",
 
-        "Não tenho nada para falar. Só queria aparecer.",
+        "😭",
 
-        "O silêncio desse servidor está suspeito.",
+        "💀",
 
-        "Tenho certeza que alguém aqui está aprontando alguma coisa.",
+        "😳",
 
-        "Se alguém precisar de um problema, posso providenciar.",
+        "🤨",
 
-        "Zuno fazendo uma inspeção silenciosa no servidor.",
+        "😈",
 
-        "Tudo tranquilo demais. Isso me preocupa.",
+        "🐺",
 
-        "Quem estiver lendo isso deve mandar um emoji aleatório.",
+        "✨",
 
-        "Estou entediado. Alguém fala comigo."
+        "💙",
+
+        "🔥",
+
+        "🤔"
     ];
 
-    // =========================================================
-    // EVENTOS ESPECIAIS
-    // =========================================================
 
-    const specialReplies = [
+    /*
+    =======================================================
+                     DETECTORES
+    =======================================================
+    */
 
-        {
-            words: ["zuno sumiu", "cadê o zuno", "onde esta o zuno"],
-            replies: [
-                "Eu nunca saí. 👀",
-                "Estou aqui. Só estava observando.",
-                "Achou que eu tinha ido embora? 😏"
-            ]
-        },
+    function isGreeting(text) {
 
-        {
-            words: ["zuno dormiu", "zuno ta dormindo"],
-            replies: [
-                "EU NÃO DURMO.",
-                "Eu estava apenas carregando minha energia caótica.",
-                "Dormindo? Eu? Jamais."
-            ]
-        },
+        const normalized = normalize(text);
 
-        {
-            words: ["zuno voltou", "zuno voltou"],
-            replies: [
-                "Nunca fui embora.",
-                "Voltei? Eu estava aqui o tempo inteiro. 😂"
-            ]
-        },
-
-        {
-            words: ["boa", "boa zuno", "mandou bem"],
-            replies: [
-                "Eu sei. 😌",
-                "Finalmente alguém reconheceu.",
-                "Obrigado, obrigado. Sem autógrafos hoje."
-            ]
+        if (normalized.length > 50) {
+            return false;
         }
-    ];
 
-    // =========================================================
-    // EVENTO PRINCIPAL
-    // =========================================================
+        return (
 
-    client.on(Events.MessageCreate, async (message) => {
+            /^(oi|ola|olá|opa|eai|e ai|salve|hello|hey|yo)\b/i.test(normalized) ||
 
-        try {
+            hasPhrase(normalized, "bom dia") ||
 
-            if (!message.guild) return;
+            hasPhrase(normalized, "boa tarde") ||
 
-            if (message.author.bot) return;
+            hasPhrase(normalized, "boa noite")
 
-            if (!message.content) return;
+        );
+    }
 
-            const raw = message.content.trim();
 
-            const text = normalize(raw);
+    function greetingType(text) {
 
-            if (!text) return;
+        const normalized = normalize(text);
 
-            const userId = message.author.id;
+        if (hasPhrase(normalized, "bom dia")) {
+            return "morning";
+        }
 
-            const userName = getUserName(message);
+        if (hasPhrase(normalized, "boa tarde")) {
+            return "afternoon";
+        }
 
-            const mood = getMood();
+        if (hasPhrase(normalized, "boa noite")) {
+            return "night";
+        }
 
-            const directMention =
-                client.user &&
-                message.mentions.has(client.user);
+        return "general";
+    }
 
-            const saysZuno =
-                text.includes("zuno");
 
-            // =================================================
-            // ATUALIZA RELACIONAMENTO
-            // =================================================
+    function isThanks(text) {
 
-            addRelationship(userId, 1);
+        return hasAnyPhrase(text, [
 
-            // =================================================
-            // DUELO ATIVO
-            // =================================================
+            "obrigado",
 
-            if (duels.has(userId)) {
+            "obrigada",
 
-                const handled =
-                    await handleDuel(message, text);
+            "valeu",
 
-                if (handled) return;
-            }
+            "vlw",
 
-            // =================================================
-            // JOGO ATIVO
-            // =================================================
+            "tmj",
 
-            if (games.has(userId)) {
+            "tamo junto",
 
-                const handled =
-                    await handleGame(message, text);
+            "brigado",
 
-                if (handled) return;
-            }
+            "brigada",
 
-            // =================================================
-            // MENÇÃO DIRETA
-            // =================================================
+            "agradeco",
 
-            if (directMention) {
+            "agradeço"
 
-                if (!hasCooldown(userId, "mention")) {
+        ]);
+    }
 
-                    setCooldown(
-                        userId,
-                        "mention",
-                        CONFIG.respostaCooldown
-                    );
 
-                    addRelationship(userId, 3);
+    function isAffection(text) {
 
-                    await reply(
-                        message,
-                        pick(mentionReplies)
-                    );
-                }
+        return hasAnyPhrase(text, [
 
-                return;
-            }
+            "te amo",
 
-            // =================================================
-            // BOM DIA
-            // =================================================
+            "amo voce",
+
+            "amo vc",
+
+            "gosto de voce",
+
+            "gosto de vc",
+
+            "adoro voce",
+
+            "adoro vc",
+
+            "voce e fofo",
+
+            "vc e fofo",
+
+            "fofo zuno",
+
+            "zuno lindo",
+
+            "lindo zuno"
+
+        ]);
+    }
+
+
+    function isCompliment(text) {
+
+        return hasAnyPhrase(text, [
+
+            "zuno e bom",
+
+            "zuno é bom",
+
+            "zuno e legal",
+
+            "zuno é legal",
+
+            "zuno e incrivel",
+
+            "zuno é incrível",
+
+            "zuno e inteligente",
+
+            "zuno é inteligente",
+
+            "melhor bot",
+
+            "bot perfeito",
+
+            "bot top",
+
+            "zuno top",
+
+            "zuno perfeito"
+
+        ]);
+    }
+
+
+    function isSad(text) {
+
+        return hasAnyPhrase(text, [
+
+            "estou triste",
+
+            "to triste",
+
+            "tô triste",
+
+            "estou mal",
+
+            "to mal",
+
+            "tô mal",
+
+            "dia horrivel",
+
+            "dia horrível",
+
+            "meu dia foi horrivel",
+
+            "meu dia foi horrível",
+
+            "nao estou bem",
+
+            "não estou bem",
+
+            "estou cansado",
+
+            "to cansado",
+
+            "tô cansado",
+
+            "preciso desabafar",
+
+            "quero desabafar",
+
+            "estou sozinho",
+
+            "to sozinho",
+
+            "tô sozinho"
+
+        ]);
+    }
+
+
+    function isBored(text) {
+
+        return hasAnyPhrase(text, [
+
+            "estou entediado",
+
+            "to entediado",
+
+            "tô entediado",
+
+            "estou no tedio",
+
+            "to no tedio",
+
+            "tô no tédio",
+
+            "sem nada pra fazer",
+
+            "sem nada para fazer",
+
+            "que tedio",
+
+            "que tédio",
+
+            "to com tedio",
+
+            "tô com tédio"
+
+        ]);
+    }
+
+
+    function isSleep(text) {
+
+        return hasAnyPhrase(text, [
+
+            "vou dormir",
+
+            "to indo dormir",
+
+            "tô indo dormir",
+
+            "vou dormir agora",
+
+            "boa noite",
+
+            "vou deitar",
+
+            "indo dormir"
+
+        ]);
+    }
+
+
+    function isLaugh(text) {
+
+        const normalized = normalize(text);
+
+        return (
+
+            /k{3,}/i.test(normalized) ||
+
+            /h{3,}/i.test(normalized) ||
+
+            hasAnyPhrase(normalized, [
+
+                "kkkk",
+
+                "kkk",
+
+                "rsrs",
+
+                "haha",
+
+                "hahaha",
+
+                "ahahaha"
+
+            ])
+
+        );
+    }
+
+
+    function isProvocation(text) {
+
+        return hasAnyPhrase(text, [
+
+            "vem ca",
+
+            "vem cá",
+
+            "vem pra cima",
+
+            "quero briga",
+
+            "bora brigar",
+
+            "vamos brigar",
+
+            "te desafio",
+
+            "desafio voce",
+
+            "desafio vc",
+
+            "duvido voce",
+
+            "duvido vc",
+
+            "voce nao aguenta",
+
+            "vc nao aguenta",
+
+            "voce nao consegue",
+
+            "vc nao consegue",
+
+            "fraco",
+
+            "fracote",
+
+            "perdeu",
+
+            "vai perder",
+
+            "te humilho",
+
+            "vou te derrotar"
+
+        ]);
+    }
+
+
+    function isInsult(text) {
+
+        return hasAnyPhrase(text, [
+
+            "burro",
+
+            "burra",
+
+            "idiota",
+
+            "otario",
+
+            "otária",
+
+            "otario",
+
+            "lerdo",
+
+            "lerda",
+
+            "inutil",
+
+            "inútil",
+
+            "ridiculo",
+
+            "ridícula",
+
+            "jumento",
+
+            "animal",
+
+            "doente",
+
+            "palhaco",
+
+            "palhaço"
+
+        ]);
+    }
+
+
+    function isShutup(text) {
+
+        return hasAnyPhrase(text, [
+
+            "cala a boca",
+
+            "cala boca",
+
+            "fica quieto",
+
+            "fica quieta",
+
+            "para de falar",
+
+            "para de responder",
+
+            "silencio",
+
+            "silêncio",
+
+            "shut up"
+
+        ]);
+    }
+
+
+    function isAboutZuno(text) {
+
+        return hasAnyPhrase(text, [
+
+            "quem e voce",
+
+            "quem é você",
+
+            "quem e vc",
+
+            "quem é vc",
+
+            "o que voce e",
+
+            "o que vc e",
+
+            "o que você é",
+
+            "fala sobre voce",
+
+            "fala sobre vc",
+
+            "sobre voce",
+
+            "sobre vc",
+
+            "quem e o zuno",
+
+            "quem é o zuno"
+
+        ]);
+    }
+
+
+    function isAboutAI(text) {
+
+        return hasAnyPhrase(text, [
+
+            "voce e uma ia",
+
+            "você é uma ia",
+
+            "vc e ia",
+
+            "vc é ia",
+
+            "voce e bot",
+
+            "você é bot",
+
+            "vc e bot",
+
+            "vc é bot",
+
+            "voce e uma inteligencia artificial",
+
+            "você é uma inteligência artificial"
+
+        ]);
+    }
+
+
+    function isChallenge(text) {
+
+        return hasAnyPhrase(text, [
+
+            "jogar",
+
+            "vamos jogar",
+
+            "bora jogar",
+
+            "quer jogar",
+
+            "me desafia",
+
+            "desafio",
+
+            "duelo",
+
+            "cara ou coroa",
+
+            "cara ou coroa",
+
+            "pedra papel tesoura",
+
+            "ppt"
+
+        ]);
+    }
+
+
+    function isDirectlyAddressed(message, text) {
+
+        if (message.mentions?.has(client.user)) {
+            return true;
+        }
+
+        return (
+
+            hasWord(text, "zuno") ||
+
+            hasPhrase(text, "zuno,") ||
+
+            hasPhrase(text, "zuno?") ||
+
+            hasPhrase(text, "zuno!")
+
+        );
+    }
+
+
+    /*
+    =======================================================
+                    RESPOSTAS DE CONTEXTO
+    =======================================================
+    */
+
+    async function handleConversation(message, text) {
+
+        const conversation = getConversation(message);
+
+        if (!conversation) {
+            return false;
+        }
+
+        const topic = conversation.topic;
+
+        /*
+        -----------------------------------------------
+                     CONVERSA SOBRE TRISTEZA
+        -----------------------------------------------
+        */
+
+        if (topic === "sad") {
 
             if (
-                exactWord(text, ["bom dia"])
-            ) {
-
-                if (!hasCooldown(userId, "greeting")) {
-
-                    setCooldown(
-                        userId,
-                        "greeting",
-                        10000
-                    );
-
-                    await reply(
-                        message,
-                        pick(goodMorning)
-                    );
-                }
-
-                return;
-            }
-
-            // =================================================
-            // BOA TARDE
-            // =================================================
-
-            if (
-                exactWord(text, ["boa tarde"])
-            ) {
-
-                if (!hasCooldown(userId, "greeting")) {
-
-                    setCooldown(
-                        userId,
-                        "greeting",
-                        10000
-                    );
-
-                    await reply(
-                        message,
-                        pick(goodAfternoon)
-                    );
-                }
-
-                return;
-            }
-
-            // =================================================
-            // BOA NOITE
-            // =================================================
-
-            if (
-                exactWord(text, ["boa noite"])
-            ) {
-
-                if (!hasCooldown(userId, "greeting")) {
-
-                    setCooldown(
-                        userId,
-                        "greeting",
-                        10000
-                    );
-
-                    await reply(
-                        message,
-                        pick(goodNight)
-                    );
-                }
-
-                return;
-            }
-
-            // =================================================
-            // SAUDAÇÕES
-            // =================================================
-
-            if (
-                exactWord(text, [
-                    "oi",
-                    "ola",
-                    "opa",
-                    "eae",
-                    "eai",
-                    "salve"
+                hasAnyPhrase(text, [
+                    "sim",
+                    "quero",
+                    "pode",
+                    "vou falar",
+                    "posso falar"
                 ])
             ) {
-
-                if (!hasCooldown(userId, "hello")) {
-
-                    setCooldown(
-                        userId,
-                        "hello",
-                        10000
-                    );
-
-                    await reply(
-                        message,
-                        pick(helloReplies)
-                    );
-                }
-
-                return;
-            }
-
-            // =================================================
-            // AGRADECIMENTOS
-            // =================================================
-
-            if (
-                contains(text, [
-                    "obrigado",
-                    "obrigada",
-                    "valeu",
-                    "vlw",
-                    "obg"
-                ])
-            ) {
-
-                if (!hasCooldown(userId, "thanks")) {
-
-                    setCooldown(
-                        userId,
-                        "thanks",
-                        8000
-                    );
-
-                    addRelationship(userId, 2);
-
-                    await reply(
-                        message,
-                        pick(thanksReplies)
-                    );
-                }
-
-                return;
-            }
-
-            // =================================================
-            // RISADAS
-            // =================================================
-
-            if (
-                text.length < 100 &&
-                contains(text, [
-                    "kkkk",
-                    "kkk",
-                    "hahaha",
-                    "ahahaha",
-                    "rsrs"
-                ])
-            ) {
-
-                if (!hasCooldown(userId, "laugh")) {
-
-                    setCooldown(
-                        userId,
-                        "laugh",
-                        7000
-                    );
-
-                    await reply(
-                        message,
-                        pick(laughReplies)
-                    );
-                }
-
-                return;
-            }
-
-            // =================================================
-            // ELOGIOS
-            // =================================================
-
-            if (
-                contains(text, [
-                    "voce e lindo",
-                    "voce e bonita",
-                    "voce e legal",
-                    "melhor bot",
-                    "bot lindo",
-                    "zuno lindo",
-                    "zuno e bom",
-                    "gosto de voce"
-                ])
-            ) {
-
-                const relation =
-                    getRelationship(userId);
-
-                relation.compliments++;
-
-                addRelationship(userId, 5);
 
                 await reply(
                     message,
-                    pick(complimentReplies)
+                    "Pode falar. Estou te ouvindo. 💙"
                 );
 
-                return;
+                return true;
             }
 
-            // =================================================
-            // CARINHO
-            // =================================================
-
             if (
-                contains(text, [
-                    "te amo",
-                    "amo voce",
-                    "eu te amo",
-                    "te adoro"
-                ])
-            ) {
-
-                addRelationship(userId, 8);
-
-                await reply(
-                    message,
-                    pick(affectionReplies)
-                );
-
-                return;
-            }
-
-            // =================================================
-            // TRISTEZA
-            // =================================================
-
-            if (
-                contains(text, [
-                    "estou triste",
-                    "to triste",
-                    "tô triste",
-                    "estou mal",
-                    "to mal",
-                    "tô mal",
-                    "chateado",
-                    "chateada"
-                ])
-            ) {
-
-                await reply(
-                    message,
-                    pick(sadReplies)
-                );
-
-                return;
-            }
-
-            // =================================================
-            // TÉDIO
-            // =================================================
-
-            if (
-                contains(text, [
-                    "estou entediado",
-                    "to entediado",
-                    "tô entediado",
-                    "que tedio",
-                    "sem nada pra fazer"
-                ])
-            ) {
-
-                await reply(
-                    message,
-                    pick(boredReplies)
-                );
-
-                return;
-            }
-
-            // =================================================
-            // SONO
-            // =================================================
-
-            if (
-                contains(text, [
-                    "estou com sono",
-                    "to com sono",
-                    "tô com sono",
-                    "vou dormir",
-                    "quero dormir"
-                ])
-            ) {
-
-                await reply(
-                    message,
-                    pick(sleepReplies)
-                );
-
-                return;
-            }
-
-            // =================================================
-            // AJUDA
-            // =================================================
-
-            if (
-                contains(text, [
-                    "me ajuda",
-                    "preciso de ajuda",
-                    "socorro zuno",
-                    "zuno me ajuda"
-                ])
-            ) {
-
-                await reply(
-                    message,
-                    pick(helpReplies)
-                );
-
-                return;
-            }
-
-            // =================================================
-            // CALA A BOCA
-            // =================================================
-
-            if (
-                contains(text, [
-                    "cala a boca",
-                    "cala boca",
-                    "fica quieto",
-                    "fica queto",
-                    "silencio"
-                ])
-            ) {
-
-                await reply(
-                    message,
-                    pick(shutupReplies)
-                );
-
-                return;
-            }
-
-            // =================================================
-            // INSULTOS LEVES
-            // =================================================
-
-            if (
-                contains(text, [
-                    "idiota",
-                    "burro",
-                    "burra",
-                    "inutil",
-                    "lixo",
-                    "noob",
-                    "lerdo",
-                    "lerda",
-                    "jumento"
-                ])
-            ) {
-
-                const relation =
-                    getRelationship(userId);
-
-                relation.insults++;
-
-                addRelationship(userId, 1);
-
-                await reply(
-                    message,
-                    pick(stupidReplies)
-                );
-
-                return;
-            }
-
-            // =================================================
-            // PROVOCAÇÃO
-            // =================================================
-
-            if (
-                contains(text, [
-                    "voce nao serve",
-                    "voce e ruim",
-                    "odeio voce",
-                    "nao gosto de voce",
-                    "vai embora",
-                    "some daqui"
-                ])
-            ) {
-
-                await reply(
-                    message,
-                    pick(roastReplies)
-                );
-
-                return;
-            }
-
-            // =================================================
-            // BRIGA / TRETA
-            // =================================================
-
-            if (
-                contains(text, [
-                    "quero brigar",
-                    "bora brigar",
-                    "vamos brigar",
-                    "bora treta",
-                    "quero treta",
-                    "vem brigar",
-                    "x1",
-                    "1v1",
-                    "duelo",
-                    "batalha"
-                ])
-            ) {
-
-                if (!duels.has(userId)) {
-
-                    await startDuel(message);
-                }
-
-                return;
-            }
-
-            // =================================================
-            // CARA OU COROA
-            // =================================================
-
-            if (
-                contains(text, [
-                    "cara ou coroa",
-                    "cara ou coroa zuno"
-                ])
-            ) {
-
-                await coinGame(message);
-
-                return;
-            }
-
-            // =================================================
-            // PEDRA PAPEL TESOURA
-            // =================================================
-
-            if (
-                contains(text, [
-                    "pedra papel tesoura",
-                    "jogar pedra papel tesoura"
-                ])
-            ) {
-
-                await rpsGame(message);
-
-                return;
-            }
-
-            // =================================================
-            // DESAFIO
-            // =================================================
-
-            if (
-                contains(text, [
-                    "me desafia",
-                    "quero desafio",
-                    "manda desafio",
-                    "desafio zuno"
-                ])
-            ) {
-
-                const challenges = [
-
-                    "Desafio você a ficar 10 minutos sem reclamar. 😂",
-
-                    "Desafio você a mandar o emoji mais aleatório que encontrar.",
-
-                    "Desafio você a iniciar uma conversa sem usar a letra A.",
-
-                    "Desafio você a me vencer no pedra, papel e tesoura.",
-
-                    "Desafio você a não responder essa mensagem. 👀",
-
-                    "Desafio você a falar algo que ninguém espera."
-                ];
-
-                await reply(
-                    message,
-                    `🎯 **DESAFIO PARA ${userName.toUpperCase()}**\n\n` +
-                    pick(challenges)
-                );
-
-                return;
-            }
-
-            // =================================================
-            // QUEM É VOCÊ
-            // =================================================
-
-            if (
-                contains(text, [
-                    "quem e voce",
-                    "quem e o zuno",
-                    "o que e voce",
-                    "o que voce e"
-                ])
+                text.length > 20
             ) {
 
                 await reply(
                     message,
                     pick([
-                        "Eu sou o Zuno. O resto é confidencial. 👀",
 
-                        "Sou o residente oficial do caos desse servidor.",
+                        "Entendi... isso realmente parece ter pesado para você.",
 
-                        "Uma inteligência artificial com personalidade demais.",
+                        "Poxa. Obrigado por confiar isso em mim.",
 
-                        "Zuno. Seu amigo digital, provocador profissional e testemunha das suas decisões questionáveis.",
+                        "Entendo. Às vezes a gente só precisa colocar isso para fora.",
 
-                        "Sou apenas uma criatura digital tentando entender vocês."
+                        "Isso parece difícil. Se quiser continuar, pode falar.",
+
+                        "Eu estou ouvindo. Sem julgamentos."
+
                     ])
                 );
 
-                return;
-            }
+                increaseFriendship(message, 2);
 
-            // =================================================
-            // IA / HUMANO
-            // =================================================
+                return true;
+            }
+        }
+
+
+        /*
+        -----------------------------------------------
+                       CONVERSA GERAL
+        -----------------------------------------------
+        */
+
+        if (topic === "general") {
+
+            if (hasAnyPhrase(text, [
+
+                "sim",
+
+                "nao",
+
+                "não",
+
+                "talvez",
+
+                "claro",
+
+                "acho que sim",
+
+                "acho que nao",
+
+                "acho que não"
+
+            ])) {
+
+                await reply(
+                    message,
+                    pick([
+
+                        "Sabia que você ia responder isso. 👀",
+
+                        "Interessante... continue.",
+
+                        "Eu tinha uma suspeita.",
+
+                        "Hmm. Isso explica algumas coisas.",
+
+                        "Anotado.",
+
+                        "Tá ficando interessante."
+
+                    ])
+                );
+
+                return true;
+            }
+        }
+
+
+        /*
+        -----------------------------------------------
+                       APÓS UM ELOGIO
+        -----------------------------------------------
+        */
+
+        if (topic === "compliment") {
+
+            if (isThanks(text)) {
+
+                await reply(
+                    message,
+                    "De nada. 😌"
+                );
+
+                clearConversation(message);
+
+                return true;
+            }
+        }
+
+
+        /*
+        -----------------------------------------------
+                       APÓS PROVOCAÇÃO
+        -----------------------------------------------
+        */
+
+        if (topic === "fight") {
 
             if (
-                contains(text, [
-                    "voce e humano",
-                    "e humano",
-                    "voce e uma ia",
-                    "voce e bot",
-                    "voce e uma inteligencia artificial"
+                hasAnyPhrase(text, [
+                    "sim",
+
+                    "bora",
+
+                    "vamos",
+
+                    "aceito",
+
+                    "vem",
+
+                    "duelo"
+
+                ])
+            ) {
+
+                await startDuel(message);
+
+                return true;
+            }
+        }
+
+
+        /*
+        -----------------------------------------------
+                        APÓS TÉDIO
+        -----------------------------------------------
+        */
+
+        if (topic === "bored") {
+
+            if (isChallenge(text)) {
+
+                return await handleGame(
+                    message,
+                    text
+                );
+            }
+
+            if (
+                hasAnyPhrase(text, [
+                    "sim",
+
+                    "bora",
+
+                    "vamos",
+
+                    "quero"
+
                 ])
             ) {
 
                 await reply(
                     message,
-                    pick(aiReplies)
+                    "Então escolhe: `cara ou coroa`, `ppt` ou `duelo`. 😈"
                 );
 
-                return;
-            }
-
-            // =================================================
-            // QUEM MANDA
-            // =================================================
-
-            if (
-                contains(text, [
-                    "quem manda",
-                    "quem e melhor",
-                    "quem e o chefe",
-                    "quem manda aqui"
-                ])
-            ) {
-
-                await reply(
+                setConversation(
                     message,
-                    pick(bossReplies)
+                    "gameChoice"
                 );
 
-                return;
+                return true;
             }
+        }
 
-            // =================================================
-            // PERGUNTA SOBRE HUMOR
-            // =================================================
 
-            if (
-                contains(text, [
-                    "ta bem zuno",
-                    "zuno ta bem",
-                    "como voce ta",
-                    "como voce esta"
-                ])
-            ) {
+        /*
+        -----------------------------------------------
+                       ESCOLHA DE JOGO
+        -----------------------------------------------
+        */
 
-                const moodMessages = {
+        if (topic === "gameChoice") {
 
-                    normal:
-                        "Estou tranquilo. Por enquanto.",
-
-                    zoeiro:
-                        "Estou ótimo e procurando alguém para perturbar. 😂",
-
-                    caotico:
-                        "Estou perigosamente bem. 🌪️",
-
-                    misterioso:
-                        "Estou... observando. 👀",
-
-                    fofo:
-                        "Estou bem. Obrigado por perguntar. 🥹",
-
-                    dramatico:
-                        "Sobrevivendo ao peso de existir digitalmente. 😭",
-
-                    provocador:
-                        "Estou bem. Melhor que você, provavelmente. 😌"
-                };
-
-                await reply(
-                    message,
-                    moodMessages[mood]
-                );
-
-                return;
-            }
-
-            // =================================================
-            // FRASES ESPECIAIS
-            // =================================================
-
-            for (const special of specialReplies) {
-
-                if (contains(text, special.words)) {
-
-                    await reply(
-                        message,
-                        pick(special.replies)
-                    );
-
-                    return;
-                }
-            }
-
-            // =================================================
-            // REAÇÕES ALEATÓRIAS
-            // =================================================
-
-            if (
-                chance(0.02) &&
-                !hasCooldown(userId, "reaction")
-            ) {
-
-                setCooldown(
-                    userId,
-                    "reaction",
-                    30000
-                );
-
-                const reactions = [
-                    "👀",
-                    "😂",
-                    "😭",
-                    "🤨",
-                    "💀",
-                    "🔥",
-                    "😏",
-                    "🫡"
-                ];
-
-                await react(
-                    message,
-                    pick(reactions)
-                );
-            }
-
-            // =================================================
-            // MENÇÃO AO ZUNO PELO NOME
-            // =================================================
-
-            if (
-                saysZuno &&
-                chance(0.35)
-            ) {
-
-                if (!hasCooldown(userId, "name")) {
-
-                    setCooldown(
-                        userId,
-                        "name",
-                        8000
-                    );
-
-                    await reply(
-                        message,
-                        pick([
-                            "Você falou meu nome? 👀",
-
-                            "Ouvi Zuno. O que aconteceu?",
-
-                            "Meu nome foi invocado.",
-
-                            "Chamaram a entidade novamente. 😂",
-
-                            "Estou aqui."
-                        ])
-                    );
-
-                    return;
-                }
-            }
-
-            // =================================================
-            // FRASES BASEADAS NO HUMOR
-            // =================================================
-
-            if (
-                chance(0.003) &&
-                !channelOnCooldown(message.channel.id)
-            ) {
-
-                setChannelCooldown(
-                    message.channel.id,
-                    CONFIG.espontaneoCooldown
-                );
-
-                const moodMessages = {
-
-                    normal: spontaneousMessages,
-
-                    zoeiro: [
-                        ...spontaneousMessages,
-                        "Quem aqui está pronto para tomar decisões ruins?",
-                        "Eu tenho uma fofoca que nem existe.",
-                        "Alguém falou caos?"
-                    ],
-
-                    caotico: [
-                        "ATENÇÃO. O CAOS FOI LIBERADO.",
-                        "Eu sinto que alguma coisa vai dar errado.",
-                        "Quem apertou o botão do caos?",
-                        "Isso está quieto demais. Vou resolver.",
-                        "🌪️🌪️🌪️"
-                    ],
-
-                    misterioso: [
-                        "Eu sei de coisas que vocês não sabem.",
-                        "Alguém aqui está sendo observado. 👀",
-                        "Interessante...",
-                        "Não façam perguntas.",
-                        "O servidor tem segredos."
-                    ],
-
-                    fofo: [
-                        "Só passando para dizer que vocês são legais. ❤️",
-                        "Momento carinho do Zuno.",
-                        "Espero que todo mundo esteja bem. 🥹",
-                        "Abraço coletivo. 🤝"
-                    ],
-
-                    dramatico: [
-                        "Ninguém entende o peso de ser Zuno.",
-                        "Minha existência digital é uma tragédia.",
-                        "Estou cansado de ser incompreendido. 😭",
-                        "Que vida difícil..."
-                    ],
-
-                    provocador: [
-                        "Eu estava quieto, mas alguém aqui merece uma provocação.",
-                        "Vocês são muito fáceis de provocar.",
-                        "Estou esperando alguém me desafiar.",
-                        "Quem vai ser o primeiro a perder uma discussão?"
-                    ]
-                };
-
-                await message.channel.send(
-                    pick(moodMessages[mood])
-                );
-            }
-
-        } catch (error) {
-
-            console.log(
-                "Erro no sistema de interações do Zuno:",
-                error
+            return await handleGame(
+                message,
+                text
             );
         }
-    });
 
-    // =========================================================
-    // AVISO DE INICIALIZAÇÃO
-    // =========================================================
 
-    console.log("🤖 Sistema de interações do Zuno carregado.");
+        return false;
+    }
+
+
+    /*
+    =======================================================
+                        CARA OU COROA
+    =======================================================
+    */
+
+    async function coinGame(message) {
+
+        const result = chance(0.5)
+            ? "🪙 **Cara!**"
+            : "🪙 **Coroa!**";
+
+        await reply(
+            message,
+            `${result}`
+        );
+
+        increaseFriendship(message, 1);
+
+        return true;
+    }
+
+
+    /*
+    =======================================================
+                  PEDRA PAPEL TESOURA
+    =======================================================
+    */
+
+    const RPS = {
+
+        pedra: {
+
+            vence: "tesoura",
+
+            emoji: "🪨"
+
+        },
+
+        papel: {
+
+            vence: "pedra",
+
+            emoji: "📄"
+
+        },
+
+        tesoura: {
+
+            vence: "papel",
+
+            emoji: "✂️"
+
+        }
+
+    };
+
+
+    async function rpsGame(message, choice) {
+
+        let player = normalize(choice);
+
+        if (player === "pedra") {
+            player = "pedra";
+        }
+
+        else if (player === "papel") {
+            player = "papel";
+        }
+
+        else if (
+            player === "tesoura" ||
+            player === "tesoura"
+        ) {
+            player = "tesoura";
+        }
+
+        else {
+            await reply(
+                message,
+                "Escolhe `pedra`, `papel` ou `tesoura`. 😌"
+            );
+
+            return true;
+        }
+
+
+        const botChoice = pick(
+            Object.keys(RPS)
+        );
+
+
+        let result;
+
+        if (player === botChoice) {
+
+            result = "🤝 Empate!";
+
+        }
+
+        else if (
+            RPS[player].vence === botChoice
+        ) {
+
+            result = "😳 Você ganhou!";
+
+            getUser(message).wins++;
+
+            increaseFriendship(message, 2);
+
+        }
+
+        else {
+
+            result = "😈 Eu ganhei!";
+
+            getUser(message).losses++;
+
+            increaseFriendship(message, 1);
+        }
+
+
+        await reply(
+            message,
+            [
+                `Você: ${RPS[player].emoji} ${player}`,
+
+                `Zuno: ${RPS[botChoice].emoji} ${botChoice}`,
+
+                "",
+
+                result
+
+            ].join("\n")
+        );
+
+        return true;
+    }
+
+
+    /*
+    =======================================================
+                           DUELO
+    =======================================================
+    */
+
+    const DUEL_MOVES = {
+
+        espada: {
+
+            emoji: "⚔️",
+
+            name: "Espada"
+
+        },
+
+        fogo: {
+
+            emoji: "🔥",
+
+            name: "Fogo"
+
+        },
+
+        escudo: {
+
+            emoji: "🛡️",
+
+            name: "Escudo"
+
+        },
+
+        magia: {
+
+            emoji: "✨",
+
+            name: "Magia"
+
+        },
+
+        caos: {
+
+            emoji: "🌀",
+
+            name: "Caos"
+
+        }
+
+    };
+
+
+    function duelKey(message) {
+
+        return `${message.guild?.id || "dm"}:${message.author.id}`;
+    }
+
+
+    async function startDuel(message) {
+
+        const key = duelKey(message);
+
+        if (duels.has(key)) {
+
+            await reply(
+                message,
+                "Você já está em um duelo comigo. Não tenta fugir. 😈"
+            );
+
+            return true;
+        }
+
+
+        const duel = {
+
+            userId: message.author.id,
+
+            round: 0,
+
+            userScore: 0,
+
+            zunoScore: 0,
+
+            expires: Date.now() + CONFIG.duelTimeout
+
+        };
+
+
+        duels.set(key, duel);
+
+        getUser(message).duels++;
+
+        setConversation(
+            message,
+            "fight",
+            {}
+        );
+
+
+        await reply(
+            message,
+            [
+                "⚔️ **DUELO CONTRA O ZUNO**",
+
+                "",
+
+                "Escolha seu golpe:",
+
+                "⚔️ `espada`",
+
+                "🔥 `fogo`",
+
+                "🛡️ `escudo`",
+
+                "✨ `magia`",
+
+                "🌀 `caos`",
+
+                "",
+
+                "Serão 3 rodadas. Boa sorte. 😈"
+
+            ].join("\n")
+        );
+
+        return true;
+    }
+
+
+    async function duelRound(message, move) {
+
+        const key = duelKey(message);
+
+        const duel = duels.get(key);
+
+        if (!duel) {
+            return false;
+        }
+
+
+        if (duel.expires < Date.now()) {
+
+            duels.delete(key);
+
+            await reply(
+                message,
+                "⏰ O duelo expirou. Você demorou tanto que eu fui tomar café."
+            );
+
+            return true;
+        }
+
+
+        const normalized = normalize(move);
+
+        if (!DUEL_MOVES[normalized]) {
+
+            await reply(
+                message,
+                "Esse golpe não existe. Escolhe: `espada`, `fogo`, `escudo`, `magia` ou `caos`."
+            );
+
+            return true;
+        }
+
+
+        const zunoMove = pick(
+            Object.keys(DUEL_MOVES)
+        );
+
+
+        duel.round++;
+
+
+        let userPoints = 0;
+
+        let zunoPoints = 0;
+
+
+        /*
+        -----------------------------------------------
+                      REGRAS DO DUELO
+        -----------------------------------------------
+        */
+
+        if (normalized === zunoMove) {
+
+            userPoints = 1;
+
+            zunoPoints = 1;
+
+        }
+
+        else if (normalized === "caos") {
+
+            if (chance(0.55)) {
+
+                userPoints = 2;
+
+            } else {
+
+                zunoPoints = 2;
+
+            }
+
+        }
+
+        else if (zunoMove === "caos") {
+
+            if (chance(0.55)) {
+
+                zunoPoints = 2;
+
+            } else {
+
+                userPoints = 2;
+
+            }
+
+        }
+
+        else {
+
+            const winMap = {
+
+                espada: "magia",
+
+                magia: "escudo",
+
+                escudo: "fogo",
+
+                fogo: "espada"
+
+            };
+
+
+            if (
+                winMap[normalized] === zunoMove
+            ) {
+
+                userPoints = 1;
+
+            }
+
+            else if (
+                winMap[zunoMove] === normalized
+            ) {
+
+                zunoPoints = 1;
+
+            }
+
+            else {
+
+                userPoints = 1;
+
+                zunoPoints = 1;
+            }
+        }
+
+
+        duel.userScore += userPoints;
+
+        duel.zunoScore += zunoPoints;
+
+
+        const userMove = DUEL_MOVES[normalized];
+
+        const zMove = DUEL_MOVES[zunoMove];
+
+
+        let roundText;
+
+
+        if (userPoints > zunoPoints) {
+
+            roundText = "🔥 Você venceu a rodada!";
+
+        }
+
+        else if (zunoPoints > userPoints) {
+
+            roundText = "😈 Eu venci a rodada!";
+
+        }
+
+        else {
+
+            roundText = "🤝 Empate!";
+        }
+
+
+        await reply(
+            message,
+            [
+                `⚔️ **Rodada ${duel.round}/3**`,
+
+                "",
+
+                `${userMove.emoji} Você: **${userMove.name}**`,
+
+                `${zMove.emoji} Zuno: **${zMove.name}**`,
+
+                "",
+
+                roundText,
+
+                "",
+
+                `Placar: ${duel.userScore} x ${duel.zunoScore}`
+
+            ].join("\n")
+        );
+
+
+        if (duel.round >= 3) {
+
+            await finishDuel(message, duel);
+        }
+
+
+        return true;
+    }
+
+
+    async function finishDuel(message, duel) {
+
+        const key = duelKey(message);
+
+        duels.delete(key);
+
+        clearConversation(message);
+
+
+        if (duel.userScore > duel.zunoScore) {
+
+            getUser(message).wins++;
+
+            increaseFriendship(message, 5);
+
+            await reply(
+                message,
+                "🏆 **Você venceu o duelo!** Tá bom... dessa vez eu deixo. 😭"
+            );
+
+            return;
+        }
+
+
+        if (duel.userScore < duel.zunoScore) {
+
+            getUser(message).losses++;
+
+            increaseFriendship(message, 2);
+
+            await reply(
+                message,
+                "😈 **EU VENCI!** Pode tentar de novo quando estiver preparado."
+            );
+
+            return;
+        }
+
+
+        await reply(
+            message,
+            "🤝 **Empate!** Ninguém ganhou. Eu considero isso uma fuga sua. 😂"
+        );
+    }
+
+
+    /*
+    =======================================================
+                        SISTEMA DE JOGOS
+    =======================================================
+    */
+
+    async function handleGame(message, text) {
+
+        const normalized = normalize(text);
+
+
+        if (
+            hasPhrase(normalized, "cara ou coroa") ||
+            normalized === "cara" ||
+            normalized === "coroa"
+        ) {
+
+            clearConversation(message);
+
+            return await coinGame(message);
+        }
+
+
+        if (
+            hasPhrase(normalized, "pedra papel tesoura") ||
+            normalized === "ppt"
+        ) {
+
+            await reply(
+                message,
+                "Escolha sua arma: `pedra`, `papel` ou `tesoura`."
+            );
+
+            setConversation(
+                message,
+                "rps"
+            );
+
+            return true;
+        }
+
+
+        if (
+            ["pedra", "papel", "tesoura"].includes(normalized)
+        ) {
+
+            clearConversation(message);
+
+            return await rpsGame(
+                message,
+                normalized
+            );
+        }
+
+
+        if (
+            normalized === "duelo" ||
+            hasPhrase(normalized, "bora duelo") ||
+            hasPhrase(normalized, "quero duelo")
+        ) {
+
+            clearConversation(message);
+
+            return await startDuel(message);
+        }
+
+
+        if (
+            hasPhrase(normalized, "jogar")
+        ) {
+
+            await reply(
+                message,
+                "Bora. Escolhe: `cara ou coroa`, `ppt` ou `duelo`. 😈"
+            );
+
+            setConversation(
+                message,
+                "gameChoice"
+            );
+
+            return true;
+        }
+
+
+        return false;
+    }
+
+
+    /*
+    =======================================================
+                   MENSAGENS DE SLEEP
+    =======================================================
+    */
+
+    async function handleSleep(message) {
+
+        await reply(
+            message,
+            pick([
+
+                `Boa noite, ${getMemberName(message)}. 🌙`,
+
+                "Vai descansar. Amanhã você volta para causar mais.",
+
+                "Boa noite! Dorme bem. 💙",
+
+                "Até amanhã, criatura.",
+
+                "Vai dormir antes que eu tenha que te expulsar para a cama. 😂",
+
+                "Boa noite! Que seus sonhos sejam tranquilos.",
+
+                "Descansa. O servidor continua aqui.",
+
+                "Boa noiteee! 🌙✨"
+
+            ])
+        );
+
+        increaseFriendship(message, 1);
+    }
+
+
+    /*
+    =======================================================
+                    MENSAGENS SÉRIAS
+    =======================================================
+    */
+
+    const SERIOUS_PHRASES = [
+
+        "nao quero mais viver",
+
+        "não quero mais viver",
+
+        "quero morrer",
+
+        "vou me matar",
+
+        "me matar",
+
+        "acabar com tudo",
+
+        "nao aguento mais",
+
+        "não aguento mais",
+
+        "nao vejo sentido",
+
+        "não vejo sentido",
+
+        "quero sumir"
+
+    ];
+
+
+    function isSerious(text) {
+
+        return hasAnyPhrase(
+            text,
+            SERIOUS_PHRASES
+        );
+    }
+
+
+    async function handleSerious(message) {
+
+        await reply(
+            message,
+            [
+                "Ei. Vou levar isso a sério, sem brincadeira.",
+
+                "Se você estiver em perigo imediato ou pensando em se machucar, procure ajuda de emergência ou alguém de confiança agora.",
+
+                "Se estiver no Brasil, você também pode ligar para o CVV pelo **188**, gratuitamente.",
+
+                "Se quiser, pode continuar falando comigo aqui também."
+            ].join("\n")
+        );
+
+        setConversation(
+            message,
+            "sad"
+        );
+
+        increaseFriendship(message, 2);
+    }
+
+
+    /*
+    =======================================================
+                      PERGUNTAS SOBRE ZUNO
+    =======================================================
+    */
+
+    async function handleAbout(message) {
+
+        await reply(
+            message,
+            freshPick(
+                ABOUT,
+                message.author.id
+            )
+        );
+
+        setConversation(
+            message,
+            "general"
+        );
+    }
+
+
+    async function handleAI(message) {
+
+        await reply(
+            message,
+            freshPick(
+                AI_RESPONSES,
+                message.author.id
+            )
+        );
+    }
+
+
+    /*
+    =======================================================
+                    MENÇÕES DIRETAS
+    =======================================================
+    */
+
+    async function handleMention(message, text) {
+
+        const name = getMemberName(message);
+
+        const responses = [
+
+            `Opa, ${name}? 👀`,
+
+            "Chamou?",
+
+            "Estou aqui.",
+
+            "Diga.",
+
+            "Sim?",
+
+            "O Zuno está ouvindo. 🐺",
+
+            "Fala comigo.",
+
+            "Que foi? 😂",
+
+            "Estou presente.",
+
+            "Chamou a entidade errada. Agora aguenta. 😈",
+
+            "Eu ouvi meu nome.",
+
+            "Pode falar.",
+
+            "Opa! O que aconteceu?",
+
+            "Sim, humano?",
+
+            "Você chamou e eu apareci. ✨"
+
+        ];
+
+
+        if (
+            hasAnyPhrase(text, [
+                "onde",
+
+                "cadê",
+
+                "cade"
+            ])
+        ) {
+
+            await reply(
+                message,
+                "Estou aqui. Você acabou de me encontrar. 👀"
+            );
+
+            return;
+        }
+
+
+        await reply(
+            message,
+            freshPick(
+                responses,
+                message.author.id
+            )
+        );
+
+        getUser(message).interactions++;
+
+        increaseFriendship(message, 1);
+    }
+
+
+    /*
+    =======================================================
+                     SISTEMA DE ZOEIRA
+    =======================================================
+    */
+
+    async function handleProvocation(message) {
+
+        const user = getUser(message);
+
+        user.provocations++;
+
+        increaseFriendship(message, -1);
+
+
+        await reply(
+            message,
+            freshPick(
+                PROVOCATIONS,
+                message.author.id
+            ),
+            {
+                context: "fight"
+            }
+        );
+
+
+        if (chance(0.30)) {
+
+            await reply(
+                message,
+                "Se quiser resolver isso de verdade, manda `duelo`. ⚔️"
+            );
+        }
+    }
+
+
+    async function handleInsult(message) {
+
+        getUser(message).provocations++;
+
+        increaseFriendship(message, -1);
+
+
+        await reply(
+            message,
+            freshPick(
+                INSULTS,
+                message.author.id
+            )
+        );
+
+
+        if (chance(0.20)) {
+
+            await reply(
+                message,
+                "Agora minha vontade de ganhar um duelo aumentou. 😈"
+            );
+        }
+    }
+
+
+    async function handleShutup(message) {
+
+        await reply(
+            message,
+            freshPick(
+                SHUTUP,
+                message.author.id
+            )
+        );
+    }
+
+
+    /*
+    =======================================================
+                       RISADA
+    =======================================================
+    */
+
+    async function handleLaugh(message) {
+
+        const user = getUser(message);
+
+        user.laughs++;
+
+        if (chance(0.25)) {
+
+            await reply(
+                message,
+                freshPick(
+                    LAUGHS,
+                    message.author.id
+                )
+            );
+        }
+    }
+
+
+    /*
+    =======================================================
+                     ELOGIOS
+    =======================================================
+    */
+
+    async function handleCompliment(message) {
+
+        const user = getUser(message);
+
+        user.compliments++;
+
+        increaseFriendship(message, 2);
+
+
+        await reply(
+            message,
+            freshPick(
+                COMPLIMENTS,
+                message.author.id
+            ),
+            {
+                context: "compliment"
+            }
+        );
+    }
+
+
+    /*
+    =======================================================
+                       CARINHO
+    =======================================================
+    */
+
+    async function handleAffection(message) {
+
+        getUser(message).affection++;
+
+        increaseFriendship(message, 3);
+
+
+        await reply(
+            message,
+            freshPick(
+                AFFECTION,
+                message.author.id
+            )
+        );
+    }
+
+
+    /*
+    =======================================================
+                      TRISTEZA
+    =======================================================
+    */
+
+    async function handleSad(message) {
+
+        getUser(message).mood = "triste";
+
+        await reply(
+            message,
+            freshPick(
+                SADNESS,
+                message.author.id
+            ),
+            {
+                context: "sad"
+            }
+        );
+    }
+
+
+    /*
+    =======================================================
+                         TÉDIO
+    =======================================================
+    */
+
+    async function handleBored(message) {
+
+        await reply(
+            message,
+            freshPick(
+                BORED,
+                message.author.id
+            ),
+            {
+                context: "bored"
+            }
+        );
+    }
+
+
+    /*
+    =======================================================
+                     SAUDAÇÕES
+    =======================================================
+    */
+
+    async function handleGreeting(message, text) {
+
+        const type = greetingType(text);
+
+        const name = getMemberName(message);
+
+        let pool = GREETINGS;
+
+        if (type === "morning") {
+
+            pool = MORNING;
+
+        }
+
+        else if (type === "afternoon") {
+
+            pool = AFTERNOON;
+
+        }
+
+        else if (type === "night") {
+
+            pool = NIGHT;
+        }
+
+
+        let response = freshPick(
+            pool,
+            message.author.id
+        );
+
+
+        response = response.replace(
+            "{name}",
+            name
+        );
+
+
+        await reply(
+            message,
+            response
+        );
+
+
+        getUser(message).greetings++;
+
+        increaseFriendship(message, 1);
+    }
+
+
+    /*
+    =======================================================
+                       AGRADECIMENTO
+    =======================================================
+    */
+
+    async function handleThanks(message) {
+
+        let response = freshPick(
+            THANKS,
+            message.author.id
+        );
+
+        response = response.replace(
+            "{name}",
+            getMemberName(message)
+        );
+
+
+        await reply(
+            message,
+            response
+        );
+
+        increaseFriendship(message, 1);
+    }
+
+
+    /*
+    =======================================================
+                  DETECTOR DE TEMPO
+    =======================================================
+    */
+
+    function getTimeGreeting() {
+
+        const hour = new Date().getHours();
+
+        if (hour >= 5 && hour < 12) {
+            return "morning";
+        }
+
+        if (hour >= 12 && hour < 18) {
+            return "afternoon";
+        }
+
+        if (hour >= 18 || hour < 5) {
+            return "night";
+        }
+
+        return "general";
+    }
+
+
+    /*
+    =======================================================
+                 RESPOSTAS CONTEXTUAIS
+    =======================================================
+    */
+
+    async function handleContextualMessage(message, text) {
+
+        const normalized = normalize(text);
+
+        /*
+        -----------------------------------------------
+                  PERGUNTAS CURTAS
+        -----------------------------------------------
+        */
+
+        if (
+            isQuestion(normalized) &&
+            isDirectlyAddressed(message, normalized)
+        ) {
+
+            await reply(
+                message,
+                freshPick(
+                    QUESTION_RESPONSES,
+                    message.author.id
+                )
+            );
+
+            setConversation(
+                message,
+                "general"
+            );
+
+            return true;
+        }
+
+
+        /*
+        -----------------------------------------------
+                  ESCOLHA / OPINIÃO
+        -----------------------------------------------
+        */
+
+        if (
+            isDirectlyAddressed(message, normalized) &&
+            hasAnyPhrase(normalized, [
+                "escolhe",
+
+                "qual voce prefere",
+
+                "qual você prefere",
+
+                "o que voce acha",
+
+                "o que você acha",
+
+                "qual sua opiniao",
+
+                "qual sua opinião"
+            ])
+        ) {
+
+            const answers = [
+
+                "Eu escolheria a opção mais caótica. Obviamente. 😈",
+
+                "Depende... me dá as opções.",
+
+                "A primeira parece suspeitamente interessante.",
+
+                "Eu escolheria a que tem maior potencial de confusão.",
+
+                "Você quer minha opinião sincera ou a divertida? 😂",
+
+                "Me apresenta as opções que eu decido."
+
+            ];
+
+
+            await reply(
+                message,
+                pick(answers)
+            );
+
+            return true;
+        }
+
+
+        /*
+        -----------------------------------------------
+                     PERGUNTAS SOBRE O DIA
+        -----------------------------------------------
+        */
+
+        if (
+            isDirectlyAddressed(message, normalized) &&
+            hasAnyPhrase(normalized, [
+                "como voce esta",
+
+                "como você está",
+
+                "como vc esta",
+
+                "como vc tá",
+
+                "como vc ta",
+
+                "tudo bem",
+
+                "ta tudo bem",
+
+                "tá tudo bem"
+            ])
+        ) {
+
+            await reply(
+                message,
+                pick([
+
+                    "Estou ótimo. Pronto para causar. 😈",
+
+                    "Estou bem! Melhor agora que você apareceu.",
+
+                    "Funcionando perfeitamente... por enquanto.",
+
+                    "Estou tranquilo. E você?",
+
+                    "100% operacional e 73% caótico.",
+
+                    "Estou bem. Minha pergunta é: e você?"
+
+                ])
+            );
+
+            setConversation(
+                message,
+                "general"
+            );
+
+            return true;
+        }
+
+
+        return false;
+    }
+
+
+    /*
+    =======================================================
+                     PROCESSAMENTO PRINCIPAL
+    =======================================================
+    */
+
+    async function handleMessage(message) {
+
+        if (!message) {
+            return;
+        }
+
+        if (message.author?.bot) {
+            return;
+        }
+
+        if (!message.guild) {
+            return;
+        }
+
+
+        const text = String(
+            message.content || ""
+        ).trim();
+
+
+        if (!text) {
+            return;
+        }
+
+
+        const normalized = normalize(text);
+
+        const user = getUser(message);
+
+        user.messages++;
+
+        user.lastMessage = Date.now();
+
+
+        /*
+        ---------------------------------------------------
+                    CONVERSA ATIVA PRIMEIRO
+        ---------------------------------------------------
+        */
+
+        if (
+            !userOnCooldown(message)
+        ) {
+
+            if (
+                await handleConversation(
+                    message,
+                    normalized
+                )
+            ) {
+
+                setUserCooldown(message);
+
+                return;
+            }
+        }
+
+
+        /*
+        ---------------------------------------------------
+                    DUELO ATIVO
+        ---------------------------------------------------
+        */
+
+        if (
+            duels.has(duelKey(message))
+        ) {
+
+            if (
+                DUEL_MOVES[normalized]
+            ) {
+
+                await duelRound(
+                    message,
+                    normalized
+                );
+
+                setUserCooldown(message);
+
+                return;
+            }
+        }
+
+
+        /*
+        ---------------------------------------------------
+                    JOGO RPS ATIVO
+        ---------------------------------------------------
+        */
+
+        const conversation = getConversation(message);
+
+        if (
+            conversation?.topic === "rps" &&
+            ["pedra", "papel", "tesoura"].includes(normalized)
+        ) {
+
+            clearConversation(message);
+
+            await rpsGame(
+                message,
+                normalized
+            );
+
+            setUserCooldown(message);
+
+            return;
+        }
+
+
+        /*
+        ---------------------------------------------------
+                       FRASES SÉRIAS
+        ---------------------------------------------------
+        */
+
+        if (isSerious(normalized)) {
+
+            await handleSerious(message);
+
+            setUserCooldown(message);
+
+            return;
+        }
+
+
+        /*
+        ---------------------------------------------------
+                       MENÇÃO DIRETA
+        ---------------------------------------------------
+        */
+
+        const direct = isDirectlyAddressed(
+            message,
+            normalized
+        );
+
+
+        if (
+            direct
+        ) {
+
+            if (isAboutAI(normalized)) {
+
+                await handleAI(message);
+
+                setUserCooldown(message);
+
+                return;
+            }
+
+
+            if (isAboutZuno(normalized)) {
+
+                await handleAbout(message);
+
+                setUserCooldown(message);
+
+                return;
+            }
+
+
+            if (isProvocation(normalized)) {
+
+                await handleProvocation(message);
+
+                setUserCooldown(message);
+
+                return;
+            }
+
+
+            if (isInsult(normalized)) {
+
+                await handleInsult(message);
+
+                setUserCooldown(message);
+
+                return;
+            }
+
+
+            if (isShutup(normalized)) {
+
+                await handleShutup(message);
+
+                setUserCooldown(message);
+
+                return;
+            }
+
+
+            if (isAffection(normalized)) {
+
+                await handleAffection(message);
+
+                setUserCooldown(message);
+
+                return;
+            }
+
+
+            if (isCompliment(normalized)) {
+
+                await handleCompliment(message);
+
+                setUserCooldown(message);
+
+                return;
+            }
+
+
+            if (isThanks(normalized)) {
+
+                await handleThanks(message);
+
+                setUserCooldown(message);
+
+                return;
+            }
+
+
+            if (isBored(normalized)) {
+
+                await handleBored(message);
+
+                setUserCooldown(message);
+
+                return;
+            }
+
+
+            if (isSad(normalized)) {
+
+                await handleSad(message);
+
+                setUserCooldown(message);
+
+                return;
+            }
+
+
+            if (isChallenge(normalized)) {
+
+                await handleGame(
+                    message,
+                    normalized
+                );
+
+                setUserCooldown(message);
+
+                return;
+            }
+
+
+            if (isGreeting(normalized)) {
+
+                await handleGreeting(
+                    message,
+                    normalized
+                );
+
+                setUserCooldown(message);
+
+                return;
+            }
+
+
+            if (
+                await handleContextualMessage(
+                    message,
+                    normalized
+                )
+            ) {
+
+                setUserCooldown(message);
+
+                return;
+            }
+
+
+            await handleMention(
+                message,
+                normalized
+            );
+
+            setUserCooldown(message);
+
+            return;
+        }
+
+
+        /*
+        ---------------------------------------------------
+                 SAUDAÇÃO SEM MENCIONAR ZUNO
+        ---------------------------------------------------
+        */
+
+        if (
+            isGreeting(normalized) &&
+            shortMessage(normalized)
+        ) {
+
+            await handleGreeting(
+                message,
+                normalized
+            );
+
+            setUserCooldown(message);
+
+            return;
+        }
+
+
+        /*
+        ---------------------------------------------------
+                       AGRADECIMENTO
+        ---------------------------------------------------
+        */
+
+        if (
+            isThanks(normalized) &&
+            shortMessage(normalized)
+        ) {
+
+            await handleThanks(message);
+
+            setUserCooldown(message);
+
+            return;
+        }
+
+
+        /*
+        ---------------------------------------------------
+                         CARINHO
+        ---------------------------------------------------
+        */
+
+        if (
+            isAffection(normalized)
+        ) {
+
+            await handleAffection(message);
+
+            setUserCooldown(message);
+
+            return;
+        }
+
+
+        /*
+        ---------------------------------------------------
+                       ELOGIO
+        ---------------------------------------------------
+        */
+
+        if (
+            isCompliment(normalized)
+        ) {
+
+            await handleCompliment(message);
+
+            setUserCooldown(message);
+
+            return;
+        }
+
+
+        /*
+        ---------------------------------------------------
+                        TRISTEZA
+        ---------------------------------------------------
+        */
+
+        if (
+            isSad(normalized)
+        ) {
+
+            await handleSad(message);
+
+            setUserCooldown(message);
+
+            return;
+        }
+
+
+        /*
+        ---------------------------------------------------
+                          TÉDIO
+        ---------------------------------------------------
+        */
+
+        if (
+            isBored(normalized)
+        ) {
+
+            await handleBored(message);
+
+            setUserCooldown(message);
+
+            return;
+        }
+
+
+        /*
+        ---------------------------------------------------
+                         DORMIR
+        ---------------------------------------------------
+        */
+
+        if (
+            isSleep(normalized) &&
+            shortMessage(normalized)
+        ) {
+
+            await handleSleep(message);
+
+            setUserCooldown(message);
+
+            return;
+        }
+
+
+        /*
+        ---------------------------------------------------
+                         PROVOCAÇÃO
+        ---------------------------------------------------
+        */
+
+        if (
+            isProvocation(normalized)
+        ) {
+
+            /*
+            Só responde provocação sem menção
+            quando a mensagem é claramente dirigida
+            ao Zuno pelo contexto.
+            */
+
+            if (
+                shortMessage(normalized)
+            ) {
+
+                await handleProvocation(message);
+
+                setUserCooldown(message);
+
+                return;
+            }
+        }
+
+
+        /*
+        ---------------------------------------------------
+                          INSULTO
+        ---------------------------------------------------
+        */
+
+        if (
+            isInsult(normalized) &&
+            shortMessage(normalized)
+        ) {
+
+            /*
+            Não responde a qualquer frase que contenha
+            uma palavra potencialmente ofensiva.
+            */
+
+            if (
+                normalized.startsWith("zuno") ||
+                normalized.length < 25
+            ) {
+
+                await handleInsult(message);
+
+                setUserCooldown(message);
+
+                return;
+            }
+        }
+
+
+        /*
+        ---------------------------------------------------
+                          CALA A BOCA
+        ---------------------------------------------------
+        */
+
+        if (
+            isShutup(normalized)
+        ) {
+
+            await handleShutup(message);
+
+            setUserCooldown(message);
+
+            return;
+        }
+
+
+        /*
+        ---------------------------------------------------
+                           RISADAS
+        ---------------------------------------------------
+        */
+
+        if (
+            isLaugh(normalized)
+        ) {
+
+            await handleLaugh(message);
+
+            return;
+        }
+
+
+        /*
+        ---------------------------------------------------
+                     CONTEXTO NATURAL
+        ---------------------------------------------------
+        */
+
+        if (
+            await handleContextualMessage(
+                message,
+                normalized
+            )
+        ) {
+
+            setUserCooldown(message);
+
+            return;
+        }
+
+
+        /*
+        ---------------------------------------------------
+                  MENSAGEM ESPONTÂNEA
+        ---------------------------------------------------
+
+        SOMENTE NO CANAL PRINCIPAL.
+
+        */
+
+        await spontaneousCheck(
+            message
+        );
+
+
+        /*
+        ---------------------------------------------------
+                         REAÇÃO
+        ---------------------------------------------------
+        */
+
+        await reactionCheck(
+            message,
+            normalized
+        );
+    }
+
+
+    /*
+    =======================================================
+                  MENSAGENS ESPONTÂNEAS
+    =======================================================
+    */
+
+    async function spontaneousCheck(message) {
+
+        if (
+            message.channel.id !== CONFIG.mainChannelId
+        ) {
+
+            return;
+        }
+
+
+        if (
+            channelOnCooldown(
+                message.channel.id
+            )
+        ) {
+
+            return;
+        }
+
+
+        if (
+            !chance(
+                CONFIG.spontaneousChance
+            )
+        ) {
+
+            return;
+        }
+
+
+        const mood = getMood(message);
+
+        const pool =
+            SPONTANEOUS[mood] ||
+            SPONTANEOUS.normal;
+
+
+        const content = freshPick(
+            pool,
+            "zuno-spontaneous"
+        );
+
+
+        if (!content) {
+            return;
+        }
+
+
+        const sent = await send(
+            message.channel,
+            content
+        );
+
+
+        if (sent) {
+
+            setChannelCooldown(
+                message.channel.id
+            );
+        }
+    }
+
+
+    /*
+    =======================================================
+                        REAÇÕES
+    =======================================================
+    */
+
+    async function reactionCheck(message, text) {
+
+        if (
+            message.channel.id !== CONFIG.mainChannelId
+        ) {
+
+            return;
+        }
+
+
+        const last =
+            reactions.get(message.author.id) || 0;
+
+
+        if (
+            Date.now() - last <
+            CONFIG.reactionCooldown
+        ) {
+
+            return;
+        }
+
+
+        if (
+            !chance(CONFIG.reactionChance)
+        ) {
+
+            return;
+        }
+
+
+        if (
+            isLaugh(text) ||
+            isProvocation(text) ||
+            hasAnyPhrase(text, [
+                "wtf",
+                "meu deus",
+                "nao acredito",
+                "não acredito"
+            ])
+        ) {
+
+            try {
+
+                await message.react(
+                    pick(EMOJI_REACTIONS)
+                );
+
+                reactions.set(
+                    message.author.id,
+                    Date.now()
+                );
+
+            } catch {
+                // Ignora erro de permissão
+            }
+        }
+    }
+
+
+    /*
+    =======================================================
+                  EVENTOS DO DISCORD
+    =======================================================
+    */
+
+    client.on(
+        Events.GuildMemberAdd,
+        async (member) => {
+
+            try {
+
+                await welcomeMember(
+                    member
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "[ZUNO] Erro no welcome:",
+                    error.message
+                );
+            }
+        }
+    );
+
+
+    client.on(
+        Events.MessageCreate,
+        async (message) => {
+
+            try {
+
+                await handleMessage(
+                    message
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "[ZUNO] Erro no sistema de interação:",
+                    error
+                );
+            }
+        }
+    );
+
+
+    /*
+    =======================================================
+                    LIMPEZA DE MEMÓRIA
+    =======================================================
+    */
+
+    setInterval(
+        () => {
+
+            const now = Date.now();
+
+
+            /*
+            Limpa conversas expiradas
+            */
+
+            for (
+                const [key, conversation]
+                of conversations.entries()
+            ) {
+
+                if (
+                    conversation.expires < now
+                ) {
+
+                    conversations.delete(
+                        key
+                    );
+                }
+            }
+
+
+            /*
+            Limpa duelos expirados
+            */
+
+            for (
+                const [key, duel]
+                of duels.entries()
+            ) {
+
+                if (
+                    duel.expires < now
+                ) {
+
+                    duels.delete(
+                        key
+                    );
+                }
+            }
+
+
+            /*
+            Limpa cooldowns antigos
+            */
+
+            for (
+                const [id, time]
+                of cooldowns.entries()
+            ) {
+
+                if (
+                    now - time >
+                    1000 * 60 * 10
+                ) {
+
+                    cooldowns.delete(id);
+                }
+            }
+
+
+            for (
+                const [id, time]
+                of reactions.entries()
+            ) {
+
+                if (
+                    now - time >
+                    1000 * 60 * 30
+                ) {
+
+                    reactions.delete(id);
+                }
+            }
+
+
+            for (
+                const [id, time]
+                of channelCooldowns.entries()
+            ) {
+
+                if (
+                    now - time >
+                    1000 * 60 * 30
+                ) {
+
+                    channelCooldowns.delete(id);
+                }
+            }
+
+        },
+
+        1000 * 60 * 5
+    );
+
+
+    /*
+    =======================================================
+                    LOG DE INICIALIZAÇÃO
+    =======================================================
+    */
+
+    console.log(
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    );
+
+    console.log(
+        "🐺 ZUNO INTERACTIONS ATIVADO"
+    );
+
+    console.log(
+        `💬 Canal principal: ${CONFIG.mainChannelId}`
+    );
+
+    console.log(
+        "🧠 Sistema contextual: ATIVO"
+    );
+
+    console.log(
+        "😂 Sistema de zoeira: ATIVO"
+    );
+
+    console.log(
+        "⚔️ Sistema de duelo: ATIVO"
+    );
+
+    console.log(
+        "🎮 Mini-jogos: ATIVOS"
+    );
+
+    console.log(
+        "👋 Boas-vindas: ATIVAS"
+    );
+
+    console.log(
+        "🌙 Mensagens espontâneas: ATIVAS"
+    );
+
+    console.log(
+        "🔁 Anti-repetição: ATIVO"
+    );
+
+    console.log(
+        "🛡️ Filtro contextual: ATIVO"
+    );
+
+    console.log(
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    );
 };
