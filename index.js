@@ -268,6 +268,8 @@ require('./ticketparceria')(client);
 
 require("./interactions")(client);
 
+require("./rpg_batalhas")(client);
+
 console.log("VAI FAZER LOGIN");
 
 
