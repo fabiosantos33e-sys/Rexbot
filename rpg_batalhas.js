@@ -1,589 +1,369 @@
 // ================================================================
-// BOT RPG MUNDO ABERTO - VERSÃO COMPLETA CORRIGIDA
-// Autor: Dola
-// Versão: 3.1.0 CORRIGIDA
-// Adm ID: 1053803800340746261
-// Comandos: ,comando (não barra)
+// RPG BATALHAS - MUNDO ABERTO
+// VERSÃO NOVA - BATALHA SOLO NARRADA POR TURNOS
 // ================================================================
 
-const Discord = require('discord.js');
 const {
-    Client,
-    GatewayIntentBits,
-    Collection,
     EmbedBuilder,
     ActionRowBuilder,
     ButtonBuilder,
-    ButtonStyle,
-    ModalBuilder,
-    TextInputBuilder,
-    TextInputStyle,
-    PermissionsBitField
-} = require('discord.js');
+    ButtonStyle
+} = require("discord.js");
 
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
+const fs = require("fs");
+const path = require("path");
 
 // ================================================================
-// CONFIGURAÇÕES GERAIS
+// CONFIGURAÇÕES
 // ================================================================
 
-const ADM_ID = '1053803800340746261';
-const PREFIX = ',';
+const PREFIX = ",";
+const ADM_ID = "1053803800340746261";
+
 const MAX_LEVEL = 300;
-const DATA_DIR = path.join(__dirname, 'dados_rpg');
+
+const DATA_DIR = path.join(__dirname, "dados_rpg");
 
 if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
+const PLAYERS_FILE = path.join(DATA_DIR, "jogadores.json");
+
 let client = null;
 let inicializado = false;
-const sessoesCombate = new Map();
 
 // ================================================================
-// BANCO DE DADOS SIMPLES
+// BANCO DE DADOS
 // ================================================================
 
-class Database {
-    constructor() {
-        this.players = {};
-        this.monsters = {};
-        this.dungeons = {};
-        this.loadAll();
-    }
+function carregarJSON(arquivo, padrao) {
+    try {
+        if (!fs.existsSync(arquivo)) {
+            fs.writeFileSync(
+                arquivo,
+                JSON.stringify(padrao, null, 2)
+            );
 
-    loadAll() {
-        try {
-            if (fs.existsSync(path.join(DATA_DIR, 'jogadores.json'))) {
-                this.players = JSON.parse(
-                    fs.readFileSync(
-                        path.join(DATA_DIR, 'jogadores.json'),
-                        'utf8'
-                    )
-                );
-            }
-
-            if (fs.existsSync(path.join(DATA_DIR, 'monstros.json'))) {
-                this.monsters = JSON.parse(
-                    fs.readFileSync(
-                        path.join(DATA_DIR, 'monstros.json'),
-                        'utf8'
-                    )
-                );
-            }
-
-            if (fs.existsSync(path.join(DATA_DIR, 'masmorras.json'))) {
-                this.dungeons = JSON.parse(
-                    fs.readFileSync(
-                        path.join(DATA_DIR, 'masmorras.json'),
-                        'utf8'
-                    )
-                );
-            }
-        } catch (e) {
-            console.log('[DB] Erro ao carregar dados:', e.message);
-        }
-    }
-
-    saveAll() {
-        fs.writeFileSync(
-            path.join(DATA_DIR, 'jogadores.json'),
-            JSON.stringify(this.players, null, 2)
-        );
-
-        fs.writeFileSync(
-            path.join(DATA_DIR, 'monstros.json'),
-            JSON.stringify(this.monsters, null, 2)
-        );
-
-        fs.writeFileSync(
-            path.join(DATA_DIR, 'masmorras.json'),
-            JSON.stringify(this.dungeons, null, 2)
-        );
-    }
-
-    getPlayer(id) {
-        if (!this.players[id]) {
-            this.createPlayer(id);
+            return padrao;
         }
 
-        return this.players[id];
-    }
+        const texto = fs.readFileSync(
+            arquivo,
+            "utf8"
+        ).trim();
 
-    createPlayer(id) {
-        this.players[id] = {
-            id: id,
-            nome: '',
-            nivel: 1,
-            xp: 0,
-            xpProx: 100,
-            moedas: 100,
-            vida: 100,
-            vidaMax: 100,
-            ataque: 10,
-            defesa: 5,
-            velocidade: 5,
-            sorte: 1,
-            classe: 'Aventureiro',
-            armaAtual: null,
-            armaduraAtual: null,
-            inventario: [],
-            armas: [],
-            armaduras: [],
-            missoes: [],
-            conquistas: [],
-            ultimoTreino: 0,
-            ultimaCaca: 0,
-            ultimaExploracao: 0,
-            mapaAtual: 'Floresta Inicial',
-            tempoJogado: 0,
-            expiracaoConta: null,
-            ultimoLogin: Date.now()
-        };
+        if (!texto) {
+            fs.writeFileSync(
+                arquivo,
+                JSON.stringify(padrao, null, 2)
+            );
 
-        return this.players[id];
-    }
-
-    savePlayer(id) {
-        if (this.players[id]) {
-            this.players[id].ultimoLogin = Date.now();
-            this.saveAll();
+            return padrao;
         }
+
+        return JSON.parse(texto);
+
+    } catch (erro) {
+        console.error(
+            "[RPG] Erro carregando:",
+            arquivo,
+            erro
+        );
+
+        return padrao;
     }
 }
 
-const db = new Database();
+function salvarJSON(arquivo, dados) {
+    try {
+        fs.writeFileSync(
+            arquivo,
+            JSON.stringify(dados, null, 2)
+        );
+    } catch (erro) {
+        console.error(
+            "[RPG] Erro salvando:",
+            erro
+        );
+    }
+}
+
+const jogadores = carregarJSON(
+    PLAYERS_FILE,
+    {}
+);
 
 // ================================================================
-// SISTEMA DE RARIDADES
+// UTILIDADES
 // ================================================================
 
-const RARIDADES = {
-    COMUM: {
-        nome: 'Comum',
-        cor: '#95a5a5',
-        chance: 45,
-        multiplicador: 1
-    },
+function numero(valor, padrao = 0) {
+    const n = Number(valor);
 
-    INCOMUM: {
-        nome: 'Incomum',
-        cor: '#2ecc71',
-        chance: 25,
-        multiplicador: 1.3
-    },
+    return Number.isFinite(n)
+        ? n
+        : padrao;
+}
 
-    RARO: {
-        nome: 'Raro',
-        cor: '#3498db',
-        chance: 15,
-        multiplicador: 1.7
-    },
+function aleatorio(min, max) {
+    return Math.floor(
+        Math.random() * (max - min + 1)
+    ) + min;
+}
 
-    EPICO: {
-        nome: 'Épico',
-        cor: '#9b59b6',
-        chance: 8,
-        multiplicador: 2.2
-    },
+function chance(porcentagem) {
+    return Math.random() * 100 < porcentagem;
+}
 
-    LENDARIO: {
-        nome: 'Lendário',
-        cor: '#f39c12',
-        chance: 4,
-        multiplicador: 3
-    },
+function limitar(valor, min, max) {
+    return Math.max(
+        min,
+        Math.min(max, valor)
+    );
+}
 
-    MITICO: {
-        nome: 'Mítico',
-        cor: '#e74c3c',
-        chance: 2,
-        multiplicador: 4.5
-    },
+function formatarNumero(valor) {
+    return Number(valor || 0).toLocaleString(
+        "pt-BR"
+    );
+}
 
-    DIVINO: {
-        nome: 'Divino',
-        cor: '#ffd700',
-        chance: 1,
-        multiplicador: 6
-    },
+function barraVida(atual, maximo, tamanho = 12) {
+    maximo = Math.max(
+        1,
+        numero(maximo, 1)
+    );
 
-    PERDIDO: {
-        nome: 'Perdido',
-        cor: '#1a1a2e',
-        chance: 0.5,
-        multiplicador: 10
-    }
-};
+    atual = limitar(
+        numero(atual),
+        0,
+        maximo
+    );
 
-function getRaridadeAleatoria(sorte = 1) {
-    const ajuste = Math.min(sorte * 0.02, 0.3);
+    const quantidade = Math.round(
+        (atual / maximo) * tamanho
+    );
 
-    const rand = Math.random() * 100;
-    let acumulado = 0;
+    return (
+        "█".repeat(quantidade) +
+        "░".repeat(tamanho - quantidade)
+    );
+}
 
-    for (const [chave, r] of Object.entries(RARIDADES)) {
-        let chanceAjustada = r.chance;
-
-        if (chave !== 'COMUM') {
-            chanceAjustada += chanceAjustada * ajuste;
-        }
-
-        acumulado += chanceAjustada;
-
-        if (rand <= acumulado) {
-            return chave;
-        }
-    }
-
-    return 'COMUM';
+function xpNecessario(nivel) {
+    return Math.floor(
+        100 * Math.pow(1.18, Math.max(0, nivel - 1))
+    );
 }
 
 // ================================================================
-// SISTEMA DE ARMAS
+// CRIAÇÃO DO JOGADOR
 // ================================================================
 
-const ARMAS = {
-    ESPADAS: [
-        {
-            id: 'espada_1',
-            nome: 'Lâmina do Sol Crescente',
-            fonte: 'Original',
-            atk: 12,
-            desc: 'Brilha ao amanhecer'
-        },
-        {
-            id: 'espada_2',
-            nome: 'Espada Z',
-            fonte: 'Dragon Ball',
-            atk: 18,
-            desc: 'Empunhada por guerreiros lendários'
-        },
-        {
-            id: 'espada_3',
-            nome: 'Cortador de Aço',
-            fonte: 'One Piece',
-            atk: 22,
-            desc: 'Resistente a qualquer golpe'
-        },
-        {
-            id: 'espada_4',
-            nome: 'Lâmina Negra',
-            fonte: 'Berserk',
-            atk: 35,
-            desc: 'Aniquila a escuridão'
-        },
-        {
-            id: 'espada_5',
-            nome: 'Tessaiga',
-            fonte: 'InuYasha',
-            atk: 42,
-            desc: 'Transforma-se em lâmina de demônio'
-        },
-        {
-            id: 'espada_6',
-            nome: 'Kusanagi',
-            fonte: 'Naruto',
-            atk: 50,
-            desc: 'A espada lendária das serpentes'
-        },
-        {
-            id: 'espada_7',
-            nome: 'Excalibur',
-            fonte: 'Fate',
-            atk: 55,
-            desc: 'A espada sagrada da rainha'
-        },
-        {
-            id: 'espada_8',
-            nome: 'Lâmina de Luz',
-            fonte: 'Sword Art Online',
-            atk: 48,
-            desc: 'Brilha intensamente no campo de batalha'
-        },
-        {
-            id: 'espada_9',
-            nome: 'Enma',
-            fonte: 'One Piece',
-            atk: 60,
-            desc: 'Drena o poder do portador em troca de força'
-        },
-        {
-            id: 'espada_10',
-            nome: 'Gram',
-            fonte: 'Saga dos Volsungos',
-            atk: 65,
-            desc: 'A espada que corta tudo'
-        },
-        {
-            id: 'espada_11',
-            nome: 'Durandal',
-            fonte: 'A Lenda de Roland',
-            atk: 58,
-            desc: 'Indestrutível'
-        },
-        {
-            id: 'espada_12',
-            nome: 'Ascalon',
-            fonte: 'Dragões e Demônios',
-            atk: 70,
-            desc: 'Espada que abate dragões'
-        },
-        {
-            id: 'espada_13',
-            nome: 'Muramasa',
-            fonte: 'Anime/História',
-            atk: 75,
-            desc: 'Espada amaldiçoada que devora almas'
-        },
-        {
-            id: 'espada_14',
-            nome: 'Masamune',
-            fonte: 'Anime/História',
-            atk: 72,
-            desc: 'A obra-prima dos ferreiros lendários'
-        },
-        {
-            id: 'espada_15',
-            nome: 'Cortadora de Céus',
-            fonte: 'Naruto',
-            atk: 80,
-            desc: 'A lâmina que desafia os deuses'
-        },
-        {
-            id: 'espada_16',
-            nome: 'Gurren',
-            fonte: 'Gurren Lagann',
-            atk: 85,
-            desc: 'Perfura o céu e o destino'
-        },
-        {
-            id: 'espada_17',
-            nome: 'Lâmina do Vazio',
-            fonte: 'Guilty Crown',
-            atk: 78,
-            desc: 'Extrai a alma do inimigo'
-        },
-        {
-            id: 'espada_18',
-            nome: 'Espada do Rei',
-            fonte: 'Fate/Zero',
-            atk: 90,
-            desc: 'A espada que governa todos'
-        },
-        {
-            id: 'espada_19',
-            nome: 'Dragão Dourado',
-            fonte: 'Original',
-            atk: 88,
-            desc: 'Forjada nas chamas de um dragão ancião'
-        },
-        {
-            id: 'espada_20',
-            nome: 'Fim dos Tempos',
-            fonte: 'Final Fantasy',
-            atk: 95,
-            desc: 'A lâmina que marca o fim da era'
-        },
-        {
-            id: 'espada_21',
-            nome: 'Sombra Eterna',
-            fonte: 'Original',
-            atk: 62,
-            desc: 'Não reflete luz nenhuma'
-        },
-        {
-            id: 'espada_22',
-            nome: 'Céu e Terra',
-            fonte: 'Samurai X',
-            atk: 74,
-            desc: 'Golpe que une opostos'
-        },
-        {
-            id: 'espada_23',
-            nome: 'Blade of Olympus',
-            fonte: 'God of War',
-            atk: 92,
-            desc: 'Poder que destrói deuses'
-        },
-        {
-            id: 'espada_24',
-            nome: 'Zangetsu',
-            fonte: 'Bleach',
-            atk: 82,
-            desc: 'A verdadeira forma do portador'
-        },
-        {
-            id: 'espada_25',
-            nome: 'Todas as Coisas',
-            fonte: 'Bleach',
-            atk: 100,
-            desc: 'Conhece o céu e a terra'
-        },
-        {
-            id: 'espada_26',
-            nome: 'Lâmina do Abismo',
-            fonte: 'Original',
-            atk: 96,
-            desc: 'Vem de onde a luz não chega'
-        },
-        {
-            id: 'espada_27',
-            nome: 'Estrela da Manhã',
-            fonte: 'Original',
-            atk: 68,
-            desc: 'Anuncia a vitória'
-        },
-        {
-            id: 'espada_28',
-            nome: 'Cortadora de Destino',
-            fonte: 'Shakugan no Shana',
-            atk: 86,
-            desc: 'Altera o fio do destino'
-        },
-        {
-            id: 'espada_29',
-            nome: 'Estalagmite Sagrada',
-            fonte: 'Original',
-            atk: 71,
-            desc: 'Forjada em montanha sagrada'
-        },
-        {
-            id: 'espada_30',
-            nome: 'Supremo Juízo',
-            fonte: 'Original',
-            atk: 110,
-            desc: 'A espada mais sagrada já criada'
-        }
-    ],
+function criarJogador(user) {
+    return {
+        id: user.id,
+        nome: user.username,
 
-    FOICES: [
-        {
-            id: 'foice_1',
-            nome: 'Ceifadora de Almas',
-            fonte: 'Original',
-            atk: 14,
-            desc: 'Colhe almas dos caídos'
-        },
-        {
-            id: 'foice_2',
-            nome: 'Yoru',
-            fonte: 'One Piece',
-            atk: 45,
-            desc: 'A lâmina negra do maior espadachim'
-        },
-        {
-            id: 'foice_3',
-            nome: 'Foice da Morte',
-            fonte: 'Série/Anime',
-            atk: 52,
-            desc: 'A própria morte em forma de arma'
-        },
-        {
-            id: 'foice_4',
-            nome: 'Lua Minguante',
-            fonte: 'Original',
-            atk: 38,
-            desc: 'Cresce em poder à noite'
-        },
-        {
-            id: 'foice_5',
-            nome: 'Ceifadora de Estrelas',
-            fonte: 'Original',
-            atk: 78,
-            desc: 'Corta a luz das estrelas'
-        },
-        {
-            id: 'foice_6',
-            nome: 'Kagura',
-            fonte: 'Gintama',
-            atk: 44,
-            desc: 'Arma de força bruta e agilidade'
-        },
-        {
-            id: 'foice_7',
-            nome: 'Crepúsculo Carmim',
-            fonte: 'Original',
-            atk: 65,
-            desc: 'Manchada com sangue de mil inimigos'
-        },
-        {
-            id: 'foice_8',
-            nome: 'Chamas do Inferno',
-            fonte: 'Anime Clássico',
-            atk: 72,
-            desc: 'Queima com fogo negro'
-        },
-        {
-            id: 'foice_9',
-            nome: 'Fim da Estrada',
-            fonte: 'Original',
-            atk: 85,
-            desc: 'O último golpe que alguém recebe'
-        },
-        {
-            id: 'foice_10',
-            nome: 'Véu do Esquecimento',
-            fonte: 'Original',
-            atk: 90,
-            desc: 'Apaga a memória da vitória'
-        },
-        {
-            id: 'foice_11',
-            nome: 'Lua Sangrenta',
-            fonte: 'Anime',
-            atk: 88,
-            desc: 'Brilha vermelho em noites de lua cheia'
-        }
-    ],
+        nivel: 1,
+        xp: 0,
+        xpProx: xpNecessario(1),
 
-    MACHADOS: [
-        {
-            id: 'machado_1',
-            nome: 'Machado do Aventureiro',
-            fonte: 'Original',
-            atk: 16,
-            desc: 'Um machado simples e confiável'
-        },
-        {
-            id: 'machado_2',
-            nome: 'Machado do Trovão',
-            fonte: 'Original',
-            atk: 30,
-            desc: 'Carregado com energia elétrica'
-        },
-        {
-            id: 'machado_3',
-            nome: 'Machado do Gigante',
-            fonte: 'Mitologia',
-            atk: 48,
-            desc: 'Pesado e extremamente poderoso'
-        },
-        {
-            id: 'machado_4',
-            nome: 'Leviatã',
-            fonte: 'God of War',
-            atk: 70,
-            desc: 'Um machado capaz de congelar inimigos'
-        },
-        {
-            id: 'machado_5',
-            nome: 'Machado Infernal',
-            fonte: 'Original',
-            atk: 85,
-            desc: 'Forjado nas profundezas'
-        },
-        {
-            id: 'machado_6',
-            nome: 'Destruidor',
-            fonte: 'Original',
-            atk: 100,
-            desc: 'Criado para destruir tudo em seu caminho'
+        moedas: 100,
+
+        vida: 100,
+        vidaMax: 100,
+
+        ataque: 10,
+        defesa: 5,
+        velocidade: 5,
+        sorte: 1,
+
+        classe: "Aventureiro",
+
+        arma: null,
+        armadura: null,
+
+        inventario: [],
+
+        armas: [],
+
+        missões: [],
+        conquistas: [],
+
+        mapa: "Vila Inicial",
+
+        vitorias: 0,
+        derrotas: 0,
+
+        monstrosDerrotados: 0,
+
+        tempoJogado: 0,
+
+        ultimoTreino: 0,
+        ultimoCacar: 0,
+
+        criadoEm: Date.now()
+    };
+}
+
+function obterJogador(user) {
+    if (!jogadores[user.id]) {
+        jogadores[user.id] =
+            criarJogador(user);
+
+        salvarJSON(
+            PLAYERS_FILE,
+            jogadores
+        );
+    }
+
+    const jogador =
+        jogadores[user.id];
+
+    jogador.nome = user.username;
+
+    corrigirJogador(jogador);
+
+    return jogador;
+}
+
+function corrigirJogador(jogador) {
+    const base = criarJogador({
+        id: jogador.id || "0",
+        username: jogador.nome || "Aventureiro"
+    });
+
+    for (const chave of Object.keys(base)) {
+        if (jogador[chave] === undefined) {
+            jogador[chave] =
+                base[chave];
         }
-    ]
-};
+    }
+
+    jogador.nivel = limitar(
+        numero(jogador.nivel, 1),
+        1,
+        MAX_LEVEL
+    );
+
+    jogador.vidaMax = Math.max(
+        1,
+        numero(jogador.vidaMax, 100)
+    );
+
+    jogador.vida = limitar(
+        numero(jogador.vida, jogador.vidaMax),
+        0,
+        jogador.vidaMax
+    );
+
+    jogador.xp = Math.max(
+        0,
+        numero(jogador.xp)
+    );
+
+    jogador.xpProx =
+        xpNecessario(jogador.nivel);
+
+    if (!Array.isArray(jogador.inventario)) {
+        jogador.inventario = [];
+    }
+
+    if (!Array.isArray(jogador.armas)) {
+        jogador.armas = [];
+    }
+
+    if (!Array.isArray(jogador.conquistas)) {
+        jogador.conquistas = [];
+    }
+
+    if (!Array.isArray(jogador.missões)) {
+        jogador.missões = [];
+    }
+}
+
+// ================================================================
+// SALVAR
+// ================================================================
+
+function salvarJogador(jogador) {
+    jogadores[jogador.id] = jogador;
+
+    salvarJSON(
+        PLAYERS_FILE,
+        jogadores
+    );
+}
+
+// ================================================================
+// EQUIPAMENTOS
+// ================================================================
+
+const ARMAS = [
+    {
+        id: "espada_ferro",
+        nome: "Espada de Ferro",
+        ataque: 8,
+        raridade: "Comum"
+    },
+
+    {
+        id: "espada_aco",
+        nome: "Espada de Aço",
+        ataque: 18,
+        raridade: "Incomum"
+    },
+
+    {
+        id: "lamina_sombria",
+        nome: "Lâmina Sombria",
+        ataque: 35,
+        raridade: "Rara"
+    },
+
+    {
+        id: "espada_dragao",
+        nome: "Espada do Dragão",
+        ataque: 60,
+        raridade: "Lendária"
+    }
+];
+
+const ARMADURAS = [
+    {
+        id: "couro",
+        nome: "Armadura de Couro",
+        defesa: 5
+    },
+
+    {
+        id: "ferro",
+        nome: "Armadura de Ferro",
+        defesa: 12
+    },
+
+    {
+        id: "aco",
+        nome: "Armadura de Aço",
+        defesa: 25
+    }
+];
+
+function ataqueTotal(jogador) {
+    return numero(jogador.ataque) +
+        numero(
+            jogador.arma?.ataque
+        );
+}
+
+function defesaTotal(jogador) {
+    return numero(jogador.defesa) +
+        numero(
+            jogador.armadura?.defesa
+        );
+}
 
 // ================================================================
 // MONSTROS
@@ -591,277 +371,1025 @@ const ARMAS = {
 
 const MONSTROS = [
     {
-        nome: 'Slime Verde',
+        nome: "Slime Sombrio",
         nivelMin: 1,
-        nivelMax: 10,
-        vida: 50,
+        vida: 70,
         ataque: 8,
         defesa: 2,
-        xp: 30,
-        moedas: 15,
-        emoji: '🟢'
+        xp: 35,
+        moedas: 15
     },
+
     {
-        nome: 'Goblin',
-        nivelMin: 2,
-        nivelMax: 15,
-        vida: 80,
-        ataque: 12,
-        defesa: 4,
-        xp: 45,
-        moedas: 25,
-        emoji: '👺'
+        nome: "Goblin Guerreiro",
+        nivelMin: 3,
+        vida: 110,
+        ataque: 13,
+        defesa: 5,
+        xp: 55,
+        moedas: 25
     },
+
     {
-        nome: 'Lobo Sombrio',
+        nome: "Lobo Selvagem",
         nivelMin: 5,
-        nivelMax: 20,
-        vida: 120,
+        vida: 150,
         ataque: 18,
-        defesa: 6,
-        xp: 70,
-        moedas: 35,
-        emoji: '🐺'
+        defesa: 7,
+        xp: 80,
+        moedas: 35
     },
+
     {
-        nome: 'Orc Guerreiro',
+        nome: "Orc Brutamontes",
         nivelMin: 10,
-        nivelMax: 30,
-        vida: 200,
-        ataque: 25,
-        defesa: 10,
-        xp: 120,
-        moedas: 60,
-        emoji: '👹'
-    },
-    {
-        nome: 'Esqueleto',
-        nivelMin: 15,
-        nivelMax: 40,
         vida: 250,
-        ataque: 30,
+        ataque: 28,
         defesa: 12,
-        xp: 150,
-        moedas: 75,
-        emoji: '💀'
+        xp: 130,
+        moedas: 60
     },
+
     {
-        nome: 'Aranha Gigante',
+        nome: "Cavaleiro Amaldiçoado",
         nivelMin: 20,
-        nivelMax: 50,
-        vida: 350,
-        ataque: 38,
-        defesa: 15,
-        xp: 200,
-        moedas: 100,
-        emoji: '🕷️'
+        vida: 420,
+        ataque: 42,
+        defesa: 20,
+        xp: 220,
+        moedas: 100
     },
+
     {
-        nome: 'Cavaleiro Negro',
-        nivelMin: 30,
-        nivelMax: 70,
-        vida: 600,
-        ataque: 55,
-        defesa: 25,
-        xp: 350,
-        moedas: 180,
-        emoji: '🖤'
+        nome: "Dragão Jovem",
+        nivelMin: 35,
+        vida: 700,
+        ataque: 65,
+        defesa: 30,
+        xp: 400,
+        moedas: 180
     },
+
     {
-        nome: 'Dragão Jovem',
+        nome: "Demônio das Trevas",
         nivelMin: 50,
-        nivelMax: 100,
-        vida: 1200,
-        ataque: 100,
+        vida: 1100,
+        ataque: 95,
         defesa: 45,
-        xp: 800,
-        moedas: 400,
-        emoji: '🐉'
-    },
-    {
-        nome: 'Demônio Superior',
-        nivelMin: 80,
-        nivelMax: 150,
-        vida: 2500,
-        ataque: 180,
-        defesa: 80,
-        xp: 1500,
-        moedas: 800,
-        emoji: '😈'
-    },
-    {
-        nome: 'Titã Ancestral',
-        nivelMin: 120,
-        nivelMax: 200,
-        vida: 5000,
-        ataque: 300,
-        defesa: 150,
-        xp: 3000,
-        moedas: 1500,
-        emoji: '🗿'
-    },
-    {
-        nome: 'Deus Caído',
-        nivelMin: 180,
-        nivelMax: 300,
-        vida: 10000,
-        ataque: 500,
-        defesa: 250,
-        xp: 8000,
-        moedas: 5000,
-        emoji: '⚡'
+        xp: 650,
+        moedas: 300
     }
 ];
-
-// ================================================================
-// MAPAS
-// ================================================================
-
-const MAPAS = {
-    'Floresta Inicial': {
-        nivelMin: 1,
-        nivelMax: 20,
-        desc: 'Uma floresta tranquila para novos aventureiros.',
-        cor: '#2ecc71',
-        monstros: ['Slime Verde', 'Goblin'],
-        chefe: 'Nenhum',
-        chanceDangeou: 0.1,
-        chanceDangeouDupla: 0.02
-    },
-
-    'Planície dos Lobos': {
-        nivelMin: 5,
-        nivelMax: 30,
-        desc: 'Uma vasta planície dominada por lobos.',
-        cor: '#f39c12',
-        monstros: ['Lobo Sombrio', 'Goblin'],
-        chefe: 'Lobo Alfa',
-        chanceDangeou: 0.12,
-        chanceDangeouDupla: 0.03
-    },
-
-    'Caverna Sombria': {
-        nivelMin: 15,
-        nivelMax: 50,
-        desc: 'Uma caverna escura cheia de criaturas perigosas.',
-        cor: '#34495e',
-        monstros: ['Esqueleto', 'Aranha Gigante'],
-        chefe: 'Guardião das Trevas',
-        chanceDangeou: 0.15,
-        chanceDangeouDupla: 0.04
-    },
-
-    'Ruínas Antigas': {
-        nivelMin: 30,
-        nivelMax: 80,
-        desc: 'Ruínas de uma civilização esquecida.',
-        cor: '#9b59b6',
-        monstros: ['Cavaleiro Negro', 'Esqueleto'],
-        chefe: 'Rei Esquecido',
-        chanceDangeou: 0.18,
-        chanceDangeouDupla: 0.05
-    },
-
-    'Vale dos Dragões': {
-        nivelMin: 50,
-        nivelMax: 120,
-        desc: 'Território onde dragões vivem.',
-        cor: '#e74c3c',
-        monstros: ['Dragão Jovem', 'Orc Guerreiro'],
-        chefe: 'Dragão Ancião',
-        chanceDangeou: 0.2,
-        chanceDangeouDupla: 0.08
-    },
-
-    'Abismo Negro': {
-        nivelMin: 100,
-        nivelMax: 200,
-        desc: 'Um lugar onde poucos sobrevivem.',
-        cor: '#1a1a2e',
-        monstros: ['Demônio Superior', 'Titã Ancestral'],
-        chefe: 'Senhor do Abismo',
-        chanceDangeou: 0.25,
-        chanceDangeouDupla: 0.1
-    },
-
-    'Reino Divino': {
-        nivelMin: 200,
-        nivelMax: 300,
-        desc: 'O território dos seres divinos.',
-        cor: '#ffd700',
-        monstros: ['Deus Caído', 'Titã Ancestral'],
-        chefe: 'Criador',
-        chanceDangeou: 0.3,
-        chanceDangeouDupla: 0.15
-    }
-};
-
-// ================================================================
-// CHEFES
-// ================================================================
 
 const CHEFES = [
     {
-        nome: 'Rei Goblin',
-        nivel: 25,
-        vida: 5000,
-        ataque: 120,
-        defesa: 60,
-        xp: 2500,
-        moedas: 1500,
-        emoji: '👑'
+        nome: "Rei Goblin",
+        nivelMin: 10,
+        vida: 500,
+        ataque: 45,
+        defesa: 18,
+        xp: 300,
+        moedas: 200
     },
+
     {
-        nome: 'Dragão Ancião',
-        nivel: 50,
-        vida: 15000,
-        ataque: 300,
-        defesa: 150,
-        xp: 10000,
-        moedas: 5000,
-        emoji: '🐲'
+        nome: "Senhor dos Lobos",
+        nivelMin: 25,
+        vida: 1000,
+        ataque: 75,
+        defesa: 30,
+        xp: 650,
+        moedas: 400
     },
+
     {
-        nome: 'Demônio Supremo',
-        nivel: 100,
-        vida: 40000,
-        ataque: 600,
-        defesa: 300,
-        xp: 30000,
-        moedas: 15000,
-        emoji: '👿'
-    },
-    {
-        nome: 'Titã Supremo',
-        nivel: 150,
-        vida: 80000,
-        ataque: 1000,
-        defesa: 500,
-        xp: 60000,
-        moedas: 30000,
-        emoji: '⚔️'
-    },
-    {
-        nome: 'Deus do Abismo',
-        nivel: 200,
-        vida: 150000,
-        ataque: 1800,
-        defesa: 900,
-        xp: 120000,
-        moedas: 60000,
-        emoji: '🌑'
-    },
-    {
-        nome: 'Criador',
-        nivel: 300,
-        vida: 500000,
-        ataque: 5000,
-        defesa: 2500,
-        xp: 500000,
-        moedas: 250000,
-        emoji: '✨'
+        nome: "Dragão Ancião",
+        nivelMin: 50,
+        vida: 2500,
+        ataque: 150,
+        defesa: 70,
+        xp: 1600,
+        moedas: 900
     }
 ];
+
+function criarMonstro(jogador) {
+    const nivel =
+        jogador.nivel;
+
+    const disponiveis =
+        MONSTROS.filter(
+            m => m.nivelMin <= nivel + 5
+        );
+
+    const escolhido =
+        disponiveis[
+            aleatorio(
+                0,
+                Math.max(
+                    0,
+                    disponiveis.length - 1
+                )
+            )
+        ] || MONSTROS[0];
+
+    const escala =
+        1 +
+        Math.max(
+            0,
+            nivel - escolhido.nivelMin
+        ) * 0.08;
+
+    return {
+        ...escolhido,
+
+        vida: Math.floor(
+            escolhido.vida * escala
+        ),
+
+        vidaMax: Math.floor(
+            escolhido.vida * escala
+        ),
+
+        ataque: Math.floor(
+            escolhido.ataque * escala
+        ),
+
+        defesa: Math.floor(
+            escolhido.defesa * escala
+        ),
+
+        xp: Math.floor(
+            escolhido.xp * escala
+        ),
+
+        moedas: Math.floor(
+            escolhido.moedas * escala
+        )
+    };
+}
+
+function criarChefe(jogador) {
+    const disponiveis =
+        CHEFES.filter(
+            chefe =>
+                chefe.nivelMin <= jogador.nivel
+        );
+
+    const base =
+        disponiveis[
+            Math.max(
+                0,
+                disponiveis.length - 1
+            )
+        ] || CHEFES[0];
+
+    const escala =
+        1 +
+        Math.max(
+            0,
+            jogador.nivel - base.nivelMin
+        ) * 0.12;
+
+    const vida =
+        Math.floor(
+            base.vida * escala
+        );
+
+    return {
+        ...base,
+
+        vida,
+        vidaMax: vida,
+
+        ataque: Math.floor(
+            base.ataque * escala
+        ),
+
+        defesa: Math.floor(
+            base.defesa * escala
+        ),
+
+        xp: Math.floor(
+            base.xp * escala
+        ),
+
+        moedas: Math.floor(
+            base.moedas * escala
+        )
+    };
+}
+
+// ================================================================
+// EXPERIÊNCIA E LEVEL UP
+// ================================================================
+
+function ganharXP(jogador, quantidade) {
+    quantidade =
+        Math.max(
+            0,
+            numero(quantidade)
+        );
+
+    jogador.xp += quantidade;
+
+    const subidas = [];
+
+    while (
+        jogador.nivel < MAX_LEVEL &&
+        jogador.xp >=
+        xpNecessario(jogador.nivel)
+    ) {
+        jogador.xp -=
+            xpNecessario(jogador.nivel);
+
+        jogador.nivel++;
+
+        jogador.xpProx =
+            xpNecessario(jogador.nivel);
+
+        jogador.vidaMax += 20;
+
+        jogador.vida =
+            jogador.vidaMax;
+
+        jogador.ataque += 4;
+
+        jogador.defesa += 2;
+
+        jogador.velocidade += 1;
+
+        if (jogador.nivel % 5 === 0) {
+            jogador.sorte++;
+        }
+
+        subidas.push(
+            jogador.nivel
+        );
+    }
+
+    return subidas;
+}
+
+// ================================================================
+// NARRAÇÃO DE BATALHA
+// ================================================================
+
+function criarBlocoBatalha({
+    rodada,
+    jogador,
+    monstro,
+    acao,
+    danoJogador,
+    danoMonstro,
+    critico,
+    esquiva
+}) {
+    const hpJogador =
+        Math.max(
+            0,
+            jogador.vida
+        );
+
+    const hpMonstro =
+        Math.max(
+            0,
+            monstro.vida
+        );
+
+    const texto = [];
+
+    texto.push(
+        "╔══════════════════════════════╗"
+    );
+
+    texto.push(
+        `║ ⚔️  TURNO ${rodada}`
+    );
+
+    texto.push(
+        "╠══════════════════════════════╣"
+    );
+
+    texto.push(
+        `║ 👤 ${jogador.nome}`
+    );
+
+    texto.push(
+        `║ ❤️ ${barraVida(
+            hpJogador,
+            jogador.vidaMax
+        )}`
+    );
+
+    texto.push(
+        `║ ${hpJogador}/${jogador.vidaMax} HP`
+    );
+
+    texto.push(
+        "║"
+    );
+
+    texto.push(
+        `║ 👹 ${monstro.nome}`
+    );
+
+    texto.push(
+        `║ ❤️ ${barraVida(
+            hpMonstro,
+            monstro.vidaMax
+        )}`
+    );
+
+    texto.push(
+        `║ ${hpMonstro}/${monstro.vidaMax} HP`
+    );
+
+    texto.push(
+        "╠══════════════════════════════╣"
+    );
+
+    texto.push(
+        `║ ${acao}`
+    );
+
+    if (critico) {
+        texto.push(
+            "║ 💥 GOLPE CRÍTICO!"
+        );
+    }
+
+    if (danoJogador > 0) {
+        texto.push(
+            `║ ⚔️ Você causou ${danoJogador} de dano.`
+        );
+    }
+
+    if (esquiva) {
+        texto.push(
+            "║ 💨 Você desviou do ataque!"
+        );
+    } else if (danoMonstro > 0) {
+        texto.push(
+            `║ 🛡️ Você recebeu ${danoMonstro} de dano.`
+        );
+    }
+
+    texto.push(
+        "╚══════════════════════════════╝"
+    );
+
+    return texto.join("\n");
+}
+
+async function batalhaSolo(
+    canal,
+    jogador,
+    monstro
+) {
+    let rodada = 0;
+
+    const maxRodadas = 30;
+
+    while (
+        jogador.vida > 0 &&
+        monstro.vida > 0 &&
+        rodada < maxRodadas
+    ) {
+        rodada++;
+
+        const ataque =
+            ataqueTotal(jogador);
+
+        const defesa =
+            defesaTotal(jogador);
+
+        let danoJogador =
+            Math.max(
+                1,
+                ataque -
+                Math.floor(
+                    monstro.defesa * 0.5
+                )
+            );
+
+        const critico =
+            chance(10);
+
+        if (critico) {
+            danoJogador *= 2;
+        }
+
+        danoJogador = Math.floor(
+            danoJogador
+        );
+
+        monstro.vida =
+            Math.max(
+                0,
+                monstro.vida -
+                danoJogador
+            );
+
+        let danoMonstro = 0;
+
+        let esquiva = false;
+
+        let acao;
+
+        if (critico) {
+            acao =
+                "🔥 Seu ataque encontrou uma abertura!";
+        } else {
+            acao =
+                "⚔️ Você avança e desfere um golpe!";
+        }
+
+        if (monstro.vida > 0) {
+            danoMonstro =
+                Math.max(
+                    1,
+                    monstro.ataque -
+                    Math.floor(
+                        defesa * 0.5
+                    )
+                );
+
+            const chanceEsquiva =
+                limitar(
+                    jogador.velocidade,
+                    0,
+                    25
+                );
+
+            esquiva =
+                chance(
+                    chanceEsquiva
+                );
+
+            if (!esquiva) {
+                jogador.vida =
+                    Math.max(
+                        0,
+                        jogador.vida -
+                        danoMonstro
+                    );
+            }
+        }
+
+        const bloco =
+            criarBlocoBatalha({
+                rodada,
+                jogador,
+                monstro,
+                acao,
+                danoJogador,
+                danoMonstro,
+                critico,
+                esquiva
+            });
+
+        await canal.send(
+            bloco
+        );
+    }
+
+    if (monstro.vida <= 0) {
+        return {
+            venceu: true,
+            rodadas: rodada
+        };
+    }
+
+    if (jogador.vida <= 0) {
+        return {
+            venceu: false,
+            rodadas: rodada
+        };
+    }
+
+    return {
+        venceu:
+            jogador.vida >
+            monstro.vida,
+
+        rodadas: rodada
+    };
+}
+
+// ================================================================
+// RECOMPENSAS
+// ================================================================
+
+function recompensaBatalha(
+    jogador,
+    monstro
+) {
+    const xp =
+        numero(monstro.xp);
+
+    const moedas =
+        numero(monstro.moedas);
+
+    jogador.moedas +=
+        moedas;
+
+    jogador.monstrosDerrotados++;
+
+    jogador.vitorias++;
+
+    const niveis =
+        ganharXP(
+            jogador,
+            xp
+        );
+
+    return {
+        xp,
+        moedas,
+        niveis
+    };
+}
+
+// ================================================================
+// DROP
+// ================================================================
+
+function sortearArma(jogador) {
+    const indice =
+        aleatorio(
+            0,
+            ARMAS.length - 1
+        );
+
+    const base =
+        ARMAS[indice];
+
+    const bonus =
+        Math.floor(
+            jogador.nivel / 5
+        );
+
+    return {
+        ...base,
+
+        ataque:
+            base.ataque +
+            bonus
+    };
+}
+
+function tentarDrop(jogador) {
+    const chanceDrop =
+        limitar(
+            10 +
+            jogador.sorte * 2,
+            10,
+            35
+        );
+
+    if (!chance(chanceDrop)) {
+        return null;
+    }
+
+    const arma =
+        sortearArma(jogador);
+
+    jogador.armas.push(
+        arma
+    );
+
+    return arma;
+}
+
+// ================================================================
+// PERFIL
+// ================================================================
+
+async function comandoPerfil(
+    msg,
+    jogador
+) {
+    const embed =
+        new EmbedBuilder()
+            .setTitle(
+                `⚔️ Perfil de ${jogador.nome}`
+            )
+            .setDescription(
+                [
+                    `🏆 **Nível:** ${jogador.nivel}`,
+                    `⭐ **XP:** ${formatarNumero(
+                        jogador.xp
+                    )}/${formatarNumero(
+                        xpNecessario(
+                            jogador.nivel
+                        )
+                    )}`,
+                    "",
+                    `❤️ **Vida:** ${jogador.vida}/${jogador.vidaMax}`,
+                    `⚔️ **Ataque:** ${ataqueTotal(jogador)}`,
+                    `🛡️ **Defesa:** ${defesaTotal(jogador)}`,
+                    `💨 **Velocidade:** ${jogador.velocidade}`,
+                    `🍀 **Sorte:** ${jogador.sorte}`,
+                    "",
+                    `💰 **Moedas:** ${formatarNumero(
+                        jogador.moedas
+                    )}`,
+                    `🗺️ **Mapa:** ${jogador.mapa}`,
+                    "",
+                    `⚔️ **Vitórias:** ${jogador.vitorias}`,
+                    `💀 **Derrotas:** ${jogador.derrotas}`,
+                    `👹 **Monstros derrotados:** ${jogador.monstrosDerrotados}`,
+                    "",
+                    `🗡️ **Arma:** ${
+                        jogador.arma
+                            ? `${jogador.arma.nome} (+${jogador.arma.ataque})`
+                            : "Nenhuma"
+                    }`,
+                    `🛡️ **Armadura:** ${
+                        jogador.armadura
+                            ? `${jogador.armadura.nome} (+${jogador.armadura.defesa})`
+                            : "Nenhuma"
+                    }`
+                ].join("\n")
+            )
+            .setFooter({
+                text:
+                    "RPG Mundo Aberto"
+            });
+
+    await msg.reply({
+        embeds: [embed]
+    });
+}
+
+// ================================================================
+// CAÇAR
+// ================================================================
+
+async function comandoCacar(
+    msg,
+    jogador
+) {
+    const agora =
+        Date.now();
+
+    const intervalo =
+        5000;
+
+    if (
+        agora -
+        jogador.ultimoCacar <
+        intervalo
+    ) {
+        const restante =
+            Math.ceil(
+                (
+                    intervalo -
+                    (
+                        agora -
+                        jogador.ultimoCacar
+                    )
+                ) / 1000
+            );
+
+        return msg.reply(
+            `⏳ Espere ${restante}s antes de caçar novamente.`
+        );
+    }
+
+    jogador.ultimoCacar =
+        agora;
+
+    if (jogador.vida <= 0) {
+        jogador.vida =
+            Math.max(
+                1,
+                Math.floor(
+                    jogador.vidaMax * 0.25
+                )
+            );
+    }
+
+    salvarJogador(
+        jogador
+    );
+
+    const monstro =
+        criarMonstro(
+            jogador
+        );
+
+    await msg.reply(
+        [
+            "🌲 **Você entrou na região selvagem...**",
+            "",
+            `👹 Um **${monstro.nome}** apareceu!`,
+            `❤️ Vida: ${monstro.vida}/${monstro.vidaMax}`,
+            "",
+            "⚔️ **A batalha começou!**"
+        ].join("\n")
+    );
+
+    const resultado =
+        await batalhaSolo(
+            msg.channel,
+            jogador,
+            monstro
+        );
+
+    if (!resultado.venceu) {
+        jogador.derrotas++;
+
+        jogador.vida =
+            Math.max(
+                1,
+                Math.floor(
+                    jogador.vidaMax * 0.20
+                )
+            );
+
+        salvarJogador(
+            jogador
+        );
+
+        return msg.channel.send(
+            [
+                "💀 **Você foi derrotado!**",
+                "",
+                `👹 ${monstro.nome} sobreviveu.`,
+                `❤️ Você ficou com ${jogador.vida}/${jogador.vidaMax} HP.`,
+                "",
+                "💡 Recupere-se e tente novamente."
+            ].join("\n")
+        );
+    }
+
+    const recompensa =
+        recompensaBatalha(
+            jogador,
+            monstro
+        );
+
+    const drop =
+        tentarDrop(
+            jogador
+        );
+
+    salvarJogador(
+        jogador
+    );
+
+    const linhas = [
+        "🏆 **VITÓRIA!**",
+        "",
+        `👹 ${monstro.nome} foi derrotado.`,
+        `⚔️ Rodadas: ${resultado.rodadas}`,
+        `⭐ XP: +${formatarNumero(recompensa.xp)}`,
+        `💰 Moedas: +${formatarNumero(recompensa.moedas)}`
+    ];
+
+    if (recompensa.niveis.length) {
+        linhas.push(
+            "",
+            `🎉 **LEVEL UP!**`,
+            `📈 Você chegou ao nível ${jogador.nivel}!`,
+            "❤️ Sua vida foi restaurada!"
+        );
+    }
+
+    if (drop) {
+        linhas.push(
+            "",
+            "🎁 **DROP!**",
+            `🗡️ ${drop.nome}`,
+            `⚔️ Ataque: +${drop.ataque}`,
+            `✨ Raridade: ${drop.raridade}`
+        );
+    }
+
+    await msg.channel.send(
+        linhas.join("\n")
+    );
+}
+
+// ================================================================
+// TREINAMENTO
+// ================================================================
+
+async function comandoTreinar(
+    msg,
+    jogador,
+    args
+) {
+    const atributo =
+        String(
+            args[0] || ""
+        ).toLowerCase();
+
+    const quantidade =
+        limitar(
+            numero(
+                args[1],
+                1
+            ),
+            1,
+            10
+        );
+
+    const custo =
+        quantidade * 20;
+
+    if (
+        jogador.moedas <
+        custo
+    ) {
+        return msg.reply(
+            `💰 Você precisa de ${custo} moedas.`
+        );
+    }
+
+    if (
+        ![
+            "forca",
+            "ataque",
+            "vida",
+            "defesa",
+            "velocidade"
+        ].includes(atributo)
+    ) {
+        return msg.reply(
+            [
+                "🏋️ **Treinamento**",
+                "",
+                "Use:",
+                "`,treinar forca 5`",
+                "`,treinar vida 5`",
+                "`,treinar defesa 5`",
+                "`,treinar velocidade 5`"
+            ].join("\n")
+        );
+    }
+
+    jogador.moedas -=
+        custo;
+
+    if (
+        atributo === "forca" ||
+        atributo === "ataque"
+    ) {
+        jogador.ataque +=
+            quantidade;
+    }
+
+    if (
+        atributo === "vida"
+    ) {
+        jogador.vidaMax +=
+            quantidade * 5;
+
+        jogador.vida =
+            jogador.vidaMax;
+    }
+
+    if (
+        atributo === "defesa"
+    ) {
+        jogador.defesa +=
+            quantidade;
+    }
+
+    if (
+        atributo === "velocidade"
+    ) {
+        jogador.velocidade =
+            limitar(
+                jogador.velocidade +
+                quantidade,
+                1,
+                25
+            );
+    }
+
+    salvarJogador(
+        jogador
+    );
+
+    await msg.reply(
+        [
+            "🏋️ **TREINAMENTO CONCLUÍDO!**",
+            "",
+            `📈 Atributo: **${atributo}**`,
+            `⬆️ Pontos: **+${quantidade}**`,
+            `💰 Custo: **${custo} moedas**`,
+            `💰 Saldo: **${jogador.moedas} moedas**`
+        ].join("\n")
+    );
+}
+
+// ================================================================
+// VIAJAR
+// ================================================================
+
+const MAPAS = [
+    {
+        nome: "Vila Inicial",
+        nivel: 1
+    },
+
+    {
+        nome: "Floresta Sombria",
+        nivel: 5
+    },
+
+    {
+        nome: "Montanhas de Ferro",
+        nivel: 15
+    },
+
+    {
+        nome: "Vale dos Dragões",
+        nivel: 30
+    },
+
+    {
+        nome: "Terras Demoníacas",
+        nivel: 50
+    },
+
+    {
+        nome: "Reino das Sombras",
+        nivel: 80
+    }
+];
+
+async function comandoViajar(
+    msg,
+    jogador,
+    args
+) {
+    const procura =
+        args.join(" ")
+            .toLowerCase();
+
+    if (!procura) {
+        const lista =
+            MAPAS.map(
+                mapa =>
+                    `🗺️ **${mapa.nome}** — nível ${mapa.nivel}`
+            );
+
+        return msg.reply(
+            [
+                "🌎 **MAPAS DISPONÍVEIS**",
+                "",
+                ...lista,
+                "",
+                "Use:",
+                "`,viajar Nome do Mapa`"
+            ].join("\n")
+        );
+    }
+
+    const mapa =
+        MAPAS.find(
+            item =>
+                item.nome.toLowerCase() ===
+                procura
+        );
+
+    if (!mapa) {
+        return msg.reply(
+            "❌ Esse mapa não existe."
+        );
+    }
+
+    if (
+        jogador.nivel <
+        mapa.nivel
+    ) {
+        return msg.reply(
+            `🔒 Você precisa estar no nível ${mapa.nivel}.`
+        );
+    }
+
+    jogador.mapa =
+        mapa.nome;
+
+    salvarJogador(
+        jogador
+    );
+
+    await msg.reply(
+        [
+            "🗺️ **VIAGEM CONCLUÍDA**",
+            "",
+            `📍 Você chegou em **${mapa.nome}**.`,
+            "",
+            "⚔️ Novas criaturas podem aparecer nesta região."
+        ].join("\n")
+    );
+}
 
 // ================================================================
 // MASMORRAS
@@ -869,632 +1397,365 @@ const CHEFES = [
 
 const MASMORRAS = [
     {
-        id: 'floresta',
-        nome: 'Masmorra da Floresta',
-        nivelMin: 5,
+        nome: "Caverna dos Goblins",
+        nivel: 5,
+        salas: 3,
+        recompensa: 150
+    },
+
+    {
+        nome: "Tumba Amaldiçoada",
+        nivel: 15,
         salas: 5,
-        recompensa: 500
+        recompensa: 400
     },
+
     {
-        id: 'caverna',
-        nome: 'Masmorra da Caverna',
-        nivelMin: 20,
-        salas: 8,
-        recompensa: 1500
+        nome: "Covil do Dragão",
+        nivel: 30,
+        salas: 7,
+        recompensa: 900
     },
+
     {
-        id: 'ruinas',
-        nome: 'Masmorra das Ruínas',
-        nivelMin: 50,
+        nome: "Abismo Demoníaco",
+        nivel: 50,
         salas: 10,
-        recompensa: 5000
-    },
-    {
-        id: 'abismo',
-        nome: 'Masmorra do Abismo',
-        nivelMin: 100,
-        salas: 15,
-        recompensa: 15000
-    },
-    {
-        id: 'divina',
-        nome: 'Masmorra Divina',
-        nivelMin: 200,
-        salas: 20,
-        recompensa: 50000
+        recompensa: 2000
     }
 ];
 
-// ================================================================
-// FUNÇÕES AUXILIARES
-// ================================================================
-
-function calcularXpProxNivel(nivel) {
-    return Math.floor(100 * Math.pow(1.35, nivel - 1));
-}
-
-function calcularAtaqueTotal(jogador) {
-    let total = jogador.ataque || 0;
-
-    if (jogador.armaAtual) {
-        total += jogador.armaAtual.atk || 0;
-    }
-
-    return total;
-}
-
-function calcularDefesaTotal(jogador) {
-    let total = jogador.defesa || 0;
-
-    if (jogador.armaduraAtual) {
-        total += jogador.armaduraAtual.def || 0;
-    }
-
-    return total;
-}
-
-function ganharXp(jogador, quantidade) {
-    const subiu = [];
-
-    jogador.xp += quantidade;
-
-    while (
-        jogador.xp >= jogador.xpProx &&
-        jogador.nivel < MAX_LEVEL
-    ) {
-        jogador.xp -= jogador.xpProx;
-        jogador.nivel++;
-
-        jogador.xpProx = calcularXpProxNivel(jogador.nivel);
-
-        jogador.vidaMax += 10;
-        jogador.vida = jogador.vidaMax;
-        jogador.ataque += 2;
-        jogador.defesa += 1;
-
-        subiu.push(jogador.nivel);
-    }
-
-    if (jogador.nivel >= MAX_LEVEL) {
-        jogador.nivel = MAX_LEVEL;
-        jogador.xp = 0;
-        jogador.xpProx = calcularXpProxNivel(MAX_LEVEL);
-    }
-
-    return subiu;
-}
-
-function formatarArma(arma) {
-    const raridade =
-        RARIDADES[arma.raridade] || RARIDADES.COMUM;
-
-    return [
-        `🗡️ **${arma.nome}**`,
-        `⭐ Raridade: **${raridade.nome}**`,
-        `⚔️ Ataque: **${arma.atk}**`,
-        `📖 ${arma.desc || 'Sem descrição.'}`,
-        `🎬 Fonte: **${arma.fonte || 'Original'}**`
-    ].join('\n');
-}
-
-function criarArmaAleatoria(tipo, jogador) {
-    const lista = ARMAS[tipo];
-
-    if (!lista || !lista.length) {
-        return null;
-    }
-
-    const base =
-        lista[Math.floor(Math.random() * lista.length)];
-
-    const raridade =
-        getRaridadeAleatoria(jogador.sorte || 1);
-
-    const info = RARIDADES[raridade];
-
-    return {
-        ...base,
-        raridade,
-        atk: Math.max(
-            1,
-            Math.floor(base.atk * info.multiplicador)
-        ),
-        uuid: crypto.randomBytes(8).toString('hex'),
-        dataObtencao: Date.now()
-    };
-}
-
-function escolherMonstro(nivel) {
-    const disponiveis = MONSTROS.filter(
-        m =>
-            nivel >= m.nivelMin &&
-            nivel <= m.nivelMax + 20
-    );
-
-    if (!disponiveis.length) {
-        return MONSTROS[0];
-    }
-
-    return disponiveis[
-        Math.floor(Math.random() * disponiveis.length)
-    ];
-}
-
-function verificarExpiracao(jogador) {
-    if (!jogador.expiracaoConta) {
-        return {
-            expirado: false,
-            diasRestantes: null
-        };
-    }
-
-    const restante =
-        jogador.expiracaoConta - Date.now();
-
-    if (restante <= 0) {
-        return {
-            expirado: true,
-            diasRestantes: 0
-        };
-    }
-
-    return {
-        expirado: false,
-        diasRestantes: Math.ceil(
-            restante / (1000 * 60 * 60 * 24)
-        )
-    };
-}
-
-function formatarTempo(ms) {
-    const segundos = Math.floor(ms / 1000);
-    const horas = Math.floor(segundos / 3600);
-    const minutos =
-        Math.floor((segundos % 3600) / 60);
-
-    return `${horas}h ${minutos}min`;
-}
-
-function cooldownRestante(ultimo, tempo) {
-    const restante =
-        tempo - (Date.now() - ultimo);
-
-    return restante <= 0
-        ? 0
-        : Math.ceil(restante / 1000);
-}
-
-function barraProgresso(
-    atual,
-    max,
-    tamanho = 10
+async function comandoDangeou(
+    msg,
+    jogador,
+    args
 ) {
-    if (max <= 0) {
-        return '░'.repeat(tamanho);
-    }
+    const nome =
+        args.join(" ")
+            .toLowerCase();
 
-    const porcentagem =
-        Math.max(0, Math.min(1, atual / max));
-
-    const cheios =
-        Math.round(porcentagem * tamanho);
-
-    return (
-        '█'.repeat(cheios) +
-        '░'.repeat(tamanho - cheios)
-    );
-}
-
-function gerarDangeou(jogador, tipo) {
-    const masmorra =
-        tipo === 'secreto'
-            ? {
-                id: 'secreta',
-                nome: 'Masmorra Secreta',
-                nivelMin: 100,
-                salas: 20,
-                recompensa: 50000
-            }
-            : MASMORRAS
-                .filter(
-                    m =>
-                        jogador.nivel >= m.nivelMin
-                )
-                .sort(
-                    (a, b) =>
-                        b.nivelMin - a.nivelMin
-                )[0] || MASMORRAS[0];
-
-    const monstrosSala = [];
-
-    for (
-        let i = 0;
-        i < Math.min(3, Math.ceil(masmorra.salas / 5));
-        i++
-    ) {
-        monstrosSala.push(
-            escolherMonstro(
-                Math.min(
-                    MAX_LEVEL,
-                    jogador.nivel +
-                    Math.floor(Math.random() * 10)
-                )
-            )
+    if (!nome) {
+        return msg.reply(
+            [
+                "🏰 **MASMORRAS**",
+                "",
+                ...MASMORRAS.map(
+                    d =>
+                        `🏰 **${d.nome}** — nível ${d.nivel} — ${d.salas} salas`
+                ),
+                "",
+                "Use:",
+                "`,dangeou Caverna dos Goblins`"
+            ].join("\n")
         );
     }
 
-    return {
-        masmorra,
-        salasConcluidas: 0,
-        salasTotal: masmorra.salas,
-        monstros: monstrosSala,
-        xpTotal: 0,
-        moedasTotal: 0,
-        iniciadoEm: Date.now()
-    };
-}
+    const masmorra =
+        MASMORRAS.find(
+            d =>
+                d.nome.toLowerCase() ===
+                nome
+        );
 
-async function processarCombate(
-    canal,
-    jogador,
-    sessao
-) {
+    if (!masmorra) {
+        return msg.reply(
+            "❌ Essa masmorra não existe."
+        );
+    }
+
+    if (
+        jogador.nivel <
+        masmorra.nivel
+    ) {
+        return msg.reply(
+            `🔒 Você precisa do nível ${masmorra.nivel}.`
+        );
+    }
+
+    if (jogador.vida <= 0) {
+        jogador.vida =
+            Math.max(
+                1,
+                Math.floor(
+                    jogador.vidaMax * 0.25
+                )
+            );
+    }
+
+    let xpTotal = 0;
+    let moedasTotal = 0;
+
+    await msg.reply(
+        [
+            "🏰 **DANGEOU INICIADA**",
+            "",
+            `📍 ${masmorra.nome}`,
+            `🚪 ${masmorra.salas} salas`,
+            "",
+            "⚔️ Prepare-se..."
+        ].join("\n")
+    );
+
     for (
-        let sala = 0;
-        sala < sessao.salasTotal;
+        let sala = 1;
+        sala <= masmorra.salas;
         sala++
     ) {
         if (
-            Date.now() - sessao.iniciadoEm >
-            5 * 60 * 1000
+            jogador.vida <= 0
         ) {
-            sessoesCombate.delete(jogador.id);
-
-            return canal.send(
-                '⏳ Tempo esgotado! Dangeou cancelada.'
-            );
+            break;
         }
 
-        const monstro =
-            escolherMonstro(
-                Math.min(
-                    MAX_LEVEL,
-                    jogador.nivel +
-                    Math.floor(Math.random() * 10)
-                )
-            );
+        let monstro;
+
+        if (
+            sala === masmorra.salas &&
+            jogador.nivel >= 50
+        ) {
+            monstro =
+                criarChefe(
+                    jogador
+                );
+        } else {
+            monstro =
+                criarMonstro(
+                    jogador
+                );
+        }
+
+        await msg.channel.send(
+            [
+                `🚪 **SALA ${sala}/${masmorra.salas}**`,
+                "",
+                `👹 ${monstro.nome} apareceu!`
+            ].join("\n")
+        );
 
         const resultado =
-            processarCombateIndividual(
+            await batalhaSolo(
+                msg.channel,
                 jogador,
                 monstro
             );
 
         if (!resultado.venceu) {
+            jogador.derrotas++;
+
             jogador.vida =
                 Math.max(
                     1,
                     Math.floor(
-                        jogador.vidaMax * 0.15
+                        jogador.vidaMax * 0.20
                     )
                 );
 
-            db.savePlayer(jogador.id);
-            sessoesCombate.delete(jogador.id);
+            salvarJogador(
+                jogador
+            );
 
-            return canal.send(
-                `💀 Derrotado na sala **${sala + 1}/${sessao.salasTotal}**!\n` +
-                `❤️ Vida: ${jogador.vida}/${jogador.vidaMax}`
+            return msg.channel.send(
+                [
+                    "💀 **DANGEOU FRACASSADA**",
+                    "",
+                    `Você caiu na sala ${sala}.`,
+                    `❤️ Vida restante: ${jogador.vida}/${jogador.vidaMax}`
+                ].join("\n")
             );
         }
 
-        sessao.salasConcluidas++;
-        sessao.xpTotal += monstro.xp;
-        sessao.moedasTotal += monstro.moedas;
+        const recompensa =
+            recompensaBatalha(
+                jogador,
+                monstro
+            );
+
+        xpTotal +=
+            recompensa.xp;
+
+        moedasTotal +=
+            recompensa.moedas;
+
+        await msg.channel.send(
+            [
+                `✅ **SALA ${sala} CONCLUÍDA!**`,
+                `⭐ +${recompensa.xp} XP`,
+                `💰 +${recompensa.moedas} moedas`
+            ].join("\n")
+        );
+
+        salvarJogador(
+            jogador
+        );
     }
 
     jogador.moedas +=
-        sessao.moedasTotal +
-        sessao.masmorra.recompensa;
+        masmorra.recompensa;
 
-    const subiu =
-        ganharXp(jogador, sessao.xpTotal);
-
-    let drop = null;
-
-    if (Math.random() < 0.4) {
-        const tipos = [
-            'ESPADAS',
-            'FOICES',
-            'MACHADOS'
-        ];
-
-        drop = criarArmaAleatoria(
-            tipos[
-                Math.floor(
-                    Math.random() * tipos.length
-                )
-            ],
+    const drop =
+        tentarDrop(
             jogador
         );
 
-        if (drop) {
-            jogador.armas.push(drop);
-        }
-    }
+    salvarJogador(
+        jogador
+    );
 
-    db.savePlayer(jogador.id);
-    sessoesCombate.delete(jogador.id);
-
-    let resposta =
-        `🏰 **MASMORRA CONCLUÍDA!**\n\n` +
-        `📍 ${sessao.masmorra.nome}\n` +
-        `🚪 Salas: ${sessao.salasConcluidas}/${sessao.salasTotal}\n` +
-        `⭐ XP: +${sessao.xpTotal}\n` +
-        `💰 Moedas: +${sessao.moedasTotal + sessao.masmorra.recompensa}`;
-
-    if (subiu.length) {
-        resposta +=
-            `\n🎉 Nível: ${jogador.nivel}`;
-    }
+    const final = [
+        "🏆 **DANGEOU CONCLUÍDA!**",
+        "",
+        `🏰 ${masmorra.nome}`,
+        `🚪 Salas: ${masmorra.salas}/${masmorra.salas}`,
+        "",
+        `⭐ XP total: ${formatarNumero(xpTotal)}`,
+        `💰 Moedas das batalhas: ${formatarNumero(moedasTotal)}`,
+        `🎁 Recompensa final: ${formatarNumero(masmorra.recompensa)}`
+    ];
 
     if (drop) {
-        resposta +=
-            `\n\n🎁 **DROP!**\n${formatarArma(drop)}`;
-    }
-
-    await canal.send(resposta);
-}
-
-function processarCombateIndividual(
-    jogador,
-    inimigo
-) {
-    const resultado = [];
-
-    let vidaJogador = jogador.vida;
-    let vidaInimigo = inimigo.vida;
-
-    const ataqueJogador =
-        calcularAtaqueTotal(jogador);
-
-    const defesaJogador =
-        calcularDefesaTotal(jogador);
-
-    let rodada = 0;
-
-    while (
-        vidaJogador > 0 &&
-        vidaInimigo > 0 &&
-        rodada < 30
-    ) {
-        rodada++;
-
-        let danoJogador =
-            ataqueJogador -
-            Math.floor(
-                inimigo.defesa * 0.5
-            );
-
-        danoJogador =
-            Math.max(1, danoJogador);
-
-        const critico =
-            Math.random() < 0.1;
-
-        if (critico) {
-            danoJogador *= 2;
-        }
-
-        vidaInimigo -= danoJogador;
-
-        resultado.push(
-            `⚔️ Causou ${danoJogador} de dano` +
-            `${critico ? ' 💥 CRÍTICO!' : ''}`
+        final.push(
+            "",
+            "🎁 **DROP ESPECIAL!**",
+            `🗡️ ${drop.nome}`,
+            `⚔️ Ataque: +${drop.ataque}`,
+            `✨ ${drop.raridade}`
         );
-
-        if (vidaInimigo <= 0) {
-            break;
-        }
-
-        let danoInimigo =
-            inimigo.ataque -
-            Math.floor(
-                defesaJogador * 0.5
-            );
-
-        danoInimigo =
-            Math.max(1, danoInimigo);
-
-        const esquiva =
-            Math.random() <
-            Math.min(
-                0.25,
-                (jogador.velocidade || 5) / 100
-            );
-
-        if (esquiva) {
-            resultado.push(
-                '💨 Desviou do ataque!'
-            );
-        } else {
-            vidaJogador -= danoInimigo;
-
-            resultado.push(
-                `💔 Recebeu ${danoInimigo} de dano`
-            );
-        }
     }
 
-    jogador.vida =
-        Math.max(1, vidaJogador);
-
-    return {
-        venceu: vidaInimigo <= 0,
-        vidaJogador:
-            Math.max(0, vidaJogador),
-        vidaInimigo:
-            Math.max(0, vidaInimigo),
-        rodadas: rodada,
-        log: resultado
-    };
+    await msg.channel.send(
+        final.join("\n")
+    );
 }
 
 // ================================================================
-// MISSÕES
+// INVENTÁRIO
 // ================================================================
 
-const MISSOES = [
-    {
-        id: 'primeira_caca',
-        nome: 'Primeira Caçada',
-        descricao: 'Derrote 3 monstros.',
-        objetivo: 3,
-        recompensaXp: 200,
-        recompensaMoedas: 300
-    },
-    {
-        id: 'cacador',
-        nome: 'Caçador',
-        descricao: 'Derrote 10 monstros.',
-        objetivo: 10,
-        recompensaXp: 800,
-        recompensaMoedas: 1000
-    },
-    {
-        id: 'explorador',
-        nome: 'Grande Explorador',
-        descricao: 'Explore o mundo 10 vezes.',
-        objetivo: 10,
-        recompensaXp: 1000,
-        recompensaMoedas: 1500
-    },
-    {
-        id: 'guerreiro',
-        nome: 'Guerreiro',
-        descricao: 'Alcance o nível 20.',
-        objetivo: 20,
-        recompensaXp: 2000,
-        recompensaMoedas: 3000
-    }
-];
-
-function garantirMissoes(jogador) {
-    if (!Array.isArray(jogador.missoes)) {
-        jogador.missoes = [];
-    }
-
-    for (const missao of MISSOES) {
-        const existe =
-            jogador.missoes.find(
-                m => m.id === missao.id
-            );
-
-        if (!existe) {
-            jogador.missoes.push({
-                id: missao.id,
-                progresso: 0,
-                concluida: false,
-                resgatada: false
-            });
-        }
-    }
-}
-
-function atualizarMissao(
-    jogador,
-    id,
-    quantidade = 1
+async function comandoInventario(
+    msg,
+    jogador
 ) {
-    garantirMissoes(jogador);
-
-    const progresso =
-        jogador.missoes.find(
-            m => m.id === id
-        );
-
-    const definicao =
-        MISSOES.find(
-            m => m.id === id
-        );
+    const linhas = [
+        "🎒 **INVENTÁRIO**",
+        ""
+    ];
 
     if (
-        !progresso ||
-        !definicao ||
-        progresso.resgatada
+        jogador.armas.length === 0
     ) {
-        return;
+        linhas.push(
+            "🗡️ Nenhuma arma encontrada."
+        );
+    } else {
+        linhas.push(
+            "🗡️ **ARMAS**"
+        );
+
+        jogador.armas
+            .slice(0, 20)
+            .forEach(
+                (arma, index) => {
+                    linhas.push(
+                        `${index + 1}. ${arma.nome} — +${arma.ataque} ATK — ${arma.raridade}`
+                    );
+                }
+            );
     }
 
-    progresso.progresso += quantidade;
+    linhas.push(
+        "",
+        `💰 Moedas: ${formatarNumero(jogador.moedas)}`
+    );
 
-    if (
-        progresso.progresso >=
-        definicao.objetivo
-    ) {
-        progresso.progresso =
-            definicao.objetivo;
-
-        progresso.concluida = true;
-    }
+    await msg.reply(
+        linhas.join("\n")
+    );
 }
 
 // ================================================================
-// CONQUISTAS
+// EQUIPAR
 // ================================================================
 
-const CONQUISTAS = [
-    {
-        id: 'primeiro_nivel',
-        nome: 'Primeiro Passo',
-        descricao: 'Alcance o nível 5.',
-        verificar: j => j.nivel >= 5
-    },
-    {
-        id: 'nivel_50',
-        nome: 'Veterano',
-        descricao: 'Alcance o nível 50.',
-        verificar: j => j.nivel >= 50
-    },
-    {
-        id: 'nivel_100',
-        nome: 'Lenda',
-        descricao: 'Alcance o nível 100.',
-        verificar: j => j.nivel >= 100
-    },
-    {
-        id: 'nivel_200',
-        nome: 'Divindade',
-        descricao: 'Alcance o nível 200.',
-        verificar: j => j.nivel >= 200
-    },
-    {
-        id: 'nivel_300',
-        nome: 'Supremo',
-        descricao: 'Alcance o nível máximo.',
-        verificar: j => j.nivel >= 300
-    }
-];
+async function comandoEquipar(
+    msg,
+    jogador,
+    args
+) {
+    const indice =
+        numero(
+            args[0],
+            0
+        ) - 1;
 
-function verificarConquistas(jogador) {
-    if (!Array.isArray(jogador.conquistas)) {
-        jogador.conquistas = [];
+    if (
+        indice < 0 ||
+        indice >=
+        jogador.armas.length
+    ) {
+        return msg.reply(
+            "❌ Arma inválida. Use `,inventario`."
+        );
     }
 
-    const novas = [];
+    const arma =
+        jogador.armas[indice];
 
-    for (const c of CONQUISTAS) {
-        if (jogador.conquistas.includes(c.id)) {
-            continue;
-        }
+    jogador.arma =
+        arma;
 
-        if (c.verificar(jogador)) {
-            jogador.conquistas.push(c.id);
-            novas.push(c);
-        }
-    }
+    salvarJogador(
+        jogador
+    );
 
-    return novas;
+    await msg.reply(
+        [
+            "⚔️ **ARMA EQUIPADA!**",
+            "",
+            `🗡️ ${arma.nome}`,
+            `⚔️ Ataque: +${arma.ataque}`,
+            `✨ ${arma.raridade}`
+        ].join("\n")
+    );
+}
+
+// ================================================================
+// AJUDA
+// ================================================================
+
+async function comandoAjuda(
+    msg
+) {
+    await msg.reply(
+        [
+            "⚔️ **RPG MUNDO ABERTO**",
+            "",
+            "👤 `,perfil`",
+            "🌲 `,cacar`",
+            "🏋️ `,treinar forca 5`",
+            "🗺️ `,viajar`",
+            "🏰 `,dangeou`",
+            "🎒 `,inventario`",
+            "⚔️ `,equipar 1`",
+            "",
+            "━━━━━━━━━━━━━━━━━━━━",
+            "",
+            "⚔️ **BATALHAS**",
+            "",
+            "As batalhas são solo e acontecem por turnos.",
+            "Cada turno mostra a situação do jogador e do inimigo.",
+            "",
+            "💥 Críticos podem causar dano dobrado.",
+            "💨 Velocidade aumenta sua chance de esquiva.",
+            "🛡️ Defesa reduz o dano recebido.",
+            "",
+            "━━━━━━━━━━━━━━━━━━━━",
+            "",
+            "📈 Derrote monstros para ganhar XP.",
+            "💰 Ganhe moedas.",
+            "🎁 Encontre equipamentos.",
+            "🔥 Suba de nível e fique mais forte."
+        ].join("\n")
+    );
 }
 
 // ================================================================
@@ -1502,542 +1763,141 @@ function verificarConquistas(jogador) {
 // ================================================================
 
 const comandos = {
-    perfil: async msg => {
-        const jogador =
-            db.getPlayer(msg.author.id);
 
-        const embed =
-            new EmbedBuilder()
-                .setColor('#5865F2')
-                .setTitle(
-                    `⚔️ Perfil de ${msg.author.username}`
-                )
-                .setThumbnail(
-                    msg.author.displayAvatarURL()
-                )
-                .addFields(
-                    {
-                        name: '👤 Nome',
-                        value:
-                            jogador.nome ||
-                            msg.author.username,
-                        inline: true
-                    },
-                    {
-                        name: '⭐ Nível',
-                        value:
-                            `${jogador.nivel}`,
-                        inline: true
-                    },
-                    {
-                        name: '💰 Moedas',
-                        value:
-                            `${jogador.moedas}`,
-                        inline: true
-                    },
-                    {
-                        name: '❤️ Vida',
-                        value:
-                            `${jogador.vida}/${jogador.vidaMax}`,
-                        inline: true
-                    },
-                    {
-                        name: '⚔️ Ataque',
-                        value:
-                            `${calcularAtaqueTotal(jogador)}`,
-                        inline: true
-                    },
-                    {
-                        name: '🛡️ Defesa',
-                        value:
-                            `${calcularDefesaTotal(jogador)}`,
-                        inline: true
-                    },
-                    {
-                        name: '🏃 Velocidade',
-                        value:
-                            `${jogador.velocidade}`,
-                        inline: true
-                    },
-                    {
-                        name: '🍀 Sorte',
-                        value:
-                            `${jogador.sorte}`,
-                        inline: true
-                    },
-                    {
-                        name: '🗺️ Mapa',
-                        value:
-                            jogador.mapaAtual,
-                        inline: true
-                    }
-                )
-                .setDescription(
-                    `XP: **${jogador.xp}/${jogador.xpProx}**\n` +
-                    `${barraProgresso(
-                        jogador.xp,
-                        jogador.xpProx
-                    )}`
-                )
-                .setFooter({
-                    text: 'RPG Mundo Aberto'
-                });
+    perfil: comandoPerfil,
 
-        await msg.reply({
-            embeds: [embed]
-        });
-    },
+    cacar: comandoCacar,
 
-    cacar: async msg => {
-        const jogador =
-            db.getPlayer(msg.author.id);
+    caçar: comandoCacar,
 
-        const cooldown =
-            cooldownRestante(
-                jogador.ultimaCaca,
-                30000
-            );
+    treinar: comandoTreinar,
 
-        if (cooldown > 0) {
-            return msg.reply(
-                `⏳ Aguarde **${cooldown}s** antes de caçar novamente.`
-            );
-        }
+    viajar: comandoViajar,
 
-        const expiracao =
-            verificarExpiracao(jogador);
+    dangeou: comandoDangeou,
 
-        if (expiracao.expirado) {
-            return msg.reply(
-                '⚠️ Sua conta expirou! Peça a um ADM para renovar.'
-            );
-        }
+    dungeon: comandoDangeou,
 
-        jogador.ultimaCaca = Date.now();
+    inventario: comandoInventario,
 
-        const mapa =
-            MAPAS[jogador.mapaAtual] ||
-            MAPAS['Floresta Inicial'];
+    inventário: comandoInventario,
 
-        const monstroBase =
-            escolherMonstro(jogador.nivel);
+    equipar: comandoEquipar,
 
-        const multiplicador =
-            1 +
-            (mapa.perigo || 1 - 1) *
-            0.2;
+    rpghelp: comandoAjuda,
 
-        const monstro = {
-            ...monstroBase,
-            vida: Math.floor(
-                monstroBase.vida *
-                multiplicador
-            ),
-            ataque: Math.floor(
-                monstroBase.ataque *
-                multiplicador
-            ),
-            defesa: Math.floor(
-                monstroBase.defesa *
-                multiplicador
-            ),
-            xp: Math.floor(
-                monstroBase.xp *
-                multiplicador
-            ),
-            moedas: Math.floor(
-                monstroBase.moedas *
-                multiplicador
-            )
-        };
+    rpg: comandoAjuda,
 
-        const resultado =
-            processarCombateIndividual(
-                jogador,
-                monstro
-            );
-
-        atualizarMissao(
-            jogador,
-            'primeira_caca'
-        );
-
-        atualizarMissao(
-            jogador,
-            'cacador'
-        );
-
-        if (resultado.venceu) {
-            jogador.moedas +=
-                monstro.moedas;
-
-            const subiu =
-                ganharXp(
-                    jogador,
-                    monstro.xp
-                );
-
-            let armaDrop = null;
-
-            if (Math.random() < 0.15) {
-                const tipos = [
-                    'ESPADAS',
-                    'FOICES',
-                    'MACHADOS'
-                ];
-
-                armaDrop =
-                    criarArmaAleatoria(
-                        tipos[
-                            Math.floor(
-                                Math.random() * 3
-                            )
-                        ],
-                        jogador
-                    );
-
-                if (armaDrop) {
-                    jogador.armas.push(
-                        armaDrop
-                    );
-                }
-            }
-
-            db.savePlayer(
-                msg.author.id
-            );
-
-            const embed =
-                new EmbedBuilder()
-                    .setColor('#2ecc71')
-                    .setTitle(
-                        `${monstro.emoji} Vitória!`
-                    )
-                    .setDescription(
-                        `Derrotou **${monstro.nome}**!`
-                    )
-                    .addFields(
-                        {
-                            name: '⭐ XP',
-                            value:
-                                `+${monstro.xp}`,
-                            inline: true
-                        },
-                        {
-                            name: '💰 Moedas',
-                            value:
-                                `+${monstro.moedas}`,
-                            inline: true
-                        },
-                        {
-                            name: '❤️ Vida',
-                            value:
-                                `${jogador.vida}/${jogador.vidaMax}`,
-                            inline: true
-                        }
-                    );
-
-            if (subiu.length) {
-                embed.addFields({
-                    name: '🎉 Level Up!',
-                    value:
-                        `Alcançou o nível **${jogador.nivel}**!`,
-                    inline: false
-                });
-            }
-
-            if (armaDrop) {
-                embed.addFields({
-                    name: '🎁 Drop!',
-                    value:
-                        formatarArma(
-                            armaDrop
-                        ),
-                    inline: false
-                });
-            }
-
-            await msg.reply({
-                embeds: [embed]
-            });
-        } else {
-            jogador.vida =
-                Math.max(
-                    1,
-                    Math.floor(
-                        jogador.vidaMax *
-                        0.1
-                    )
-                );
-
-            db.savePlayer(
-                msg.author.id
-            );
-
-            await msg.reply(
-                `${monstro.emoji} **${monstro.nome}** venceu!\n` +
-                `❤️ Ficou com **${jogador.vida}/${jogador.vidaMax} HP**.\n` +
-                `🏃 Recupere-se e tente novamente.`
-            );
-        }
-    },
-
-    treinar: async (msg, args) => {
-        const jogador =
-            db.getPlayer(msg.author.id);
-
-        const minutos =
-            parseInt(args[0], 10) || 10;
-
-        if (![10, 30, 60].includes(minutos)) {
-            return msg.reply(
-                '❌ Escolha: **10, 30 ou 60** minutos. Exemplo: `,treinar10`'
-            );
-        }
-
-        const cooldown =
-            cooldownRestante(
-                jogador.ultimoTreino,
-                minutos * 60000
-            );
-
-        if (cooldown > 0) {
-            return msg.reply(
-                `⏳ Aguarde **${formatarTempo(cooldown * 1000)}** para treinar novamente.`
-            );
-        }
-
-        const xp =
-            minutos * 10;
-
-        const moedas =
-            minutos * 2;
-
-        jogador.ultimoTreino =
-            Date.now();
-
-        const subiu =
-            ganharXp(
-                jogador,
-                xp
-            );
-
-        jogador.moedas += moedas;
-
-        db.savePlayer(
-            msg.author.id
-        );
-
-        let resposta =
-            `🏋️ Treinou por **${minutos} minutos**!\n\n` +
-            `⭐ XP: **+${xp}**\n` +
-            `💰 Moedas: **+${moedas}**`;
-
-        if (subiu.length) {
-            resposta +=
-                `\n🎉 Subiu para o nível **${jogador.nivel}**!`;
-        }
-
-        await msg.reply(resposta);
-    },
-
-    viajar: async (msg, args) => {
-        const jogador =
-            db.getPlayer(msg.author.id);
-
-        if (!args.length) {
-            const lista =
-                Object.entries(MAPAS)
-                    .map(
-                        ([nome, mapa]) => {
-                            const liberado =
-                                jogador.nivel >=
-                                mapa.nivelMin
-                                    ? '🟢'
-                                    : '🔒';
-
-                            return (
-                                `${liberado} **${nome}** — Nível ${mapa.nivelMin}-${mapa.nivelMax}\n` +
-                                `${mapa.desc}`
-                            );
-                        }
-                    )
-                    .join('\n\n');
-
-            return msg.reply({
-                embeds: [
-                    new EmbedBuilder()
-                        .setColor('#3498db')
-                        .setTitle(
-                            '🌍 Mapas disponíveis'
-                        )
-                        .setDescription(
-                            lista
-                        )
-                        .setFooter({
-                            text:
-                                'Use ,viajar "Nome do Mapa" para viajar'
-                        })
-                ]
-            });
-        }
-
-        const destino =
-            args.join(' ');
-
-        const mapaInfo =
-            MAPAS[destino];
-
-        if (!mapaInfo) {
-            return msg.reply(
-                '❌ Mapa não encontrado! Use `,viajar` para ver a lista.'
-            );
-        }
-
-        if (
-            jogador.nivel <
-            mapaInfo.nivelMin
-        ) {
-            return msg.reply(
-                `🚫 Precisa de nível **${mapaInfo.nivelMin}**! Você é nível ${jogador.nivel}.`
-            );
-        }
-
-        jogador.mapaAtual =
-            destino;
-
-        jogador.vida =
-            jogador.vidaMax;
-
-        db.savePlayer(
-            jogador.id
-        );
-
-        await msg.reply({
-            embeds: [
-                new EmbedBuilder()
-                    .setColor(
-                        mapaInfo.cor
-                    )
-                    .setTitle(
-                        `🌍 ${destino}`
-                    )
-                    .setDescription(
-                        mapaInfo.desc
-                    )
-                    .addFields(
-                        {
-                            name:
-                                '📊 Faixa de Nível',
-                            value:
-                                `${mapaInfo.nivelMin} a ${mapaInfo.nivelMax}`,
-                            inline: true
-                        },
-                        {
-                            name:
-                                '👹 Monstros',
-                            value:
-                                mapaInfo.monstros.join(
-                                    ', '
-                                ),
-                            inline: true
-                        },
-                        {
-                            name:
-                                '👑 Chefe',
-                            value:
-                                mapaInfo.chefe,
-                            inline: true
-                        },
-                        {
-                            name:
-                                '⚔️ Chance Dangeou',
-                            value:
-                                `${(
-                                    mapaInfo.chanceDangeou *
-                                    100
-                                ).toFixed(0)}%`,
-                            inline: true
-                        },
-                        {
-                            name:
-                                '⚔️ Chance Dupla',
-                            value:
-                                `${(
-                                    mapaInfo.chanceDangeouDupla *
-                                    100
-                                ).toFixed(0)}%`,
-                            inline: true
-                        }
-                    )
-                    .setFooter({
-                        text:
-                            '❤️ Vida restaurada ao entrar!'
-                    })
-            ]
-        });
-    },
-
-    dangeou: async (msg, args) => {
-        const jogador =
-            db.getPlayer(msg.author.id);
-
-        if (
-            sessoesCombate.has(
-                msg.author.id
-            )
-        ) {
-            return msg.reply(
-                '⚠️ Já está em andamento!'
-            );
-        }
-
-        const tipo =
-            args[0]?.toLowerCase() ===
-            'secreto'
-                ? 'secreto'
-                : 'normal';
-
-        if (
-            tipo === 'secreto' &&
-            jogador.nivel < 100
-        ) {
-            return msg.reply(
-                '🔒 Dangeou Secreto exige nível **100+**!'
-            );
-        }
-
-        const sessao =
-            gerarDangeou(
-                jogador,
-                tipo
-            );
-
-        sessoesCombate.set(
-            msg.author.id,
-            sessao
-        );
-
-        const tipoNome =
-            tipo === 'secreto'
-                ? '✨ **DANGEOU SECRETO**'
-                : '⚔️ **DANGEOU**';
-
-        await msg.reply(
-            `${tipoNome} iniciado em **${jogador.mapaAtual}**!\n` +
-            `Salas: ${sessao.salasTotal} | Tempo: 5 minutos`
-        );
-
-        await processarCombate(
-            msg.channel,
-            jogador,
-            sessao
-        );
-    }
+    ajuda: comandoAjuda
 };
 
 // ================================================================
-// EXPORTAÇÃO
+// INICIALIZAÇÃO
 // ================================================================
 
-module.exports = comandos;
+module.exports = function iniciarRpgBatalhas(
+    botClient
+) {
+    if (!botClient) {
+        throw new Error(
+            "Cliente Discord não foi fornecido."
+        );
+    }
+
+    client =
+        botClient;
+
+    if (inicializado) {
+        return client;
+    }
+
+    inicializado =
+        true;
+
+    client.on(
+        "messageCreate",
+        async msg => {
+            try {
+                if (
+                    !msg.guild ||
+                    msg.author.bot
+                ) {
+                    return;
+                }
+
+                if (
+                    !msg.content.startsWith(
+                        PREFIX
+                    )
+                ) {
+                    return;
+                }
+
+                const conteudo =
+                    msg.content
+                        .slice(
+                            PREFIX.length
+                        )
+                        .trim();
+
+                if (!conteudo) {
+                    return;
+                }
+
+                const partes =
+                    conteudo.split(
+                        /\s+/
+                    );
+
+                const nome =
+                    partes
+                        .shift()
+                        .toLowerCase();
+
+                const comando =
+                    comandos[nome];
+
+                if (!comando) {
+                    return;
+                }
+
+                const jogador =
+                    obterJogador(
+                        msg.author
+                    );
+
+                await comando(
+                    msg,
+                    jogador,
+                    partes
+                );
+
+                salvarJogador(
+                    jogador
+                );
+
+            } catch (erro) {
+                console.error(
+                    "[RPG BATALHAS] ERRO:",
+                    erro
+                );
+
+                try {
+                    await msg.reply(
+                        "❌ Ocorreu um erro no sistema do RPG."
+                    );
+                } catch {}
+            }
+        }
+    );
+
+    console.log(
+        "⚔️ RPG Batalhas carregado!"
+    );
+
+    console.log(
+        "🎬 Sistema de batalha narrada por turnos ativado!"
+    );
+
+    return client;
+};
