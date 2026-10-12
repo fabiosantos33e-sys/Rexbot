@@ -1,4 +1,6 @@
 
+const { EmbedBuilder } = require("discord.js");
+
 const dados = require("./dados");
 const armas = require("./armas");
 const monstros = require("./monstros");
@@ -17,6 +19,10 @@ const eventosEspeciais = require("./eventos_especiais");
 const progresso = require("./progresso");
 
 const PREFIXO = ",";
+const ROXO = 0x6425A8;
+const VERMELHO = 0xB51F35;
+const DOURADO = 0xE6B84B;
+const VERDE = 0x259B62;
 
 function numero(valor, padrao = 0) {
     const n = Number(valor);
@@ -25,10 +31,81 @@ function numero(valor, padrao = 0) {
 
 function nomeItem(item) {
     if (typeof item === "string") return item;
-    return item?.nome || item?.id || "Item";
+    if (item == null) return "Item";
+    if (typeof item === "object") {
+        return item.nome || item.name || item.id ||
+            item.descricao || JSON.stringify(item);
+    }
+    return String(item);
 }
 
-function dividirTexto(texto, limite = 1850) {
+function barra(atual, maximo, tamanho = 12) {
+    maximo = Math.max(1, numero(maximo, 1));
+    atual = Math.max(0, Math.min(maximo, numero(atual)));
+    const preenchido = Math.round((atual / maximo) * tamanho);
+    return "█".repeat(preenchido) +
+        "░".repeat(tamanho - preenchido);
+}
+
+function prepararJogador(jogador) {
+    jogador.nivel = Math.max(1, numero(jogador.nivel, 1));
+    jogador.xp = Math.max(0, numero(jogador.xp));
+    jogador.moedas = Math.max(0, numero(jogador.moedas, 100));
+    jogador.vidaMax = Math.max(1, numero(jogador.vidaMax, 100));
+    jogador.vida = Math.max(
+        0,
+        Math.min(jogador.vidaMax, numero(jogador.vida, jogador.vidaMax))
+    );
+
+    jogador.vidaMaxima = jogador.vidaMax;
+    jogador.vidaAtual = jogador.vida;
+    jogador.experiencia = jogador.xp;
+
+    if (jogador.armaAtual) {
+        jogador.armaEquipada = jogador.armaAtual;
+    }
+
+    return jogador;
+}
+
+function calcularXPProximo(jogador) {
+    try {
+        if (typeof recompensas.experienciaNecessaria === "function") {
+            return Math.max(
+                1,
+                numero(
+                    recompensas.experienciaNecessaria(jogador.nivel),
+                    100 + jogador.nivel * 50
+                )
+            );
+        }
+    } catch (erro) {
+        console.error("[Crônicas do Caos] XP:", erro.message);
+    }
+
+    return 100 + jogador.nivel * 50;
+}
+
+function salvar(jogador) {
+    jogador.vida = Math.max(
+        0,
+        Math.min(jogador.vidaMax, numero(jogador.vidaAtual, jogador.vida))
+    );
+
+    jogador.vidaMaxima = jogador.vidaMax;
+    jogador.experiencia = jogador.xp;
+    dados.salvarJogador(jogador);
+}
+
+function embedBase(titulo, cor = ROXO) {
+    return new EmbedBuilder()
+        .setColor(cor)
+        .setTitle(titulo)
+        .setFooter({ text: "CRÔNICAS DO CAOS • RPG" })
+        .setTimestamp();
+}
+
+function dividirTexto(texto, limite = 1000) {
     const partes = [];
     let atual = "";
 
@@ -50,10 +127,12 @@ async function responder(message, valor) {
         return message.reply("Não há informações disponíveis.");
     }
 
+    if (valor instanceof EmbedBuilder) {
+        return message.reply({ embeds: [valor] });
+    }
+
     if (typeof valor === "string") {
-        return message.reply({
-            content: valor.slice(0, 1950)
-        });
+        return message.reply({ content: valor.slice(0, 1950) });
     }
 
     if (Array.isArray(valor)) {
@@ -80,113 +159,246 @@ async function responder(message, valor) {
     return message.reply(String(valor));
 }
 
-function prepararJogador(jogador) {
-    jogador.nivel = Math.max(1, numero(jogador.nivel, 1));
-    jogador.xp = Math.max(0, numero(jogador.xp));
-    jogador.moedas = Math.max(0, numero(jogador.moedas, 100));
+function criarPerfilEmbed(jogador, usuario) {
+    const xpProximo = calcularXPProximo(jogador);
+    const arma = jogador.armaAtual
+        ? nomeItem(jogador.armaAtual)
+        : "Nenhuma arma equipada";
 
-    jogador.vidaMax = Math.max(1, numero(jogador.vidaMax, 100));
-    jogador.vida = Math.max(
-        0,
-        Math.min(jogador.vidaMax, numero(jogador.vida, jogador.vidaMax))
-    );
+    const xpAtual = numero(jogador.xp);
+    const xpExibido = Math.min(xpAtual, xpProximo);
 
-    // Compatibilidade com os campos usados pelo combate.
-    jogador.vidaMaxima = jogador.vidaMax;
-    jogador.vidaAtual = jogador.vida;
+    const embed = embedBase("⚔️・FICHA DO AVENTUREIRO")
+        .setThumbnail(usuario.displayAvatarURL({ size: 256 }))
+        .setDescription(
+            `> *As crônicas de **${usuario.username}** continuam...*\n\n` +
+            `**Classe:** ${jogador.classe || "Aventureiro"}\n` +
+            `**Nível:** ${jogador.nivel}/400\n` +
+            `**Região:** ${jogador.mapaAtual || "Vila Inicial"}`
+        )
+        .addFields(
+            {
+                name: "❤️ VIDA",
+                value:
+                    `\`${barra(jogador.vida, jogador.vidaMax)}\`\n` +
+                    `**${jogador.vida} / ${jogador.vidaMax} HP**`,
+                inline: false
+            },
+            {
+                name: "✨ EXPERIÊNCIA",
+                value:
+                    `\`${barra(xpExibido, xpProximo)}\`\n` +
+                    `**${xpAtual} / ${xpProximo} XP**`,
+                inline: false
+            },
+            {
+                name: "⚔️ ATAQUE",
+                value: `**${numero(jogador.ataque)}**`,
+                inline: true
+            },
+            {
+                name: "🛡️ DEFESA",
+                value: `**${numero(jogador.defesa)}**`,
+                inline: true
+            },
+            {
+                name: "🍀 SORTE",
+                value: `**${numero(jogador.sorte, 1)}**`,
+                inline: true
+            },
+            {
+                name: "🗡️ ARMA EQUIPADA",
+                value: arma.slice(0, 1024),
+                inline: false
+            },
+            {
+                name: "🪙 TESOURO",
+                value: `**${numero(jogador.moedas)} moedas**`,
+                inline: true
+            },
+            {
+                name: "🏆 VITÓRIAS",
+                value: `**${numero(jogador.vitorias)}**`,
+                inline: true
+            },
+            {
+                name: "💀 DERROTAS",
+                value: `**${numero(jogador.derrotas)}**`,
+                inline: true
+            },
+            {
+                name: "📜 JORNADA",
+                value:
+                    `Monstros derrotados: **${numero(jogador.monstrosDerrotados)}**\n` +
+                    `Chefes derrotados: **${numero(jogador.chefesDerrotados)}**\n` +
+                    `Masmorras concluídas: **${numero(jogador.dungeonsConcluidas)}**`,
+                inline: false
+            }
+        );
 
-    if (jogador.armaAtual) {
-        jogador.armaEquipada = jogador.armaAtual;
-    }
-
-    return jogador;
+    return embed;
 }
 
-function calcularXPProximo(jogador) {
-    try {
-        if (typeof recompensas.experienciaNecessaria === "function") {
-            return Math.max(
-                1,
-                numero(
-                    recompensas.experienciaNecessaria(jogador.nivel),
-                    100 + jogador.nivel * 50
-                )
-            );
+function formatarRegistro(registro) {
+    if (typeof registro === "string") return registro;
+
+    if (typeof registro === "number") return String(registro);
+
+    if (registro && typeof registro === "object") {
+        const texto =
+            registro.mensagem ||
+            registro.texto ||
+            registro.narracao ||
+            registro.descricao ||
+            registro.description;
+
+        if (texto) return String(texto);
+
+        const ator = registro.atacante || registro.nome || registro.ator;
+        const acao = registro.acao || registro.ataque || registro.acaoNome;
+        const dano = registro.dano;
+
+        if (ator || acao || dano != null) {
+            return [
+                ator,
+                acao,
+                dano != null ? `💥 ${dano} de dano` : ""
+            ].filter(Boolean).join(" — ");
         }
-    } catch (erro) {
-        console.error("[Crônicas do Caos] Cálculo de XP:", erro.message);
+
+        return "";
     }
 
-    return 100 + jogador.nivel * 50;
+    return "";
+}
+
+function criarBatalhaEmbed(jogador, monstro, resultado) {
+    const venceu = Boolean(resultado.venceu);
+    const cor = venceu ? VERDE : VERMELHO;
+
+    const vidaMonstroMax = numero(
+        resultado.vidaMonstroInicial,
+        monstro.vida || 1
+    );
+
+    const vidaMonstroFinal = numero(resultado.vidaMonstroFinal);
+    const vidaInicial = numero(resultado.vidaInicial, jogador.vidaMax);
+    const vidaFinal = numero(resultado.vidaFinal);
+
+    const embed = embedBase(
+        venceu
+            ? "🏆・VITÓRIA NA BATALHA"
+            : "☠️・DERROTA NA BATALHA",
+        cor
+    )
+        .setDescription(
+            `*${monstro.narracao || "Uma criatura surge das sombras..."}*\n\n` +
+            `## ${monstro.nome || "Criatura desconhecida"}\n` +
+            `📍 **Região:** ${monstro.mapa || jogador.mapaAtual}\n` +
+            `⚔️ **Nível do inimigo:** ${numero(monstro.nivel, 1)}`
+        )
+        .addFields(
+            {
+                name: "🩸 VIDA DO INIMIGO",
+                value:
+                    `\`${barra(vidaMonstroFinal, vidaMonstroMax)}\`\n` +
+                    `**${Math.max(0, vidaMonstroFinal)} / ${vidaMonstroMax} HP**`,
+                inline: false
+            },
+            {
+                name: "❤️ SUA VIDA DURANTE A BATALHA",
+                value:
+                    `**${Math.max(0, vidaFinal)} / ${jogador.vidaMax} HP**`,
+                inline: true
+            },
+            {
+                name: "💥 DANO CAUSADO",
+                value: `**${numero(resultado.danoCausado)}**`,
+                inline: true
+            },
+            {
+                name: "🛡️ DANO RECEBIDO",
+                value: `**${numero(resultado.danoRecebido)}**`,
+                inline: true
+            }
+        );
+
+    const registros = Array.isArray(resultado.registros)
+        ? resultado.registros.map(formatarRegistro).filter(Boolean)
+        : [];
+
+    if (registros.length) {
+        const linhas = registros.slice(-8);
+        const texto = dividirTexto(linhas.join("\n"), 1000);
+
+        embed.addFields({
+            name: "📖・RELATO DO COMBATE",
+            value: texto[0] || "O confronto terminou.",
+            inline: false
+        });
+
+        if (texto.length > 1) {
+            embed.addFields({
+                name: "📖・CONTINUAÇÃO",
+                value: texto.slice(1).join("\n").slice(0, 1000),
+                inline: false
+            });
+        }
+    } else if (resultado.mensagem) {
+        embed.addFields({
+            name: "📖・RELATO DO COMBATE",
+            value: String(resultado.mensagem).slice(0, 1000),
+            inline: false
+        });
+    }
+
+    return embed;
 }
 
 function subirNivel(jogador) {
     const mensagens = [];
-
     jogador.xpProx = calcularXPProximo(jogador);
 
     while (jogador.nivel < 400 && jogador.xp >= jogador.xpProx) {
         jogador.xp -= jogador.xpProx;
         jogador.nivel++;
-
         jogador.vidaMax += 10;
         jogador.ataque += 2;
         jogador.defesa += 1;
         jogador.vida = jogador.vidaMax;
-
         jogador.xpProx = calcularXPProximo(jogador);
 
         mensagens.push(
-            `🌟 Você alcançou o **nível ${jogador.nivel}**!\n` +
-            "❤️ +10 de vida máxima | ⚔️ +2 de ataque | 🛡️ +1 de defesa"
+            `🌟 **NÍVEL ${jogador.nivel} ALCANÇADO!**\n` +
+            "❤️ +10 vida máxima • ⚔️ +2 ataque • 🛡️ +1 defesa"
         );
     }
 
-    if (jogador.nivel >= 400) {
-        jogador.nivel = 400;
-    }
-
+    if (jogador.nivel >= 400) jogador.nivel = 400;
     return mensagens;
 }
 
-function salvar(jogador) {
-    // Mantém os campos sincronizados antes de persistir.
-    jogador.vida = Math.max(
-        0,
-        Math.min(jogador.vidaMax, numero(jogador.vidaAtual, jogador.vida))
-    );
-
-    jogador.vidaMaxima = jogador.vidaMax;
-    dados.salvarJogador(jogador);
-}
-
 async function executarCaca(message, jogador) {
-    if (jogador.vida <= 0) {
-        jogador.vida = jogador.vidaMax;
-    }
+    if (jogador.vida <= 0) jogador.vida = jogador.vidaMax;
 
     const monstro = combate.obterMonstroParaBatalha(jogador.nivel);
 
     if (!monstro) {
-        return message.reply("Não foi possível encontrar um monstro.");
+        return message.reply("❌ Nenhum monstro foi encontrado.");
     }
 
-    const introducao =
-        `🌑 **ENCONTRO: ${monstro.nome}**\n` +
-        `${monstro.narracao || "Uma criatura aparece diante de você!"}\n` +
-        `📍 Região: **${monstro.mapa || jogador.mapaAtual}**`;
-
-    // O combate usa vidaMaxima/vidaAtual; sincronizamos com vidaMax/vida.
     jogador.vidaMaxima = jogador.vidaMax;
     jogador.vidaAtual = jogador.vida;
     jogador.armaEquipada = jogador.armaAtual || jogador.armaEquipada;
 
     const resultado = combate.simularCombate(jogador, monstro);
 
-    jogador.vida = jogador.vidaAtual;
-    jogador.vidaMaxima = jogador.vidaMax;
+    jogador.vida = numero(jogador.vidaAtual, jogador.vida);
+    jogador.xp = numero(jogador.xp);
+    jogador.experiencia = jogador.xp;
 
     let recompensaTexto = "";
+    let niveis = [];
 
     if (resultado.venceu) {
         const xpGanho = Math.max(0, numero(monstro.xp, 20));
@@ -199,15 +411,8 @@ async function executarCaca(message, jogador) {
             numero(jogador.monstrosDerrotados) + 1;
 
         recompensaTexto =
-            `\n\n🎁 **RECOMPENSAS**\n` +
-            `✨ +${xpGanho} XP\n` +
-            `🪙 +${moedasGanhas} moedas`;
-
-        if (Math.random() < numero(monstro.chanceItem, 0)) {
-            recompensaTexto +=
-                "\n🎲 A criatura deixou uma oportunidade de saque, " +
-                "mas nenhum item automático foi configurado para este monstro.";
-        }
+            `✨ **+${xpGanho} XP**\n` +
+            `🪙 **+${moedasGanhas} moedas**`;
 
         try {
             if (typeof missoes.registrarVitoria === "function") {
@@ -220,9 +425,10 @@ async function executarCaca(message, jogador) {
 
             if (typeof conquistas.verificarConquistas === "function") {
                 const novas = conquistas.verificarConquistas(jogador);
+
                 if (Array.isArray(novas) && novas.length) {
                     recompensaTexto +=
-                        "\n\n🏅 **Novas conquistas**\n" +
+                        "\n\n🏅 **CONQUISTAS DESBLOQUEADAS**\n" +
                         novas.map(nomeItem).join("\n");
                 }
             }
@@ -230,33 +436,45 @@ async function executarCaca(message, jogador) {
             console.error("[Crônicas do Caos] Progresso:", erro.message);
         }
 
-        const niveis = subirNivel(jogador);
-
-        if (niveis.length) {
-            recompensaTexto += "\n\n" + niveis.join("\n\n");
-        }
+        niveis = subirNivel(jogador);
     } else {
         jogador.derrotas = numero(jogador.derrotas) + 1;
     }
 
-    // A vida é recuperada após a batalha, seja vitória ou derrota.
+    const batalhaEmbed = criarBatalhaEmbed(jogador, monstro, resultado);
+
+    // A vida é restaurada após a batalha, tanto na vitória quanto na derrota.
     jogador.vida = jogador.vidaMax;
     jogador.vidaAtual = jogador.vidaMax;
     jogador.vidaMaxima = jogador.vidaMax;
-
-    recompensaTexto +=
-        `\n\n❤️ **Recuperação pós-batalha**\n` +
-        `Sua vida foi restaurada para **${jogador.vida}/${jogador.vidaMax}**.`;
+    jogador.experiencia = jogador.xp;
 
     salvar(jogador);
 
-    const textoFinal =
-        introducao + "\n\n" +
-        (resultado.mensagem || "A batalha terminou.") +
-        recompensaTexto;
+    await message.channel.send({ embeds: [batalhaEmbed] });
 
-    for (const parte of dividirTexto(textoFinal)) {
-        await message.channel.send(parte);
+    if (recompensaTexto || niveis.length) {
+        const recompensaEmbed = embedBase(
+            "🎁・RESULTADO DA JORNADA",
+            DOURADO
+        ).setDescription(
+            (recompensaTexto || "Nenhuma recompensa recebida.") +
+            (niveis.length ? "\n\n" + niveis.join("\n\n") : "") +
+            `\n\n❤️ **Vida restaurada:** ${jogador.vida}/${jogador.vidaMax} HP`
+        );
+
+        await message.channel.send({ embeds: [recompensaEmbed] });
+    } else {
+        const recuperacaoEmbed = embedBase(
+            "❤️・RECUPERAÇÃO PÓS-BATALHA",
+            ROXO
+        ).setDescription(
+            `Você recuperou suas forças.\n\n` +
+            `\`${barra(jogador.vida, jogador.vidaMax)}\`\n` +
+            `**${jogador.vida}/${jogador.vidaMax} HP restaurados.**`
+        );
+
+        await message.channel.send({ embeds: [recuperacaoEmbed] });
     }
 }
 
@@ -285,7 +503,10 @@ module.exports = function (client) {
 
         try {
             const jogador = prepararJogador(
-                dados.getJogador(message.author.id, message.author.username)
+                dados.getJogador(
+                    message.author.id,
+                    message.author.username
+                )
             );
 
             switch (comando) {
@@ -294,7 +515,9 @@ module.exports = function (client) {
                     return await executarCaca(message, jogador);
 
                 case "perfil":
-                    return await responder(message, perfil.gerarPerfil(jogador));
+                    return await message.reply({
+                        embeds: [criarPerfilEmbed(jogador, message.author)]
+                    });
 
                 case "progresso":
                     return await responder(
@@ -347,16 +570,16 @@ module.exports = function (client) {
             }
         } catch (erro) {
             console.error(
-                `[Crônicas do Caos] Erro no comando ${comando}:`,
+                `[Crônicas do Caos] Erro em ${comando}:`,
                 erro.stack || erro
             );
 
             return message.reply(
-                "❌ O comando encontrou um erro. Confira os logs do Render."
+                "❌ Ocorreu um erro neste comando. Confira os logs do Render."
             ).catch(() => {});
         }
     });
 
-    console.log("[Crônicas do Caos] Sistema de RPG conectado.");
+    console.log("[Crônicas do Caos] RPG conectado com embeds.");
 };
 
