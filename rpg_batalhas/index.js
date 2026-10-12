@@ -18,135 +18,345 @@ const progresso = require("./progresso");
 
 const PREFIXO = ",";
 
+function numero(valor, padrao = 0) {
+    const n = Number(valor);
+    return Number.isFinite(n) ? n : padrao;
+}
+
+function nomeItem(item) {
+    if (typeof item === "string") return item;
+    return item?.nome || item?.id || "Item";
+}
+
+function dividirTexto(texto, limite = 1850) {
+    const partes = [];
+    let atual = "";
+
+    for (const linha of String(texto).split("\n")) {
+        if ((atual + "\n" + linha).length > limite && atual) {
+            partes.push(atual);
+            atual = linha;
+        } else {
+            atual += (atual ? "\n" : "") + linha;
+        }
+    }
+
+    if (atual) partes.push(atual);
+    return partes;
+}
+
+async function responder(message, valor) {
+    if (valor == null) {
+        return message.reply("Não há informações disponíveis.");
+    }
+
+    if (typeof valor === "string") {
+        return message.reply({
+            content: valor.slice(0, 1950)
+        });
+    }
+
+    if (Array.isArray(valor)) {
+        const texto = valor.map(nomeItem).join("\n");
+        return message.reply(texto.slice(0, 1950) || "Lista vazia.");
+    }
+
+    if (typeof valor === "object") {
+        if (valor.embeds || valor.content || valor.components) {
+            return message.reply(valor);
+        }
+
+        if (valor.title || valor.description || valor.fields) {
+            return message.reply({ embeds: [valor] });
+        }
+
+        return message.reply(
+            "```json\n" +
+            JSON.stringify(valor, null, 2).slice(0, 1800) +
+            "\n```"
+        );
+    }
+
+    return message.reply(String(valor));
+}
+
+function prepararJogador(jogador) {
+    jogador.nivel = Math.max(1, numero(jogador.nivel, 1));
+    jogador.xp = Math.max(0, numero(jogador.xp));
+    jogador.moedas = Math.max(0, numero(jogador.moedas, 100));
+
+    jogador.vidaMax = Math.max(1, numero(jogador.vidaMax, 100));
+    jogador.vida = Math.max(
+        0,
+        Math.min(jogador.vidaMax, numero(jogador.vida, jogador.vidaMax))
+    );
+
+    // Compatibilidade com os campos usados pelo combate.
+    jogador.vidaMaxima = jogador.vidaMax;
+    jogador.vidaAtual = jogador.vida;
+
+    if (jogador.armaAtual) {
+        jogador.armaEquipada = jogador.armaAtual;
+    }
+
+    return jogador;
+}
+
+function calcularXPProximo(jogador) {
+    try {
+        if (typeof recompensas.experienciaNecessaria === "function") {
+            return Math.max(
+                1,
+                numero(
+                    recompensas.experienciaNecessaria(jogador.nivel),
+                    100 + jogador.nivel * 50
+                )
+            );
+        }
+    } catch (erro) {
+        console.error("[Crônicas do Caos] Cálculo de XP:", erro.message);
+    }
+
+    return 100 + jogador.nivel * 50;
+}
+
+function subirNivel(jogador) {
+    const mensagens = [];
+
+    jogador.xpProx = calcularXPProximo(jogador);
+
+    while (jogador.nivel < 400 && jogador.xp >= jogador.xpProx) {
+        jogador.xp -= jogador.xpProx;
+        jogador.nivel++;
+
+        jogador.vidaMax += 10;
+        jogador.ataque += 2;
+        jogador.defesa += 1;
+        jogador.vida = jogador.vidaMax;
+
+        jogador.xpProx = calcularXPProximo(jogador);
+
+        mensagens.push(
+            `🌟 Você alcançou o **nível ${jogador.nivel}**!\n` +
+            "❤️ +10 de vida máxima | ⚔️ +2 de ataque | 🛡️ +1 de defesa"
+        );
+    }
+
+    if (jogador.nivel >= 400) {
+        jogador.nivel = 400;
+    }
+
+    return mensagens;
+}
+
+function salvar(jogador) {
+    // Mantém os campos sincronizados antes de persistir.
+    jogador.vida = Math.max(
+        0,
+        Math.min(jogador.vidaMax, numero(jogador.vidaAtual, jogador.vida))
+    );
+
+    jogador.vidaMaxima = jogador.vidaMax;
+    dados.salvarJogador(jogador);
+}
+
+async function executarCaca(message, jogador) {
+    if (jogador.vida <= 0) {
+        jogador.vida = jogador.vidaMax;
+    }
+
+    const monstro = combate.obterMonstroParaBatalha(jogador.nivel);
+
+    if (!monstro) {
+        return message.reply("Não foi possível encontrar um monstro.");
+    }
+
+    const introducao =
+        `🌑 **ENCONTRO: ${monstro.nome}**\n` +
+        `${monstro.narracao || "Uma criatura aparece diante de você!"}\n` +
+        `📍 Região: **${monstro.mapa || jogador.mapaAtual}**`;
+
+    // O combate usa vidaMaxima/vidaAtual; sincronizamos com vidaMax/vida.
+    jogador.vidaMaxima = jogador.vidaMax;
+    jogador.vidaAtual = jogador.vida;
+    jogador.armaEquipada = jogador.armaAtual || jogador.armaEquipada;
+
+    const resultado = combate.simularCombate(jogador, monstro);
+
+    jogador.vida = jogador.vidaAtual;
+    jogador.vidaMaxima = jogador.vidaMax;
+
+    let recompensaTexto = "";
+
+    if (resultado.venceu) {
+        const xpGanho = Math.max(0, numero(monstro.xp, 20));
+        const moedasGanhas = Math.max(0, numero(monstro.moedas, 10));
+
+        jogador.xp += xpGanho;
+        jogador.moedas += moedasGanhas;
+        jogador.vitorias = numero(jogador.vitorias) + 1;
+        jogador.monstrosDerrotados =
+            numero(jogador.monstrosDerrotados) + 1;
+
+        recompensaTexto =
+            `\n\n🎁 **RECOMPENSAS**\n` +
+            `✨ +${xpGanho} XP\n` +
+            `🪙 +${moedasGanhas} moedas`;
+
+        if (Math.random() < numero(monstro.chanceItem, 0)) {
+            recompensaTexto +=
+                "\n🎲 A criatura deixou uma oportunidade de saque, " +
+                "mas nenhum item automático foi configurado para este monstro.";
+        }
+
+        try {
+            if (typeof missoes.registrarVitoria === "function") {
+                missoes.registrarVitoria(jogador);
+            }
+
+            if (typeof missoes.registrarMonstroDerrotado === "function") {
+                missoes.registrarMonstroDerrotado(jogador, monstro);
+            }
+
+            if (typeof conquistas.verificarConquistas === "function") {
+                const novas = conquistas.verificarConquistas(jogador);
+                if (Array.isArray(novas) && novas.length) {
+                    recompensaTexto +=
+                        "\n\n🏅 **Novas conquistas**\n" +
+                        novas.map(nomeItem).join("\n");
+                }
+            }
+        } catch (erro) {
+            console.error("[Crônicas do Caos] Progresso:", erro.message);
+        }
+
+        const niveis = subirNivel(jogador);
+
+        if (niveis.length) {
+            recompensaTexto += "\n\n" + niveis.join("\n\n");
+        }
+    } else {
+        jogador.derrotas = numero(jogador.derrotas) + 1;
+    }
+
+    // A vida é recuperada após a batalha, seja vitória ou derrota.
+    jogador.vida = jogador.vidaMax;
+    jogador.vidaAtual = jogador.vidaMax;
+    jogador.vidaMaxima = jogador.vidaMax;
+
+    recompensaTexto +=
+        `\n\n❤️ **Recuperação pós-batalha**\n` +
+        `Sua vida foi restaurada para **${jogador.vida}/${jogador.vidaMax}**.`;
+
+    salvar(jogador);
+
+    const textoFinal =
+        introducao + "\n\n" +
+        (resultado.mensagem || "A batalha terminou.") +
+        recompensaTexto;
+
+    for (const parte of dividirTexto(textoFinal)) {
+        await message.channel.send(parte);
+    }
+}
+
 module.exports = function (client) {
     dados.carregarBanco();
 
-    client.on("messageCreate", async (message) => {
+    client.on("messageCreate", async message => {
         if (message.author.bot || !message.guild) return;
         if (!message.content.startsWith(PREFIXO)) return;
 
-        const args = message.content.slice(PREFIXO.length).trim().split(/\s+/);
+        const args = message.content
+            .slice(PREFIXO.length)
+            .trim()
+            .split(/\s+/);
+
         const comando = (args.shift() || "").toLowerCase();
 
+        const comandos = [
+            "cacar", "caçar", "perfil", "progresso", "armas",
+            "mapas", "chefes", "dungeons", "loja", "missoes",
+            "missões", "conquistas", "ranking", "eventos",
+            "eventosglobal"
+        ];
+
+        if (!comandos.includes(comando)) return;
+
         try {
-            const jogador = dados.getJogador(
-                message.author.id,
-                message.author.username
+            const jogador = prepararJogador(
+                dados.getJogador(message.author.id, message.author.username)
             );
 
-            if (comando === "rpghelp" || comando === "rpgajuda") {
-                return message.reply({
-                    embeds: [{
-                        color: 0x5427A8,
-                        title: "⚔️ CRÔNICAS DO CAOS — GUIA DO AVENTUREIRO",
-                        description:
-                            "Explore mapas, enfrente monstros, conquiste armas e evolua até o nível 400.\n\n" +
-                            "**👤 Personagem**\n" +
-                            "`,perfil` — mostra seu personagem.\n" +
-                            "`,progresso` — mostra nível e experiência.\n" +
-                            "`,ranking` — consulta o ranking.\n\n" +
-                            "**⚔️ Combate**\n" +
-                            "`,caçar` — tenta encontrar um inimigo.\n" +
-                            "`,mapas` — consulta os mapas.\n" +
-                            "`,chefes` — consulta os chefes.\n" +
-                            "`,dungeons` — consulta as dungeons.\n\n" +
-                            "**🎒 Equipamentos**\n" +
-                            "`,armas` — lista as armas disponíveis.\n" +
-                            "`,loja` — abre a loja de armas.\n" +
-                            "`,missoes` — consulta as missões.\n" +
-                            "`,conquistas` — consulta conquistas.\n\n" +
-                            "**🌌 Outros sistemas**\n" +
-                            "`,eventos` — consulta eventos aleatórios.\n" +
-                            "`,eventosglobal` — consulta eventos especiais.\n\n" +
-                            "⚠️ A lista mostra os comandos planejados para este painel; alguns sistemas ainda precisam de suas ações de jogo."
-                    }]
-                });
-            }
+            switch (comando) {
+                case "cacar":
+                case "caçar":
+                    return await executarCaca(message, jogador);
 
-            if (comando === "perfil") {
-                const embed = perfil.gerarPerfil(jogador);
-                return message.reply({ embeds: [embed] });
-            }
+                case "perfil":
+                    return await responder(message, perfil.gerarPerfil(jogador));
 
-            if (comando === "progresso") {
-                return message.reply(progresso.formatarProgresso(jogador));
-            }
+                case "progresso":
+                    return await responder(
+                        message,
+                        progresso.formatarProgresso(jogador)
+                    );
 
-            if (comando === "mapas") {
-                const lista = mapas.listarMapas();
-                return message.reply(
-                    `🗺️ **Mapas disponíveis**\n${lista.map(m => `• ${m.nome || m.id || m}`).join("\n")}`
-                );
-            }
+                case "armas":
+                    return await responder(message, armas.listarArmas());
 
-            if (comando === "chefes") {
-                const lista = chefes.listarChefes();
-                return message.reply(
-                    `👹 **Chefes**\n${lista.map(c => `• ${c.nome || c.id}`).join("\n")}`
-                );
-            }
+                case "mapas":
+                    return await responder(message, mapas.listarMapas());
 
-            if (comando === "dungeons") {
-                const lista = dungeons.listarDungeons();
-                return message.reply(
-                    `🏰 **Dungeons**\n${lista.map(d => `• ${d.nome || d.id}`).join("\n")}`
-                );
-            }
+                case "chefes":
+                    return await responder(message, chefes.listarChefes());
 
-            if (comando === "armas") {
-                const lista = armas.listarArmas();
-                return message.reply(
-                    `⚔️ **Armas**\n${lista.map(a => `• ${a.nome || a.id}`).join("\n")}`
-                );
-            }
+                case "dungeons":
+                    return await responder(message, dungeons.listarDungeons());
 
-            if (comando === "loja") {
-                const lista = loja.gerarLoja(jogador);
-                return message.reply(typeof lista === "string" ? lista : {
-                    embeds: [lista]
-                });
-            }
+                case "loja":
+                    return await responder(message, loja.gerarLoja(jogador));
 
-            if (comando === "missoes") {
-                const lista = missoes.formatarMissoes(jogador);
-                return message.reply(lista);
-            }
+                case "missoes":
+                case "missões":
+                    return await responder(
+                        message,
+                        missoes.formatarMissoes(jogador)
+                    );
 
-            if (comando === "conquistas") {
-                const lista = conquistas.gerarPainel(jogador);
-                return message.reply(typeof lista === "string" ? lista : {
-                    embeds: [lista]
-                });
-            }
+                case "conquistas":
+                    return await responder(
+                        message,
+                        conquistas.gerarPainel(jogador)
+                    );
 
-            if (comando === "eventos") {
-                const lista = eventos.listarEventosDisponiveis(jogador);
-                return message.reply(
-                    `🎲 **Eventos aleatórios**\n${lista.map(e => `• ${e.nome || e.id}`).join("\n")}`
-                );
-            }
+                case "ranking":
+                    return await responder(message, ranking.gerarRanking());
 
-            if (comando === "eventosglobal") {
-                const lista = eventosEspeciais.formatarListaEventos();
-                return message.reply(lista);
-            }
+                case "eventos":
+                    return await responder(
+                        message,
+                        eventos.listarEventosDisponiveis(jogador)
+                    );
 
-            if (comando === "ranking") {
-                const lista = ranking.gerarRanking();
-                return message.reply(typeof lista === "string" ? lista : {
-                    embeds: [lista]
-                });
+                case "eventosglobal":
+                    return await responder(
+                        message,
+                        eventosEspeciais.formatarListaEventos()
+                    );
             }
-
-            return;
         } catch (erro) {
-            console.error(`[Crônicas do Caos] Erro no comando ${comando}:`, erro);
+            console.error(
+                `[Crônicas do Caos] Erro no comando ${comando}:`,
+                erro.stack || erro
+            );
+
             return message.reply(
-                "❌ Ocorreu um erro ao executar esse comando. A equipe precisa verificar o console."
+                "❌ O comando encontrou um erro. Confira os logs do Render."
             ).catch(() => {});
         }
     });
 
-    console.log("[Crônicas do Caos] Módulos carregados.");
+    console.log("[Crônicas do Caos] Sistema de RPG conectado.");
 };
 

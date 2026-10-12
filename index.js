@@ -266,7 +266,7 @@ require("./instagram")(client);
 
 require('./ticketparceria')(client);
 
-require("./rpg_batalhas")(client);
+require("./rpg_batalhas/index.js")(client);
 
 console.log("VAI FAZER LOGIN");
 
