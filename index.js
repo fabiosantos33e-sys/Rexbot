@@ -266,13 +266,9 @@ require("./instagram")(client);
 
 require('./ticketparceria')(client);
 
-require("./rpg_extra.js")(client);
+require("./boasvindas")(client);
 
-require("./rpg.js")(client);
 
-require("./rpg_dungeo_raid.js")(client);
-
-require("./canalplayer.js")(client);
 
 console.log("VAI FAZER LOGIN");
 
