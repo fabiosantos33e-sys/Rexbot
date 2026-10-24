@@ -1,117 +1,71 @@
-const {
-  Events,
-  EmbedBuilder
-} = require("discord.js");
 
-// ===============================
+const { EmbedBuilder } = require("discord.js");
+
 // CONFIGURAÇÕES
-// ===============================
-
-const CANAL_BOAS_VINDAS = "1545947041216077955";
-const CARGO_MEMBRO = "1546124481939111986";
-
-// ===============================
-// SISTEMA DE BOAS-VINDAS
-// ===============================
+const CANAL_BOAS_VINDAS = "1563578040846385163";
+const CARGO_MEMBRO = "1563549638663872653";
 
 module.exports = (client) => {
-
-  client.on(Events.GuildMemberUpdate, async (membroAntigo, membroNovo) => {
+  client.on("guildMemberAdd", async (member) => {
     try {
+      // ADICIONAR CARGO DE MEMBRO
+      const cargo = member.guild.roles.cache.get(CARGO_MEMBRO);
 
-      // Verifica se o membro acabou de receber o cargo Membro
-      const recebeuCargo =
-        !membroAntigo.roles.cache.has(CARGO_MEMBRO) &&
-        membroNovo.roles.cache.has(CARGO_MEMBRO);
-
-      if (!recebeuCargo) return;
-
-      // Procura o canal geral
-      const canal = membroNovo.guild.channels.cache.get(CANAL_BOAS_VINDAS);
-
-      if (!canal) {
-        console.log("❌ Canal de boas-vindas não encontrado.");
-        return;
+      if (cargo) {
+        await member.roles.add(cargo);
       }
 
-      // Procura o cargo Membro
-      const cargo = membroNovo.guild.roles.cache.get(CARGO_MEMBRO);
+      // BUSCAR CANAL DE BOAS-VINDAS
+      const canal = member.guild.channels.cache.get(
+        CANAL_BOAS_VINDAS
+      );
 
-      if (!cargo) {
-        console.log("❌ Cargo Membro não encontrado.");
-        return;
-      }
+      if (!canal || !canal.isTextBased()) return;
 
-      // ===============================
-      // EMBED
-      // ===============================
-
+      // EMBED DE BOAS-VINDAS
       const embed = new EmbedBuilder()
-        .setColor(0x5865F2)
-        .setTitle("🏛️⚡ BEM-VINDO(A) AO GUARDIAN OF OLYMPUS ⚡🏛️")
+        .setColor("#8B5CF6")
+        .setTitle("╭・✦ SEJA BEM-VINDO(A)! ✦")
         .setDescription(
-          `**⚡ Os portões do Olimpo acabam de se abrir para você. ⚡**\n\n` +
-
-          `🏛️ Entre os salões dos deuses, cada chegada marca o início de uma nova história.\n\n` +
-
-          `⚔️ **Aqui, honra não é apenas uma palavra.**\n` +
-          `É aquilo que carregamos em nossas atitudes.\n\n` +
-
-          `⚡ **Aqui, cada membro representa uma força.**\n` +
-          `Cada batalha pode escrever uma nova história.\n\n` +
-
-          `🛡️ **Respeito, lealdade e união** são os pilares que mantêm nosso Olimpo de pé.\n\n` +
-
-          `🌩️ Respeite seus companheiros.\n` +
-          `⚔️ Siga as regras do reino.\n` +
-          `🏛️ Ajude a fortalecer nossa comunidade.\n` +
-          `⚡ E, acima de tudo, aproveite sua jornada.\n\n` +
-
-          `━━━━━━━━━━━━━━━━━━━━\n\n` +
-
-          `**🌩️ O destino reservou um lugar para você entre nós. 🌩️**\n\n` +
-
-          `Que os céus reconheçam sua chegada,\n` +
-          `que os deuses testemunhem sua jornada\n` +
-          `e que seu nome seja lembrado pelos feitos que ainda estão por vir.\n\n` +
-
-          `🏛️⚡ **Bem-vindo(a) ao Guardian of Olympus!** ⚡🏛️`
+          `╭・Olá, ${member}!\n` +
+          `╰・Seja muito bem-vindo(a) ao **${member.guild.name}**! 💜\n\n` +
+          `✦ Esperamos que você se divirta e faça novas amizades!\n\n` +
+          `╭・📜 Leia as regras do servidor.\n` +
+          `├・💬 Interaja com a comunidade.\n` +
+          `╰・✨ Aproveite sua estadia!\n\n` +
+          `> 👥 **Membro número:** ${member.guild.memberCount}`
         )
         .setThumbnail(
-          membroNovo.user.displayAvatarURL({
-            dynamic: true,
-            size: 256
-          })
+          member.user.displayAvatarURL({ size: 256 })
+        )
+        .setImage(
+          "https://cdn.discordapp.com/embed/avatars/0.png"
         )
         .setFooter({
-          text: "Guardian of Olympus • O Olimpo recebe mais um guerreiro."
+          text: "Zuno • Sistema de Boas-Vindas",
+          iconURL: client.user.displayAvatarURL()
         })
         .setTimestamp();
 
-      // ===============================
-      // ENVIA NO CHAT GERAL
-      // ===============================
-
+      // MARCAR A PESSOA QUE ENTROU
       await canal.send({
-        content: `${membroNovo} ${cargo}`,
+        content: `🎉 Olá, ${member}! Seja bem-vindo(a)!`,
         embeds: [embed],
         allowedMentions: {
-          users: [membroNovo.id],
-          roles: [CARGO_MEMBRO]
+          users: [member.id]
         }
       });
 
       console.log(
-        `🏛️⚡ Boas-vindas enviadas para ${membroNovo.user.tag}`
+        `${member.user.tag} entrou no servidor!`
       );
 
-    } catch (erro) {
+    } catch (error) {
       console.error(
-        "❌ Erro no sistema de boas-vindas:",
-        erro
+        "Erro nas boas-vindas do Zuno:",
+        error
       );
     }
   });
-
-  console.log("🏛️⚡ Sistema de boas-vindas do Guardian of Olympus carregado!");
 };
+
